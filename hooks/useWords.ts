@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { Word } from '../types';
 import { LANGUAGE_ORDER } from '../constants';
+import defaultWordsCSV from '../data/default-words.csv';
 
 const parseCSVToWords = (csvText: string): Word[] => {
     const lines = csvText.trim().split('\n');
@@ -71,7 +72,7 @@ export const useWords = () => {
     useEffect(() => {
         const loadDefaultWords = async () => {
             try {
-                const response = await fetch('/data/default-words.csv');
+                const response = await fetch(defaultWordsCSV);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch default words: ${response.statusText}`);
                 }
@@ -248,7 +249,7 @@ export const useWords = () => {
 
     const reloadDefaultWords = useCallback(async (): Promise<{ success: boolean, message: string }> => {
         try {
-            const response = await fetch('/data/default-words.csv');
+            const response = await fetch(defaultWordsCSV);
             if (!response.ok) {
                 throw new Error(`Failed to fetch default words: ${response.statusText}`);
             }
