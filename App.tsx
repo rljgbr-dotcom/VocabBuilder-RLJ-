@@ -45,6 +45,14 @@ const AppContent: React.FC = () => {
     const [disclaimerConfirmed, setDisclaimerConfirmed] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+    const [infoToast, setInfoToast] = useState('');
+
+    const showInfoToast = useCallback((message: string, duration = 3000) => {
+        setInfoToast(message);
+        setTimeout(() => {
+            setInfoToast('');
+        }, duration);
+    }, []);
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -90,6 +98,22 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleCheckForUpdate = useCallback(async () => {
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.ready) {
+            showInfoToast("Update check not available on this browser.");
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            showInfoToast("Checking for updates... You'll be notified if one is found.", 4000);
+            await registration.update();
+        } catch (error) {
+            console.error("Error during service worker update check:", error);
+            showInfoToast("Failed to check for updates.");
+        }
+    }, [showInfoToast]);
+
 
     useEffect(() => {
         showModal('startupDisclaimer');
@@ -119,7 +143,7 @@ const AppContent: React.FC = () => {
                 return <TypingTestScreen setScreen={setScreen} />;
             case 'main-menu':
             default:
-                return <MainMenuScreen setScreen={setScreen} />;
+                return <MainMenuScreen setScreen={setScreen} handleCheckForUpdate={handleCheckForUpdate} />;
         }
     };
 
@@ -147,7 +171,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.02</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.03</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
@@ -161,6 +185,12 @@ const AppContent: React.FC = () => {
             <ReadMeModal />
 
             {isModalOpen && <div className="fixed inset-0 bg-black bg-opacity-70 z-40"></div>}
+            
+            {infoToast && (
+                <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-2 px-6 rounded-full shadow-lg z-50 animate-fade-in-out">
+                    {infoToast}
+                </div>
+            )}
             
             {updateAvailable && <UpdateToast onUpdate={handleUpdate} />}
         </div>
