@@ -1,4 +1,6 @@
 
+export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game';
+
 export interface Language {
   nativeName: string;
   englishName: string;

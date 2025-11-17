@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Screen } from '../../App';
+import { Screen } from '../../types';
 import { useModal } from '../../contexts/ModalContext';
 
 interface MainMenuScreenProps {

@@ -3,9 +3,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useModal } from '../../contexts/ModalContext';
-import { FlashcardWord, Word, SwipeDirection, SwipeAction } from '../../types';
+import { FlashcardWord, Word, SwipeDirection, SwipeAction, Screen } from '../../types';
 import { ttsService } from '../../services/ttsService';
-import { Screen } from '../../App';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';

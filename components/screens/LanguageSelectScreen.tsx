@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Screen } from '../../App';
+import { Screen } from '../../types';
 import { useSettings } from '../../contexts/SettingsContext';
 import { LANGUAGES, LANGUAGE_ORDER } from '../../constants';
 

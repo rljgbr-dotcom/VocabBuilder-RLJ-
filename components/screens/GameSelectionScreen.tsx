@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Screen } from '../../App';
+import { Screen } from '../../types';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useWords } from '../../contexts/WordsContext';
 import { useModal } from '../../contexts/ModalContext';

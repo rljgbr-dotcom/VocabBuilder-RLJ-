@@ -1,11 +1,96 @@
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { Word } from '../types';
 import { LANGUAGE_ORDER } from '../constants';
 
+const parseCSVToWords = (csvText: string): Word[] => {
+    const lines = csvText.trim().split('\n');
+    const headerLine = lines.shift()?.trim();
+    if (!headerLine) {
+        return [];
+    }
+    
+    // Remove BOM (Byte Order Mark) if present
+    const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
+
+    const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
+    const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
+    
+    if (header[0] !== 'source' || header[3] !== 'swedish') {
+        console.error("Default words CSV has an invalid header.");
+        return [];
+    }
+
+    const csvRegex = /("([^"]*)"|[^,]*)(?:,|$)/g;
+    const newWords: Word[] = [];
+
+    lines.forEach((line) => {
+        let values: string[] = [];
+        let match;
+        csvRegex.lastIndex = 0;
+        while ((match = csvRegex.exec(line)) !== null && values.length < expectedHeader.length) {
+            values.push((match[2] !== undefined ? match[2] : match[1]).trim());
+        }
+
+        if (values.length < 5 || !values[0] || !values[1] || !values[2] || !values[3]) {
+            return; // Skip invalid row
+        }
+        
+        const [source, subtopic1, subtopic2, swedish, swedishExample = ''] = values;
+
+        const newWordData: Omit<Word, 'id'> = {
+            source, subtopic1, subtopic2, swedish, swedishExample,
+            active: true, translations: {}, backCount: 0, difficulty: 'unmarked',
+        };
+
+        LANGUAGE_ORDER.forEach((lang, langIndex) => {
+            const wordIndex = 5 + (langIndex * 2);
+            const exampleIndex = 6 + (langIndex * 2);
+            if(values.length > exampleIndex) {
+                const sourceWord = values[wordIndex] || '';
+                const sourceWordExample = values[exampleIndex] || '';
+                if (sourceWord) {
+                    newWordData.translations[lang] = { word: sourceWord, example: sourceWordExample };
+                }
+            }
+        });
+        
+        if (Object.keys(newWordData.translations).length === 0) {
+            return; // Skip if no translations found
+        }
+        
+        newWords.push({ ...newWordData, id: crypto.randomUUID() });
+    });
+
+    return newWords;
+};
+
 export const useWords = () => {
     const [words, setWords] = useLocalStorage<Word[]>('vocabuilder_words', []);
+
+    useEffect(() => {
+        const loadDefaultWords = async () => {
+            try {
+                const response = await fetch('/data/default-words.csv');
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch default words: ${response.statusText}`);
+                }
+                const csvText = await response.text();
+                const defaultWords = parseCSVToWords(csvText);
+                if (defaultWords.length > 0) {
+                    setWords(defaultWords);
+                }
+            } catch (error) {
+                console.error("Failed to load or parse default words CSV:", error);
+            }
+        };
+        
+        // Only load default words if localStorage is completely empty for this key
+        if (localStorage.getItem('vocabuilder_words') === null) {
+            loadDefaultWords();
+        }
+    }, [setWords]);
 
     const addWord = useCallback((wordData: Omit<Word, 'id' | 'active' | 'backCount' | 'difficulty'>) => {
         const newWord: Word = {
@@ -50,8 +135,9 @@ export const useWords = () => {
                 return { success: false, message: "CSV file appears to be empty or invalid." };
             }
 
+            const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
             const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
-            const header = headerLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
+            const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
 
             if (JSON.stringify(header) !== JSON.stringify(expectedHeader)) {
                 console.error("Expected Header:", expectedHeader);

@@ -21,6 +21,10 @@ const IndeterminateCheckbox: React.FC<{ words: Word[], onToggle: (isActive: bool
     const isChecked = activeCount === words.length && words.length > 0;
     const isIndeterminate = activeCount > 0 && activeCount < words.length;
 
+    // FIX: Use a stable ID for the checkbox and label to ensure they are correctly associated.
+    // Using Math.random() creates a new, different ID on every render for both the input and its label.
+    const checkboxId = `toggle-${words[0]?.id}`;
+
     return (
         <div className="relative inline-block w-10 align-middle">
             <input
@@ -30,10 +34,10 @@ const IndeterminateCheckbox: React.FC<{ words: Word[], onToggle: (isActive: bool
                 ref={el => { if (el) { el.indeterminate = isIndeterminate; } }}
                 onChange={(e) => onToggle(e.target.checked)}
                 onClick={e => e.stopPropagation()}
-                id={`toggle-${words[0]?.id}-${Math.random()}`} // simple unique id
+                id={checkboxId}
                 className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
             />
-            <label htmlFor={`toggle-${words[0]?.id}-${Math.random()}`} className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer"></label>
+            <label htmlFor={checkboxId} className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer"></label>
         </div>
     );
 };

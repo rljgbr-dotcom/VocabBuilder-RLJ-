@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { WordsProvider } from './contexts/WordsContext';
@@ -22,8 +20,7 @@ import ReadMeModal from './components/modals/ReadMeModal';
 import SetStackSizeModal from './components/modals/SetStackSizeModal';
 import SwipeSettingsModal from './components/modals/SwipeSettingsModal';
 import { flashcardHelpContent, csvHelpContent } from './constants';
-
-export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game';
+import { Screen } from './types';
 
 const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-3 px-5 rounded-lg shadow-2xl z-50 flex items-center gap-4 animate-slide-in-up">
@@ -140,7 +137,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.11</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.12</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
