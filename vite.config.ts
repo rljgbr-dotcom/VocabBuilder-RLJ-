@@ -1,23 +1,35 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'prompt',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,ico}'],
+        cleanupOutdatedCaches: true,
       },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
+      manifest: {
+        short_name: "Vocab Builder",
+        name: "AI Vocab Builder",
+        icons: [
+          {
+            "src": "icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "192x192 512x512"
+          }
+        ],
+        start_url: ".",
+        display: "standalone",
+        theme_color: "#111827",
+        background_color: "#111827"
       }
-    };
-});
+    })
+  ],
+  define: {
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+  }
+})

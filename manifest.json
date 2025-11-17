@@ -1,0 +1,15 @@
+{
+  "short_name": "Vocab Builder",
+  "name": "AI Vocab Builder",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#111827",
+  "background_color": "#111827"
+}

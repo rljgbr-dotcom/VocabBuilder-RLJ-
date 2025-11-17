@@ -40,10 +40,9 @@ class TTSService {
             return;
         }
 
-        try {
+        // If speech is already in progress, cancel it to start the new one immediately.
+        if (this.synth.speaking) {
             this.synth.cancel();
-        } catch (e) {
-            // Ignore if not speaking
         }
 
         const availableVoices = await this.voicesLoadedPromise;
@@ -60,9 +59,15 @@ class TTSService {
         utterance.rate = 0.9;
 
         utterance.onerror = (event) => {
+            // The 'interrupted' error is expected when a new speech request is made (and we call synth.cancel()).
+            // We can safely ignore it to prevent console noise.
+            if (event.error === 'interrupted') {
+                return;
+            }
             console.error('SpeechSynthesisUtterance.onerror - Error:', event.error);
         };
 
+        // A small delay can help prevent issues on some browsers.
         setTimeout(() => this.synth.speak(utterance), 50);
     }
 }
