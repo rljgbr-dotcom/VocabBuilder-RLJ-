@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Vocab Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #6366f1; /* Indigo */
+            --primary-focus: #4f46e5;
+            --primary-content: #ffffff;
+            --secondary: #a855f7; /* Purple */
+            --secondary-focus: #9333ea;
+            --secondary-content: #ffffff;
+            --accent: #10b981; /* Green */
+            --accent-focus: #059669;
+            --accent-content: #ffffff;
+            --base-100: #111827; /* Dark Gray */
+            --base-200: #1f2937;
+            --base-300: #374151;
+            --base-content: #d1d5db;
+        }
+
+        .bg-primary { background-color: var(--primary); }
+        .hover\:bg-primary-focus:hover { background-color: var(--primary-focus); }
+        .text-primary-content { color: var(--primary-content); }
+        .bg-secondary { background-color: var(--secondary); }
+        .hover\:bg-secondary-focus:hover { background-color: var(--secondary-focus); }
+        .text-secondary-content { color: var(--secondary-content); }
+        .bg-accent { background-color: var(--accent); }
+        .hover\:bg-accent-focus:hover { background-color: var(--accent-focus); }
+        .text-accent-content { color: var(--accent-content); }
+        .bg-base-100 { background-color: var(--base-100); }
+        .bg-base-200 { background-color: var(--base-200); }
+        .bg-base-300 { background-color: var(--base-300); }
+        .text-base-content { color: var(--base-content); }
+        .border-base-300 { border-color: var(--base-300); }
+        .ring-primary { ring-color: var(--primary); }
+
+        /* Card flip animation */
+        .card-inner { transition: transform 0.6s, filter 0.3s; transform-style: preserve-3d; }
+        .card-inner.is-blurred { filter: blur(12px); }
+        .card-inner.is-flipped { transform: rotateY(180deg); }
+        .card-face {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            /* Establish a 3D context to prevent flickering before animation */
+            transform: rotateY(0deg) translateZ(0.1px);
+        }
+        .card-back {
+            transform: rotateY(180deg) translateZ(0.1px);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--base-200); }
+        ::-webkit-scrollbar-thumb { background: var(--base-300); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+        /* Toggle switch */
+        .toggle-checkbox:checked { right: 0; border-color: var(--primary); }
+        .toggle-checkbox:checked + .toggle-label { background-color: var(--primary); }
+        .toggle-checkbox:indeterminate + .toggle-label { background-color: var(--accent); }
+        .toggle-checkbox:indeterminate { left: 50%; transform: translateX(-50%); border-color: var(--accent); }
+
+        /* Toast animation */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            10%, 90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+        .animate-fade-in-out {
+            animation: fadeInOut 3s ease-in-out forwards;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1"
+  }
+}
+</script>
+</head>
+<body class="bg-base-100 text-base-content font-sans antialiased">
+    <div id="root"></div>
+</body>
+</html>
