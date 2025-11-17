@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { WordsProvider } from './contexts/WordsContext';
@@ -139,7 +140,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.10</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.11</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />

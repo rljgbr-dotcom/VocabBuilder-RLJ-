@@ -531,7 +531,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             )}
             <div className="w-full max-w-xl mx-auto mb-4 shrink-0">
                 <div className="aspect-[16/9] perspective-[1000px]">
-                    <div className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''} ${isBlurred ? 'is-blurred' : ''}`} onClick={handleFlip} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+                    <div className={`card-inner swipe-area relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''} ${isBlurred ? 'is-blurred' : ''}`} onClick={handleFlip} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                         {/* Front Face */}
                         <div className="card-face absolute w-full h-full bg-base-200 rounded-xl flex flex-col items-center justify-center p-4 text-center">
                             <span className="text-2xl md:text-4xl font-bold">{frontText}</span>
@@ -664,7 +664,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
             {/* Mobile-only Swipe Area */}
             <div
-                className="block md:hidden my-4 max-w-xl mx-auto w-full flex-grow min-h-[80px] bg-base-200 p-4 rounded-lg text-center cursor-pointer border-2 border-dashed border-base-300 active:bg-base-300 transition-colors flex items-center justify-center"
+                className="block md:hidden swipe-area my-4 max-w-xl mx-auto w-full flex-grow min-h-[80px] bg-base-200 p-4 rounded-lg text-center cursor-pointer border-2 border-dashed border-base-300 active:bg-base-300 transition-colors flex items-center justify-center"
                 onClick={handleFlip}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
