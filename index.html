@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#111827"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
+        :root[data-theme="dark-default"] {
             --primary: #6366f1; /* Indigo */
             --primary-focus: #4f46e5;
             --primary-content: #ffffff;
@@ -22,6 +22,70 @@
             --base-200: #1f2937;
             --base-300: #374151;
             --base-content: #d1d5db;
+        }
+
+        :root[data-theme="light-classic"] {
+            --primary: #3b82f6; /* Blue-500 */
+            --primary-focus: #2563eb; /* Blue-600 */
+            --primary-content: #ffffff;
+            --secondary: #8b5cf6; /* Violet-500 */
+            --secondary-focus: #7c3aed; /* Violet-600 */
+            --secondary-content: #ffffff;
+            --accent: #16a34a; /* Green-600 */
+            --accent-focus: #15803d; /* Green-700 */
+            --accent-content: #ffffff;
+            --base-100: #ffffff; /* White */
+            --base-200: #f3f4f6; /* Gray-100 */
+            --base-300: #e5e7eb; /* Gray-200 */
+            --base-content: #1f2937; /* Gray-800 */
+        }
+
+        :root[data-theme="dark-ocean"] {
+            --primary: #06b6d4; /* Cyan-500 */
+            --primary-focus: #0891b2; /* Cyan-600 */
+            --primary-content: #ffffff;
+            --secondary: #3b82f6; /* Blue-500 */
+            --secondary-focus: #2563eb; /* Blue-600 */
+            --secondary-content: #ffffff;
+            --accent: #f59e0b; /* Amber-500 */
+            --accent-focus: #d97706; /* Amber-600 */
+            --accent-content: #1e293b;
+            --base-100: #0f172a; /* Slate-900 */
+            --base-200: #1e293b; /* Slate-800 */
+            --base-300: #334155; /* Slate-700 */
+            --base-content: #cbd5e1; /* Slate-300 */
+        }
+
+        :root[data-theme="dark-sunset"] {
+            --primary: #f97316; /* Orange-500 */
+            --primary-focus: #ea580c; /* Orange-600 */
+            --primary-content: #ffffff;
+            --secondary: #ef4444; /* Red-500 */
+            --secondary-focus: #dc2626; /* Red-600 */
+            --secondary-content: #ffffff;
+            --accent: #eab308; /* Yellow-500 */
+            --accent-focus: #ca8a04; /* Yellow-600 */
+            --accent-content: #292524;
+            --base-100: #1c1917; /* Stone-900 */
+            --base-200: #292524; /* Stone-800 */
+            --base-300: #44403c; /* Stone-700 */
+            --base-content: #d6d3d1; /* Stone-300 */
+        }
+        
+        :root[data-theme="dark-forest"] {
+            --primary: #16a34a; /* Green-600 */
+            --primary-focus: #15803d; /* Green-700 */
+            --primary-content: #ffffff;
+            --secondary: #ca8a04; /* Yellow-600 */
+            --secondary-focus: #a16207; /* Yellow-700 */
+            --secondary-content: #ffffff;
+            --accent: #0ea5e9; /* Sky-500 */
+            --accent-focus: #0284c7; /* Sky-600 */
+            --accent-content: #ffffff;
+            --base-100: #1a2e29;
+            --base-200: #2d3f3c;
+            --base-300: #3e524f;
+            --base-content: #cde2de;
         }
 
         .bg-primary { background-color: var(--primary); }

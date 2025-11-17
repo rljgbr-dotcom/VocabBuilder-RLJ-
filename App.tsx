@@ -13,6 +13,7 @@ import FlashcardGameScreen from './components/screens/FlashcardGameScreen';
 import MultipleChoiceGameScreen from './components/screens/MultipleChoiceGameScreen';
 import MatchingGameScreen from './components/screens/MatchingGameScreen';
 import TypingTestScreen from './components/screens/TypingTestScreen';
+import SettingsScreen from './components/screens/SettingsScreen';
 
 
 import ConfirmationModal from './components/modals/ConfirmationModal';
@@ -141,6 +142,8 @@ const AppContent: React.FC = () => {
                 return <MatchingGameScreen setScreen={setScreen} />;
             case 'typing-test-game':
                 return <TypingTestScreen setScreen={setScreen} />;
+            case 'settings':
+                return <SettingsScreen setScreen={setScreen} />;
             case 'main-menu':
             default:
                 return <MainMenuScreen setScreen={setScreen} handleCheckForUpdate={handleCheckForUpdate} />;
@@ -171,7 +174,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.03</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.04</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
