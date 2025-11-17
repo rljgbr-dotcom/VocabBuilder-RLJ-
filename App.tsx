@@ -134,12 +134,12 @@ const AppContent: React.FC = () => {
             </header>
 
             <main className="flex-grow p-4 md:p-6 lg:p-8">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto h-full">
                     {renderScreen()}
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.07</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.10</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
