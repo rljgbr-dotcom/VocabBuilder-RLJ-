@@ -11,24 +11,28 @@ interface GameSelectionScreenProps {
 
 const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) => {
     const [activeOptions, setActiveOptions] = useState<string | null>(null);
-    // FIX: Destructure currentSourceLanguage from useSettings to correctly access the language code.
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { words } = useWords();
     const { showModal } = useModal();
 
-    const handleStartFlashcards = (startFace: 'swedish' | 'source') => {
-        // FIX: Use currentSourceLanguage instead of currentLanguageInfo.code, which does not exist on the Language type.
-        const activeWords = words.filter(w => w.active && w.translations[currentSourceLanguage] && w.translations[currentSourceLanguage].word);
-        if (activeWords.length < 1) {
+    const handleStartGame = (gameScreen: Screen, minWords: number) => {
+        const activeWords = words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
+        if (activeWords.length < minWords) {
             showModal('info', {
                 title: 'Not Enough Words',
-                content: `Not enough active words found for ${currentLanguageInfo.englishName}. Activate some words in 'Manage Words'.`
+                content: `You need at least ${minWords} active words for ${currentLanguageInfo.englishName} to play this game. Activate some words in 'Manage Words'.`
             });
             return;
         }
 
-        // Pass startFace via props/state management in a real implementation
-        // For this structure, we'll store it temporarily and pick it up in the game screen
+        if (gameScreen === 'flashcard-game') {
+            setActiveOptions(activeOptions === 'flashcard' ? null : 'flashcard');
+        } else {
+            setScreen(gameScreen);
+        }
+    };
+
+    const handleStartFlashcards = (startFace: 'swedish' | 'source') => {
         localStorage.setItem('flashcard_start_face', startFace);
         setScreen('flashcard-game');
     };
@@ -38,18 +42,27 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
             <h2 className="text-3xl font-bold text-center mb-8">Select a Game</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 <button
-                    onClick={() => setActiveOptions(activeOptions === 'flashcard' ? null : 'flashcard')}
+                    onClick={() => handleStartGame('flashcard-game', 1)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
                     <span className="text-xl font-bold">Flashcards</span>
                 </button>
-                <button className="p-6 bg-base-200 rounded-lg shadow-lg transition-colors opacity-50 cursor-not-allowed" disabled>
+                <button
+                    onClick={() => handleStartGame('multiple-choice-game', 4)}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                >
                     <span className="text-xl font-bold">Multiple Choice</span>
                 </button>
-                <button className="p-6 bg-base-200 rounded-lg shadow-lg transition-colors opacity-50 cursor-not-allowed" disabled>
+                <button
+                    onClick={() => handleStartGame('matching-game', 6)}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                >
                     <span className="text-xl font-bold">Matching Game</span>
                 </button>
-                <button className="p-6 bg-base-200 rounded-lg shadow-lg transition-colors opacity-50 cursor-not-allowed" disabled>
+                <button
+                    onClick={() => handleStartGame('typing-test-game', 1)}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                >
                     <span className="text-xl font-bold">Typing Test</span>
                 </button>
             </div>
@@ -68,8 +81,4 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
     );
 };
 
-// FIX: Add default export to resolve import error in App.tsx.
 export default GameSelectionScreen;
-
-// Add a simple fade-in animation to tailwind config if possible, or define in index.html if not.
-// For now, we will rely on the class name for potential future styling.

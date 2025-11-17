@@ -10,6 +10,10 @@ import LanguageSelectScreen from './components/screens/LanguageSelectScreen';
 import GameSelectionScreen from './components/screens/GameSelectionScreen';
 import ManageWordsScreen from './components/screens/ManageWordsScreen';
 import FlashcardGameScreen from './components/screens/FlashcardGameScreen';
+import MultipleChoiceGameScreen from './components/screens/MultipleChoiceGameScreen';
+import MatchingGameScreen from './components/screens/MatchingGameScreen';
+import TypingTestScreen from './components/screens/TypingTestScreen';
+
 
 import ConfirmationModal from './components/modals/ConfirmationModal';
 import InfoModal from './components/modals/InfoModal';
@@ -107,6 +111,12 @@ const AppContent: React.FC = () => {
                 return <ManageWordsScreen />;
             case 'flashcard-game':
                 return <FlashcardGameScreen setScreen={setScreen} />;
+            case 'multiple-choice-game':
+                return <MultipleChoiceGameScreen setScreen={setScreen} />;
+            case 'matching-game':
+                return <MatchingGameScreen setScreen={setScreen} />;
+            case 'typing-test-game':
+                return <TypingTestScreen setScreen={setScreen} />;
             case 'main-menu':
             default:
                 return <MainMenuScreen setScreen={setScreen} />;
@@ -137,7 +147,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.0.13</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.01</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
