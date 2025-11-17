@@ -12,6 +12,10 @@ const themes = [
     { id: 'dark-ocean', name: 'Ocean Dark', colors: ['#06b6d4', '#3b82f6', '#f59e0b', '#1e293b'] },
     { id: 'dark-sunset', name: 'Sunset Dark', colors: ['#f97316', '#ef4444', '#eab308', '#292524'] },
     { id: 'dark-forest', name: 'Forest Dark', colors: ['#16a34a', '#ca8a04', '#0ea5e9', '#2d3f3c'] },
+    { id: 'light-solar', name: 'Solar Light', colors: ['#f59e0b', '#f97316', '#0ea5e9', '#f8fafc'] },
+    { id: 'light-minty', name: 'Minty Light', colors: ['#10b981', '#0d9488', '#d946ef', '#f0fdf4'] },
+    { id: 'light-sakura', name: 'Sakura Light', colors: ['#ec4899', '#f43f5e', '#22d3ee', '#fef2f2'] },
+    { id: 'dark-midnight', name: 'Midnight Dark', colors: ['#3b82f6', '#4f46e5', '#84cc16', '#0f172a'] },
 ];
 
 const ThemeOption: React.FC<{
