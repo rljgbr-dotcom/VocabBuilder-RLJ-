@@ -12,10 +12,16 @@ const themes = [
     { id: 'dark-ocean', name: 'Ocean Dark', colors: ['#06b6d4', '#3b82f6', '#f59e0b', '#1e293b'] },
     { id: 'dark-sunset', name: 'Sunset Dark', colors: ['#f97316', '#ef4444', '#eab308', '#292524'] },
     { id: 'dark-forest', name: 'Forest Dark', colors: ['#16a34a', '#ca8a04', '#0ea5e9', '#2d3f3c'] },
+    { id: 'dark-midnight', name: 'Midnight Dark', colors: ['#3b82f6', '#4f46e5', '#84cc16', '#0f172a'] },
+    { id: 'dark-grape', name: 'Grape Dark', colors: ['#a855f7', '#ec4899', '#22d3ee', '#1f2937'] },
+    { id: 'dark-crimson', name: 'Crimson Dark', colors: ['#dc2626', '#be123c', '#9ca3af', '#262626'] },
+    { id: 'dark-cyber', name: 'Cyber Dark', colors: ['#22d3ee', '#a3e635', '#d946ef', '#1a1a1a'] },
     { id: 'light-solar', name: 'Solar Light', colors: ['#f59e0b', '#f97316', '#0ea5e9', '#f8fafc'] },
     { id: 'light-minty', name: 'Minty Light', colors: ['#10b981', '#0d9488', '#d946ef', '#f0fdf4'] },
     { id: 'light-sakura', name: 'Sakura Light', colors: ['#ec4899', '#f43f5e', '#22d3ee', '#fef2f2'] },
-    { id: 'dark-midnight', name: 'Midnight Dark', colors: ['#3b82f6', '#4f46e5', '#84cc16', '#0f172a'] },
+    { id: 'light-sky', name: 'Sky Light', colors: ['#0ea5e9', '#06b6d4', '#8b5cf6', '#f1f5f9'] },
+    { id: 'light-meadow', name: 'Meadow Light', colors: ['#22c55e', '#84cc16', '#facc15', '#f3f4f6'] },
+    { id: 'light-rose', name: 'Rose Light', colors: ['#fb7185', '#f472b6', '#a78bfa', '#ffe4e6'] },
 ];
 
 const ThemeOption: React.FC<{
