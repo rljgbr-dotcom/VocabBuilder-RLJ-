@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { Word } from '../types';
@@ -110,8 +111,38 @@ export const useWords = () => {
         setWords(prevWords => prevWords.filter(w => w.id !== wordId));
     }, [setWords]);
 
-    const clearAllWords = useCallback(() => {
-        setWords([]);
+    const deleteWords = useCallback((wordIdsToDelete: string[]) => {
+        setWords(prevWords => prevWords.filter(w => !wordIdsToDelete.includes(w.id)));
+    }, [setWords]);
+
+    const resetWords = useCallback(async (): Promise<{ success: boolean, message: string }> => {
+        try {
+            const response = await fetch('/data/default-words.csv');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch default words: ${response.statusText}`);
+            }
+            const csvText = await response.text();
+            const defaultWords = parseCSVToWords(csvText);
+
+            const defaultWordKeys = new Set(defaultWords.map(w =>
+                `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase()
+            ));
+            
+            setWords(currentWords => {
+                const userAddedWords = currentWords.filter(w => {
+                    const key = `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase();
+                    return !defaultWordKeys.has(key);
+                });
+                
+                return [...defaultWords, ...userAddedWords];
+            });
+
+            return { success: true, message: 'Default words have been restored. Your custom words were not affected.' };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("Error resetting words:", errorMessage);
+            return { success: false, message: `An error occurred while resetting words: ${errorMessage}` };
+        }
     }, [setWords]);
 
     const toggleWordActive = useCallback((wordId: string) => {
@@ -246,35 +277,16 @@ export const useWords = () => {
         return { success: true };
     }, [words]);
 
-    const reloadDefaultWords = useCallback(async (): Promise<{ success: boolean, message: string }> => {
-        try {
-            const response = await fetch('/data/default-words.csv');
-            if (!response.ok) {
-                throw new Error(`Failed to fetch default words: ${response.statusText}`);
-            }
-            const csvText = await response.text();
-            const result = importFromCSV(csvText);
-            if(result.success) {
-                return { success: true, message: `Default words reloaded successfully.\n${result.message.replace('Import Complete:', '').trim()}` };
-            }
-            return result;
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error("Error reloading default words:", errorMessage);
-            return { success: false, message: `An error occurred while reloading default words: ${errorMessage}` };
-        }
-    }, [importFromCSV]);
-
     return {
         words,
         addWord,
         updateWord,
         deleteWord,
-        clearAllWords,
+        deleteWords,
+        resetWords,
         toggleWordActive,
         toggleGroupActive,
         importFromCSV,
         exportToCSV,
-        reloadDefaultWords
     };
 };

@@ -174,7 +174,7 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
             
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.07</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.1.10</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
