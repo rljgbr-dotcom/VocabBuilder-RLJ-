@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useRef } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -15,7 +14,7 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, clearAllWords, toggleGroupActive } = useWords();
+    const { words, importFromCSV, exportToCSV, clearAllWords, toggleGroupActive, reloadDefaultWords } = useWords();
     const { showModal } = useModal();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,6 +66,16 @@ const ManageWordsScreen: React.FC = () => {
         });
     };
     
+    const handleReloadDefaults = () => {
+        showModal('confirmation', {
+            text: 'This will add any missing default words from the pre-loaded list. Your own words will not be affected. Continue?',
+            onConfirm: async () => {
+                const result = await reloadDefaultWords();
+                showModal('info', { title: result.success ? 'Reload Complete' : 'Reload Failed', content: result.message });
+            }
+        });
+    };
+
     return (
         <div>
             <h2 className="text-3xl font-bold text-center mb-6">Manage Words</h2>
@@ -78,6 +87,7 @@ const ManageWordsScreen: React.FC = () => {
                         <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Load from CSV</button>
                         <button onClick={() => showModal('csvHelp')} className="ml-1 text-xs text-blue-400 hover:underline">(Format?)</button>
                     </div>
+                    <button onClick={handleReloadDefaults} className="px-3 py-1.5 text-sm bg-secondary text-secondary-content rounded-md hover:bg-secondary-focus">Reload Defaults</button>
                     <button onClick={handleExport} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Export to CSV</button>
                     <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Activate All</button>
                     <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Deactivate All</button>

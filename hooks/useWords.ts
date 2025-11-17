@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { Word } from '../types';
@@ -247,6 +246,25 @@ export const useWords = () => {
         return { success: true };
     }, [words]);
 
+    const reloadDefaultWords = useCallback(async (): Promise<{ success: boolean, message: string }> => {
+        try {
+            const response = await fetch('/data/default-words.csv');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch default words: ${response.statusText}`);
+            }
+            const csvText = await response.text();
+            const result = importFromCSV(csvText);
+            if(result.success) {
+                return { success: true, message: `Default words reloaded successfully.\n${result.message.replace('Import Complete:', '').trim()}` };
+            }
+            return result;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("Error reloading default words:", errorMessage);
+            return { success: false, message: `An error occurred while reloading default words: ${errorMessage}` };
+        }
+    }, [importFromCSV]);
+
     return {
         words,
         addWord,
@@ -256,6 +274,7 @@ export const useWords = () => {
         toggleWordActive,
         toggleGroupActive,
         importFromCSV,
-        exportToCSV
+        exportToCSV,
+        reloadDefaultWords
     };
 };
