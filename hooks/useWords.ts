@@ -1,96 +1,11 @@
 
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { Word } from '../types';
 import { LANGUAGE_ORDER } from '../constants';
 
-const parseCSVToWords = (csvText: string): Word[] => {
-    const lines = csvText.trim().split('\n');
-    const headerLine = lines.shift()?.trim();
-    if (!headerLine) {
-        return [];
-    }
-    
-    // Remove BOM (Byte Order Mark) if present
-    const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
-
-    const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
-    const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
-    
-    if (header[0] !== 'source' || header[3] !== 'swedish') {
-        console.error("Default words CSV has an invalid header.");
-        return [];
-    }
-
-    const csvRegex = /("([^"]*)"|[^,]*)(?:,|$)/g;
-    const newWords: Word[] = [];
-
-    lines.forEach((line) => {
-        let values: string[] = [];
-        let match;
-        csvRegex.lastIndex = 0;
-        while ((match = csvRegex.exec(line)) !== null && values.length < expectedHeader.length) {
-            values.push((match[2] !== undefined ? match[2] : match[1]).trim());
-        }
-
-        if (values.length < 5 || !values[0] || !values[1] || !values[2] || !values[3]) {
-            return; // Skip invalid row
-        }
-        
-        const [source, subtopic1, subtopic2, swedish, swedishExample = ''] = values;
-
-        const newWordData: Omit<Word, 'id'> = {
-            source, subtopic1, subtopic2, swedish, swedishExample,
-            active: true, translations: {}, backCount: 0, difficulty: 'unmarked',
-        };
-
-        LANGUAGE_ORDER.forEach((lang, langIndex) => {
-            const wordIndex = 5 + (langIndex * 2);
-            const exampleIndex = 6 + (langIndex * 2);
-            if(values.length > exampleIndex) {
-                const sourceWord = values[wordIndex] || '';
-                const sourceWordExample = values[exampleIndex] || '';
-                if (sourceWord) {
-                    newWordData.translations[lang] = { word: sourceWord, example: sourceWordExample };
-                }
-            }
-        });
-        
-        if (Object.keys(newWordData.translations).length === 0) {
-            return; // Skip if no translations found
-        }
-        
-        newWords.push({ ...newWordData, id: crypto.randomUUID() });
-    });
-
-    return newWords;
-};
-
 export const useWords = () => {
     const [words, setWords] = useLocalStorage<Word[]>('vocabuilder_words', []);
-
-    useEffect(() => {
-        const loadDefaultWords = async () => {
-            try {
-                const response = await fetch('/data/default-words.csv');
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch default words: ${response.statusText}`);
-                }
-                const csvText = await response.text();
-                const defaultWords = parseCSVToWords(csvText);
-                if (defaultWords.length > 0) {
-                    setWords(defaultWords);
-                }
-            } catch (error) {
-                console.error("Failed to load or parse default words CSV:", error);
-            }
-        };
-        
-        // Only load default words if localStorage is completely empty for this key
-        if (localStorage.getItem('vocabuilder_words') === null) {
-            loadDefaultWords();
-        }
-    }, [setWords]);
 
     const addWord = useCallback((wordData: Omit<Word, 'id' | 'active' | 'backCount' | 'difficulty'>) => {
         const newWord: Word = {
@@ -113,36 +28,6 @@ export const useWords = () => {
 
     const deleteWords = useCallback((wordIdsToDelete: string[]) => {
         setWords(prevWords => prevWords.filter(w => !wordIdsToDelete.includes(w.id)));
-    }, [setWords]);
-
-    const resetWords = useCallback(async (): Promise<{ success: boolean, message: string }> => {
-        try {
-            const response = await fetch('/data/default-words.csv');
-            if (!response.ok) {
-                throw new Error(`Failed to fetch default words: ${response.statusText}`);
-            }
-            const csvText = await response.text();
-            const defaultWords = parseCSVToWords(csvText);
-
-            const defaultWordKeys = new Set(defaultWords.map(w =>
-                `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase()
-            ));
-            
-            setWords(currentWords => {
-                const userAddedWords = currentWords.filter(w => {
-                    const key = `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase();
-                    return !defaultWordKeys.has(key);
-                });
-                
-                return [...defaultWords, ...userAddedWords];
-            });
-
-            return { success: true, message: 'Default words have been restored. Your custom words were not affected.' };
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.error("Error resetting words:", errorMessage);
-            return { success: false, message: `An error occurred while resetting words: ${errorMessage}` };
-        }
     }, [setWords]);
 
     const toggleWordActive = useCallback((wordId: string) => {
@@ -235,55 +120,58 @@ export const useWords = () => {
     }, [words, setWords]);
 
     const exportToCSV = useCallback((): { success: boolean, message?: string } => {
-        if (!words || words.length === 0) {
-            return { success: false, message: "There are no words to export." };
+        if (words.length === 0) {
+            return { success: false, message: "No words to export." };
         }
 
-        const escapeCSV = (str: string | null | undefined) => {
-            str = String(str ?? '');
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-        };
-
-        const header = ['source', 'subtopic1', 'subtopic2', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
-        const csvRows = [header.join(',')];
-
-        words.forEach(word => {
-            const row = [
-                escapeCSV(word.source), escapeCSV(word.subtopic1), escapeCSV(word.subtopic2),
-                escapeCSV(word.swedish), escapeCSV(word.swedishExample),
-            ];
-            LANGUAGE_ORDER.forEach(lang => {
-                const translation = word.translations[lang] || { word: '', example: '' };
-                row.push(escapeCSV(translation.word), escapeCSV(translation.example));
+        try {
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
+            
+            const rows = words.map(word => {
+                const rowData = [
+                    word.source,
+                    word.subtopic1,
+                    word.subtopic2,
+                    word.swedish,
+                    word.swedishExample,
+                ];
+                LANGUAGE_ORDER.forEach(lang => {
+                    const translation = word.translations[lang];
+                    rowData.push(translation?.word || '');
+                    rowData.push(translation?.example || '');
+                });
+                return rowData.map(field => {
+                    const str = String(field || '');
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                }).join(',');
             });
-            csvRows.push(row.join(','));
-        });
 
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        const date = new Date().toISOString().split('T')[0];
-        link.setAttribute('href', url);
-        link.setAttribute('download', `vocab_builder_export_${date}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        return { success: true };
+            const csvContent = [header.join(','), ...rows].join('\n');
+            const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "vocab_export.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return { success: true };
+        } catch (error) {
+            console.error("Error exporting to CSV:", error);
+            return { success: false, message: "An error occurred during export. Check console for details." };
+        }
     }, [words]);
-
+    
     return {
         words,
         addWord,
         updateWord,
         deleteWord,
         deleteWords,
-        resetWords,
         toggleWordActive,
         toggleGroupActive,
         importFromCSV,

@@ -1,7 +1,6 @@
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useWords } from '../../contexts/WordsContext';
-import { useSettings } from '../../contexts/SettingsContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Word } from '../../types';
 import WordGroup from '../WordGroup';
@@ -15,7 +14,7 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, resetWords, toggleGroupActive } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive } = useWords();
     const { showModal } = useModal();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,16 +59,6 @@ const ManageWordsScreen: React.FC = () => {
         }
     };
 
-    const handleResetWords = () => {
-        showModal('confirmation', {
-            text: 'This will restore the default word list, adding back any missing default words and updating existing ones. Your custom-added words will not be affected. Continue?',
-            onConfirm: async () => {
-                const result = await resetWords();
-                showModal('info', { title: result.success ? 'Reset Successful' : 'Reset Failed', content: result.message });
-            }
-        });
-    };
-
     return (
         <div>
             <h2 className="text-3xl font-bold text-center mb-6">Manage Words</h2>
@@ -84,7 +73,6 @@ const ManageWordsScreen: React.FC = () => {
                     <button onClick={handleExport} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Export to CSV</button>
                     <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Activate All</button>
                     <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Deactivate All</button>
-                    <button onClick={handleResetWords} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700">Reset Word List</button>
                 </div>
             </div>
             <div className="space-y-2">
