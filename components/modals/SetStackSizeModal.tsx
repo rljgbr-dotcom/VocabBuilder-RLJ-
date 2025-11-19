@@ -29,15 +29,24 @@ const SetStackSizeModal: React.FC = () => {
             <form onSubmit={handleSubmit}>
                 <div className="space-y-2">
                     <label htmlFor="stack-size-input" className="text-sm">Enter number of cards:</label>
-                    <input
-                        type="number"
-                        id="stack-size-input"
-                        value={size}
-                        onChange={(e) => setSize(e.target.value)}
-                        className="w-full p-2 bg-base-300 rounded-md text-center"
-                        min="1"
-                        max={maxSize}
-                    />
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number"
+                            id="stack-size-input"
+                            value={size}
+                            onChange={(e) => setSize(e.target.value)}
+                            className="w-full p-2 bg-base-300 rounded-md text-center"
+                            min="1"
+                            max={maxSize}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setSize(maxSize)}
+                            className="px-3 py-2 bg-secondary text-secondary-content rounded-md text-sm font-bold hover:bg-secondary-focus"
+                        >
+                            Max
+                        </button>
+                    </div>
                     <p className="text-xs text-gray-400 text-center">(Max: {maxSize})</p>
                 </div>
                 <div className="flex justify-end gap-3 mt-5">

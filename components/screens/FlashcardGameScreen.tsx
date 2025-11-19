@@ -582,9 +582,10 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 </button>
 
                 <div className={`grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {[1, 2, 3, 4, 5].map(n => (
+                    {[1, 2, 3, 4].map(n => (
                         <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content text-sm">+{n}</button>
                     ))}
+                    <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">Hide</button>
                 </div>
 
                 <div className={`w-full grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -623,9 +624,6 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                         </button>
                         {activeMenu === 'filter' && (
                            <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <button onClick={() => showModal('setStackSize', { currentSize: deck.length, maxSize: totalActiveWords, onSet: handleSetStackSize })} className="w-full p-2 text-left bg-base-100 rounded hover:bg-primary hover:text-primary-content mb-2 text-sm">
-                                    Cards: {deck.length}/{totalActiveWords}
-                                </button>
                                 <div className="space-y-1">
                                     {difficultyLevels.map(diff => (
                                         <button
@@ -654,9 +652,11 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                         </svg>
                         <span className="text-xs mt-1">Swipes</span>
                     </button>
-                    <button onClick={hideCard} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white" title="Hide Card">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m0 0l-2.145-2.145" /></svg>
-                        <span className="text-xs mt-1">Hide</span>
+                    <button onClick={() => showModal('setStackSize', { currentSize: deck.length, maxSize: totalActiveWords, onSet: handleSetStackSize })} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Set Deck Size">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span className="text-xs mt-1">{deck.length}/{totalActiveWords}</span>
                     </button>
                 </div>
             </div>
