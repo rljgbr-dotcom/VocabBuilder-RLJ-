@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useModal } from '../../contexts/ModalContext';
 import { Word } from '../../types';
@@ -14,10 +14,9 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, syncWithDataFolder } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive } = useWords();
     const { showModal } = useModal();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
 
     const groupedWords = useMemo(() => {
         return words.reduce((acc, word) => {
@@ -52,18 +51,6 @@ const ManageWordsScreen: React.FC = () => {
         reader.readAsText(file);
         event.target.value = ''; // Reset file input
     };
-
-    const handleSyncFolder = async () => {
-        showModal('confirmation', {
-            text: 'This will scan the application "data" folder and add any new words found in CSV files. Existing words will not be duplicated. Continue?',
-            onConfirm: async () => {
-                setIsSyncing(true);
-                const result = await syncWithDataFolder();
-                setIsSyncing(false);
-                showModal('info', { title: result.success ? 'Sync Complete' : 'Sync Failed', content: result.message });
-            }
-        });
-    };
     
     const handleExport = () => {
         const result = exportToCSV();
@@ -78,28 +65,19 @@ const ManageWordsScreen: React.FC = () => {
             <div className="bg-base-200 p-3 rounded-lg mb-4 sticky top-[72px] z-30">
                 <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center items-center">
                     <button onClick={() => showModal('addWord')} className="px-3 py-1.5 text-sm bg-accent text-accent-content rounded-md hover:bg-accent-focus">Add New Word</button>
-                    <div className="flex items-center gap-1">
+                    <div>
                         <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} />
-                        <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Load CSV</button>
-                        <button onClick={() => showModal('csvHelp')} className="text-xs text-blue-400 hover:underline">(Format?)</button>
+                        <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Load from CSV</button>
+                        <button onClick={() => showModal('csvHelp')} className="ml-1 text-xs text-blue-400 hover:underline">(Format?)</button>
                     </div>
-                    <button 
-                        onClick={handleSyncFolder} 
-                        disabled={isSyncing}
-                        className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                        {isSyncing ? 'Syncing...' : 'Update from Data Folder'}
-                    </button>
-                    <button onClick={handleExport} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Export CSV</button>
-                    <div className="flex gap-2 border-l border-gray-600 pl-2">
-                        <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Activate All</button>
-                        <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Deactivate All</button>
-                    </div>
+                    <button onClick={handleExport} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Export to CSV</button>
+                    <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Activate All</button>
+                    <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">Deactivate All</button>
                 </div>
             </div>
             <div className="space-y-2">
                 {words.length === 0 ? (
-                    <p className="text-center text-gray-400 mt-8">No words found. Add some manually, load a CSV file, or sync from the data folder.</p>
+                    <p className="text-center text-gray-400 mt-8">No words found. Add some or load a CSV file.</p>
                 ) : (
                     sortedSources.map(source => (
                         <WordGroup

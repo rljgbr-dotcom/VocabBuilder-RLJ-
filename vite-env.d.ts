@@ -6,8 +6,3 @@ declare module '*?raw' {
   const content: string;
   export default content;
 }
-
-// FIX: Add definition for import.meta.glob since we are not using vite/client types
-interface ImportMeta {
-  glob(pattern: string, options?: { query?: string; import?: string; eager?: boolean }): Record<string, () => Promise<any>>;
-}
