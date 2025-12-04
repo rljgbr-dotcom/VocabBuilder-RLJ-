@@ -1,5 +1,5 @@
 {
-  "name": "Vocab Builder v3.1.19 v2",
+  "name": "Vocab Builder Master",
   "description": "An advanced flashcard application for learning vocabulary. Users can manage word lists, import/export via CSV, and study using a sophisticated flashcard game. Includes AI-powered features to suggest example sentences.",
   "requestFramePermissions": [
     "microphone"
