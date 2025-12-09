@@ -17,7 +17,7 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
 
     // Basic header validation (loose check to allow for minor whitespace diffs)
-    if (JSON.stringify(header) !== JSON.stringify(expectedHeader)) {
+    if (JSON.stringify(header.sort()) !== JSON.stringify(expectedHeader.sort())) {
         console.error("Header mismatch. Expected:", expectedHeader, "Got:", header);
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
     }
