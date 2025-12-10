@@ -1,458 +1,152 @@
-Comprehensive Linguistic Analysis of 
-Swedish Word Order for Automated 
-Application Development
-I. Foundations of Swedish Word Order: The V2 
-Constraint and Field Structure
-Swedish syntax is defined by a highly regimented word order, critical for conveying 
-grammatical relationships and information structure. While structurally classified as a 
-Subject-Verb-Object (SVO) language in its canonical form, the overarching syntactic 
-principle that governs most independent clauses is the Verb-Second (V2) constraint.1 
-This mandate is fundamental to the language's grammar and dictates the field structure 
-of the clause, forming the necessary foundation for any automated word order practice 
-application.
+Comprehensive Linguistic Analysis of Swedish Word Order for Automated Application Development
+I. Foundations of Swedish Word Order: The V2 Constraint and Field Structure
+Swedish syntax is defined by a highly regimented word order, critical for conveying grammatical relationships and information structure. While structurally classified as a Subject-Verb-Object (SVO) language in its canonical form, the overarching syntactic principle that governs most independent clauses is the Verb-Second (V2) constraint. This mandate is fundamental to the language's grammar and dictates the field structure of the clause, forming the necessary foundation for any automated word order practice application.
 I.A. Typological Classification and the V2 Constraint
-Swedish maintains a canonical Subject-Verb-Object (SVO) order when the subject is 
-the initial element of the sentence.1 However, the defining characteristic of the 
-language is its rigorous adherence to the V2 rule.3 The V2 constraint stipulates that the 
-finite verb ($V_1$), which is the tensed verb in the clause, must occupy the second 
-constituent position (P2), regardless of which constituent occupies the first position 
-(P1), also known as the Front Field (X).3
-This constraint means that if an element other than the subject is fronted for purposes 
-of topicalization or focus, the subject must immediately shift positions to ensure the 
-verb remains in the second slot.3 The consistent enforcement of the V2 rule prevents 
-structures commonly found in languages without this constraint, such as placing both a 
-time adverbial and the subject before the verb in a main clause, as in the erroneous 
-structure *Nu jag g�r*. The correct construction requires inversion: Nu g�r jag or Jag 
-g�r nu.3
+Swedish maintains a canonical Subject-Verb-Object (SVO) order when the subject is the initial element of the sentence. However, the defining characteristic of the language is its rigorous adherence to the V2 rule. The V2 constraint stipulates that the finite verb (V_1), which is the tensed verb in the clause, must occupy the second constituent position (P2), regardless of which constituent occupies the first position (P1), also known as the Front Field (X).
+This constraint means that if an element other than the subject is fronted for purposes of topicalization or focus, the subject must immediately shift positions to ensure the verb remains in the second slot. The consistent enforcement of the V2 rule prevents structures commonly found in languages without this constraint, such as placing both a time adverbial and the subject before the verb in a main clause, as in the erroneous structure Nu jag går. The correct construction requires inversion: Nu går jag or Jag går nu.
 I.B. Introduction to the Formal Field Structure Model
-For automated syntactic analysis, the Swedish clause must be analyzed using a 
-formalized field structure model, which explicitly numbers the conventional positions 
-occupied by constituents. This formalization, often represented by slots P1 through P7, 
-is essential for translating linguistic principles into actionable, rule-based 
-programming.4 The structure is segmented into the Initial Field (P1), the Verbal Fields 
-(P2 and P5), the Medial Field (P3 and P4), and the Final Field (P6 and P7).3
-The primary challenge in applying the V2 rule algorithmically is the proper identification 
-of the constituent boundary of the Front Field (P1, X). The V2 rule is fundamentally a 
-constraint on the constituent, not merely the second word.3 If the first position is 
-occupied by a complex phrase�such as a long noun phrase, an entire adverbial phrase, 
-or even a subordinate clause�the entire phrase must be parsed as a single unit ($P1 = 
-X$) before the algorithm proceeds to check for the finite verb ($V_1$) in P2. The 
-accuracy of the AI�s parsing mechanism is therefore directly tied to its ability to 
-segment constituents, as failure to do so results in incorrect V2 application when 
-complex phrases initiate the sentence.
-The generalized schema below illustrates the fixed sequence of constituents within a 
-Swedish clause, forming the template for both main and subordinate structures, with 
-key differences appearing in the Medial Field.
+For automated syntactic analysis, the Swedish clause must be analyzed using a formalized field structure model, which explicitly numbers the conventional positions occupied by constituents. This formalization, often represented by slots P1 through P7, is essential for translating linguistic principles into actionable, rule-based programming. The structure is segmented into the Initial Field (P1), the Verbal Fields (P2 and P5), the Medial Field (P3 and P4), and the Final Field (P6 and P7).
+The primary challenge in applying the V2 rule algorithmically is the proper identification of the constituent boundary of the Front Field (P1, X). The V2 rule is fundamentally a constraint on the constituent, not merely the second word. If the first position is occupied by a complex phrase—such as a long noun phrase, an entire adverbial phrase, or even a subordinate clause—the entire phrase must be parsed as a single unit (P1 = X) before the algorithm proceeds to check for the finite verb (V_1) in P2. The accuracy of the AI’s parsing mechanism is therefore directly tied to its ability to segment constituents, as failure to do so results in incorrect V2 application when complex phrases initiate the sentence.
+The generalized schema below illustrates the fixed sequence of constituents within a Swedish clause, forming the template for both main and subordinate structures, with key differences appearing in the Medial Field.
 Table I.1: Generalized Swedish Clause Field Positions (Schema)
-Position 
-Index
-Linguistic 
-Term
-Constituent Type
-Role/Function
-1
-Front 
-Field (X)
-Variable (S, O, Adv, 
-Clause)
-Topic or Focus Element. Must 
-be exactly one constituent.
-2
-V1 Field
-Finite Verb (Tensed)
-Obligatory V2 Anchor for main 
-clauses.
-3
-Subject 
-Field ((S))
-Subject Noun Phrase
-Required if X $\neq$ S.
-4
-Medial/SA 
-Field
-Sentence Adverbial 
-(SA)
-Modifies the entire clause (e.g., 
-negation, frequency).
-5
-V2 Field
-Non-finite Verb (Inf. or 
-Supine)
-Auxiliary complement (if V1 is 
-auxiliary).
-6
-Object 
-Field (O)
-Direct or Indirect 
-Objects
-Receives action or goal of 
-V2/V1.
-7
-Final 
-Field 
-(Adv)
-General Adverbials 
-(Manner, Place, Time)
-Circumstantial information 
-(satellites).
-II. Main Clause Syntax: Enforcement of the V2 
-Constraint
-Main clauses contain an independent thought and can stand alone grammatically.1 
-Their word order is strictly governed by the V2 constraint, which manifests in two 
-primary structural variations: traditional (SVO) and inverted (XVO) order.
+| Position Index | Linguistic Term | Constituent Type | Role/Function |
+|---|---|---|---|
+| 1 | Front Field (X) | Variable (S, O, Adv, Clause) | Topic or Focus Element. Must be exactly one constituent. |
+| 2 | V1 Field | Finite Verb (Tensed) | Obligatory V2 Anchor for main clauses. |
+| 3 | Subject Field ((S)) | Subject Noun Phrase | Required if X \neq S. |
+| 4 | Medial/SA Field | Sentence Adverbial (SA) | Modifies the entire clause (e.g., negation, frequency). |
+| 5 | V2 Field | Non-finite Verb (Inf. or Supine) | Auxiliary complement (if V1 is auxiliary). |
+| 6 | Object Field (O) | Direct or Indirect Objects | Receives action or goal of V2/V1. |
+| 7 | Final Field (Adv) | General Adverbials (Manner, Place, Time) | Circumstantial information (satellites). |
+II. Main Clause Syntax: Enforcement of the V2 Constraint
+Main clauses contain an independent thought and can stand alone grammatically. Their word order is strictly governed by the V2 constraint, which manifests in two primary structural variations: traditional (SVO) and inverted (XVO) order.
 II.A. Traditional Word Order (SVO)
-The traditional structure is observed when the subject (S) occupies the Front Field (P1). 
-This results in the canonical SVO structure, where the subject immediately precedes 
-the finite verb.1
-The formal structure is: $S(P1) + V_1(P2) + SA(P4) + V_2(P5) + O(P6) + Adv(P7)$.3
-*	Example: Hon (P1, S) l�ser (P2, $V_1$) en bok (P6, O). (She reads a book.).2
-In this order, the subject is aligned with the topic position, creating a neutral, 
-declarative statement. The finite verb, by definition, occupies the second position.
+The traditional structure is observed when the subject (S) occupies the Front Field (P1). This results in the canonical SVO structure, where the subject immediately precedes the finite verb.
+The formal structure is: S(P1) + V_1(P2) + SA(P4) + V_2(P5) + O(P6) + Adv(P7).
+ * Example: Hon (P1, S) läser (P2, V_1) en bok (P6, O). (She reads a book.).
+In this order, the subject is aligned with the topic position, creating a neutral, declarative statement. The finite verb, by definition, occupies the second position.
 II.B. Inverted Word Order (XVO) and Fronting
-Inversion, also referred to as Inverted Word Order, occurs when any constituent other 
-than the subject fills the Front Field (P1, X).1 This operation, known as topicalization or 
-fronting, serves to place thematic or focused information at the start of the sentence, 
-providing the reader with important contextual information about what is to follow.5
-Since the V2 constraint is non-negotiable, the fronting of a non-subject constituent 
-necessitates that the subject (S) be immediately moved to Position 3, following the 
-finite verb (P2).1 The V2 constraint therefore serves as the active mechanism that forces 
-subject-verb inversion whenever the speaker chooses to foreground an element like a 
-time adverbial or an object.
-The formal structure is: $X(P1) + V_1(P2) + S(P3) + SA(P4) + V_2(P5) + O(P6) + Adv(P7)$.1
-*	Example: Idag (P1, Time Adv) har (P2, $V_1$) jag (P3, S) inte (P4, SA) haft (P5, 
-$V_2$) tid att laga mat. (Today I haven�t had time to cook.).1
+Inversion, also referred to as Inverted Word Order, occurs when any constituent other than the subject fills the Front Field (P1, X). This operation, known as topicalization or fronting, serves to place thematic or focused information at the start of the sentence, providing the reader with important contextual information about what is to follow.
+Since the V2 constraint is non-negotiable, the fronting of a non-subject constituent necessitates that the subject (S) be immediately moved to Position 3, following the finite verb (P2). The V2 constraint therefore serves as the active mechanism that forces subject-verb inversion whenever the speaker chooses to foreground an element like a time adverbial or an object.
+The formal structure is: X(P1) + V_1(P2) + S(P3) + SA(P4) + V_2(P5) + O(P6) + Adv(P7).
+ * Example: Idag (P1, Time Adv) har (P2, V_1) jag (P3, S) inte (P4, SA) haft (P5, V_2) tid att laga mat. (Today I haven’t had time to cook.).
 II.C. The Medial Field: Placement of Sentence Adverbials (SA)
-The Medial Field contains elements that modify the entire clause, notably the Sentence 
-Adverbials (SA). This category includes negative words (inte, ej) and specific adverbs 
-indicating modality, frequency, or certainty (alltid, kanske, redan, aldrig).1
-In all main clauses, the SA is fixed in Position 4, directly following the finite verb (P2) 
-and the subject (P1 or P3).3 This position is invariant in main clauses and constitutes a 
-fixed rule. If the clause contains a complex predicate with an auxiliary verb ($V_1$) and 
-a non-finite main verb ($V_2$), the SA follows the auxiliary ($V_1$) and precedes the 
-non-finite verb ($V_2$).
-*	Example (with Auxiliary): Jag har ($V_1$) aldrig (SA) varit ($V_2$) d�r. (I have 
-never been there.).6
-This predictable placement of the SA in P4 serves as a crucial diagnostic marker for 
-identifying main clauses, contrasting sharply with subordinate clause structure, as 
-detailed in Section III.
+The Medial Field contains elements that modify the entire clause, notably the Sentence Adverbials (SA). This category includes negative words (inte, ej) and specific adverbs indicating modality, frequency, or certainty (alltid, kanske, redan, aldrig).
+In all main clauses, the SA is fixed in Position 4, directly following the finite verb (P2) and the subject (P1 or P3). This position is invariant in main clauses and constitutes a fixed rule. If the clause contains a complex predicate with an auxiliary verb (V_1) and a non-finite main verb (V_2), the SA follows the auxiliary (V_1) and precedes the non-finite verb (V_2).
+ * Example (with Auxiliary): Jag har (V_1) aldrig (SA) varit (V_2) där. (I have never been there.).
+This predictable placement of the SA in P4 serves as a crucial diagnostic marker for identifying main clauses, contrasting sharply with subordinate clause structure, as detailed in Section III.
 Table II.1: Main Clause (V2) Field Constituents
-Structure Type
-P1 (X)
-P2 (V1 )
-P3 (S)
-P4 
-(SA/Negation)
-Traditional (SVO)
-Subject (S)
-Finite 
-Verb
-$\emptyset$
-Sentence 
-Adverbial
-Inverted (XVO)
-Time/Place Adv, 
-Object, etc.
-Finite 
-Verb
-Subject (S)
-Sentence 
-Adverbial
-Common Learner 
-Error Pattern
-Time/Place Adv
-Subject 
-(S)
-Finite Verb
-Sentence 
-Adverbial
+| Structure Type | P1 (X) | P2 (V_{1}) | P3 (S) | P4 (SA/Negation) |
+|---|---|---|---|---|
+| Traditional (SVO) | Subject (S) | Finite Verb | \emptyset | Sentence Adverbial |
+| Inverted (XVO) | Time/Place Adv, Object, etc. | Finite Verb | Subject (S) | Sentence Adverbial |
+| Common Learner Error Pattern | Time/Place Adv | Subject (S) | Finite Verb | Sentence Adverbial |
 III. Subordinate Clause Syntax: Suspension of V2
-A subordinate clause, also known as a dependent clause, adds information to the main 
-clause and cannot function grammatically on its own.1 Unlike main clauses, 
-subordinate clauses actively suspend the V2 constraint, resulting in a distinctly 
-different internal field structure.
+A subordinate clause, also known as a dependent clause, adds information to the main clause and cannot function grammatically on its own. Unlike main clauses, subordinate clauses actively suspend the V2 constraint, resulting in a distinctly different internal field structure.
 III.A. Structural Characteristics and Subordinating Conjunctions
-Subordinate clauses are invariably introduced by a subordinating conjunction, or 
-subordinator (Conj). Common subordinators include att (that), eftersom (because), n�r 
-(when), om (if), and relative pronouns like som (who/which).6 The subordinator 
-occupies the initial position of the clause, equivalent to P1.4
-Because the initial position is occupied by the obligatory conjunction, the V2 constraint 
-is nullified. The subject (S) must immediately follow the conjunction, and no other 
-topical expression may replace the subject in this position.4
+Subordinate clauses are invariably introduced by a subordinating conjunction, or subordinator (Conj). Common subordinators include att (that), eftersom (because), när (when), om (if), and relative pronouns like som (who/which). The subordinator occupies the initial position of the clause, equivalent to P1.
+Because the initial position is occupied by the obligatory conjunction, the V2 constraint is nullified. The subject (S) must immediately follow the conjunction, and no other topical expression may replace the subject in this position.
 III.B. Fixed Order and Verb Placement
-In the absence of the V2 requirement, the constituent sequence within the subordinate 
-clause is significantly altered compared to the main clause. The subject (S) occupies P2, 
-and the finite verb ($V_{finite}$) is pushed deeper into the Medial Field, typically to 
-Position 4, following the Sentence Adverbial (SA).4
-The formal subordinate clause structure is: $Conj(P1) + S(P2) + SA(P3) + V_{finite}(P4) + 
-V_2(P5) + O(P6) + Adv(P7)$.4
-*	Example: ...att Lotte (P2, S) inte (P3, SA) ville (P4, $V_{finite}$) koka (P5, $V_2$) 
-kaffe (P6, O) i dag (P7, Adv)..4
-III.C. The Diagnostic Shift: Sentence Adverbial Pre-Verbal Placement 
-(P3)
-The most robust syntactic feature distinguishing subordinate clauses from main 
-clauses is the placement of the Sentence Adverbial (SA), often referred to as the 
-BISTRA-rule in pedagogical grammar. In the subordinate environment, the SA, including 
-negation (inte), is placed in Position 3, directly following the subject but crucially 
-before the finite verb.4
-This systematic complementary distribution of SA placement (V-SA in main clauses, 
-SA-V in subordinate clauses) provides an absolute structural indicator for clause type 
-classification. The presence of a subordinator in P1 acts as a structural trigger that 
-causes the internal field sequence to compress. This forces the finite verb to a later 
-position in the medial field, naturally positioning the sentence adverbial before it. 
-Therefore, a successful automated learning application must utilize the position of the 
-SA�specifically the placement of negation (inte)�as the primary diagnostic tool for 
-validating subordinate clause grammar, as this structural difference is stable and 
-predictable based solely on the dependent nature of the clause.4
-Learners frequently fail to execute this shift, applying the main clause V-SA rule to 
-embedded clauses.9 This failure highlights a deep misunderstanding of the V2 
-mechanism's suspension upon embedding.
+In the absence of the V2 requirement, the constituent sequence within the subordinate clause is significantly altered compared to the main clause. The subject (S) occupies P2, and the finite verb (V_{finite}) is pushed deeper into the Medial Field, typically to Position 4, following the Sentence Adverbial (SA).
+The formal subordinate clause structure is: Conj(P1) + S(P2) + SA(P3) + V_{finite}(P4) + V_2(P5) + O(P6) + Adv(P7).
+ * Example: ...att Lotte (P2, S) inte (P3, SA) ville (P4, V_{finite}) koka (P5, V_2) kaffe (P6, O) i dag (P7, Adv)..
+III.C. The Diagnostic Shift: Sentence Adverbial Pre-Verbal Placement (P3)
+The most robust syntactic feature distinguishing subordinate clauses from main clauses is the placement of the Sentence Adverbial (SA), often referred to as the BISTRA-rule in pedagogical grammar. In the subordinate environment, the SA, including negation (inte), is placed in Position 3, directly following the subject but crucially before the finite verb.
+This systematic complementary distribution of SA placement (V-SA in main clauses, SA-V in subordinate clauses) provides an absolute structural indicator for clause type classification. The presence of a subordinator in P1 acts as a structural trigger that causes the internal field sequence to compress. This forces the finite verb to a later position in the medial field, naturally positioning the sentence adverbial before it. Therefore, a successful automated learning application must utilize the position of the SA—specifically the placement of negation (inte)—as the primary diagnostic tool for validating subordinate clause grammar, as this structural difference is stable and predictable based solely on the dependent nature of the clause.
+Learners frequently fail to execute this shift, applying the main clause V-SA rule to embedded clauses. This failure highlights a deep misunderstanding of the V2 mechanism's suspension upon embedding.
 Table III.1: Contrastive Field Structure: Main vs. Subordinate
-Clause Type
-Structural P1�P4 
-Sequence
-Negation 
-Placement
-V2 
-Enforced?
-Example 
-(Negation)
-Main (V2)
-(X) + $V_{finite}$ + 
-(S) + SA
-After 
-$V_{finite}$ (P4)
-YES
-Jag har inte sett 
-filmen.
-Subordinate
-Conj + S + SA + 
-$V_{finite}$
-Before 
-$V_{finite}$ (P3)
-NO
-...att jag inte har 
-sett filmen.
+| Clause Type | Structural P1–P4 Sequence | Negation Placement | V2 Enforced? | Example (Negation) |
+|---|---|---|---|---|
+| Main (V2) | (X) + V_{finite} + (S) + SA | After V_{finite} (P4) | YES | Jag har inte sett filmen. |
+| Subordinate | Conj + S + SA + V_{finite} | Before V_{finite} (P3) | NO | ...att jag inte har sett filmen. |
 IV. Interrogative and Imperative Structures
-The V2 constraint also governs the word order of direct questions, demonstrating its 
-pervasiveness across declarative and interrogative main clause types.
+The V2 constraint also governs the word order of direct questions, demonstrating its pervasiveness across declarative and interrogative main clause types.
 IV.A. Direct Questions (V2 Mechanism)
 Direct questions are formed via inversion, adhering strictly to the V2 principle.
 IV.A.1. Yes/No Questions (V-S)
-In Yes/No questions, the information being questioned is the truth value of the entire 
-proposition. The finite verb ($V_1$) is fronted to the initial position (P1). The subject 
-immediately follows, occupying P2. This structure constitutes a specialized form of 
-inversion where the verb itself fills the P1 slot, but the constraint remains satisfied 
-because the subject immediately follows in P2.1
-*	Structure: $V_1(P1) + S(P2) + SA(P4) +...$
-*	Example: Pratar ($V_1$) du (S) svenska? (Do you speak Swedish?).1
+In Yes/No questions, the information being questioned is the truth value of the entire proposition. The finite verb (V_1) is fronted to the initial position (P1). The subject immediately follows, occupying P2. This structure constitutes a specialized form of inversion where the verb itself fills the P1 slot, but the constraint remains satisfied because the subject immediately follows in P2.
+ * Structure: V_1(P1) + S(P2) + SA(P4) +...
+ * Example: Pratar (V_1) du (S) svenska? (Do you speak Swedish?).
 IV.A.2. WH-Questions (Q-V-S)
-WH-questions (questions starting with vad, varf�r, vem, n�r, hur, etc.) place the 
-Question Word (Q-word) in the Front Field (P1). Since the Q-word is a non-subject 
-element, the V2 constraint mandates standard inversion: the finite verb ($V_1$) moves 
-to P2, and the subject (S) moves to P3.1
-*	Structure: $Q-Word(P1) + V_1(P2) + S(P3) + SA(P4) +...$
-*	Example: Vad (P1) �r (P2) kronans v�xelkurs (P3, S) mot euron just nu?.1
+WH-questions (questions starting with vad, varför, vem, när, hur, etc.) place the Question Word (Q-word) in the Front Field (P1). Since the Q-word is a non-subject element, the V2 constraint mandates standard inversion: the finite verb (V_1) moves to P2, and the subject (S) moves to P3.
+ * Structure: Q-Word(P1) + V_1(P2) + S(P3) + SA(P[span_30](start_span)[span_30](end_span)4) +...
+ * Example: Vad (P1) är (P2) kronans växelkurs (P3, S) mot euron just nu?.
 IV.A.3. The Subject-WH Exception
-A critical exception occurs when the Q-word itself functions as the subject of the 
-sentence (e.g., Vem 'Who', Vad 'What'). In this scenario, the Q-word occupies P1 as the 
-subject, and the sentence follows the traditional SVO pattern (P1 is the subject, P2 is 
-the verb). Since the subject is already in P1, no further inversion is required.1 The AI 
-system must confirm the grammatical function of the Q-word before assigning the 
-structural rule.
-*	Example: Vem (P1, Q-word/S) bes�kte (P2, $V_1$) Danmark senast? (Who 
-visited Denmark last?).1
+A critical exception occurs when the Q-word itself functions as the subject of the sentence (e.g., Vem 'Who', Vad 'What'). In this scenario, the Q-word occupies P1 as the subject, and the sentence follows the traditional SVO pattern (P1 is the subject, P2 is the verb). Since the subject is already in P1, no further inversion is required. The AI system must confirm the grammatical function of the Q-word before assigning the structural rule.
+ * Example: Vem (P1, Q-word/S) besökte (P2, V_1) Danmark senast? (Who visited Denmark last?).
 IV.B. Indirect Questions (Subordinate Order)
-Indirect questions are dependent, embedded structures that invariably adhere to the 
-subordinate clause word order.1 They function as embedded constructs within a larger 
-declarative sentence.10
-The subordinate clause is typically introduced by either a Q-word (in place of the 
-conjunction) or the particle om ('if'), if the question originated from a direct Yes/No 
-question.1 Crucially, the internal structure must follow the fixed non-V2 pattern, 
-meaning the subject precedes the finite verb, and the sentence adverbial (SA) is 
-positioned before the verb (SA-V).1
-*	Example: Jag undrar hur norrm�n (S) firar ($V_{finite}$) p�sk. (Indirect question, 
-non-V2 order maintained.)
-*	Example: Vet du om Islands heta k�llor (S) �r ($V_{finite}$) v�rda ett bes�k? 
-(Uses om for the embedded Yes/No question.).1
-This consistent use of the SA-V structure confirms that Swedish syntax treats 
-embedding�whether through complementizers (att), relative pronouns (som), or 
-interrogative particles (om and Q-words)�as a unified structural trigger that globally 
-suspends the V2 operation.
+Indirect questions are dependent, embedded structures that invariably adhere to the subordinate clause word order. They function as embedded constructs within a larger declarative sentence.
+The subordinate clause is typically introduced by either a Q-word (in place of the conjunction) or the particle om ('if'), if the question originated from a direct Yes/No question. Crucially, the internal structure must follow the fixed non-V2 pattern, meaning the subject precedes the finite verb, and the sentence adverbial (SA) is positioned before the verb (SA-V).
+ * Example: Jag undrar hur norrmän (S) firar (V_{finite}[span_35](start_span)[span_35](end_span)) påsk. (Indirect question, non-V2 order maintained.)
+ * Example: Vet du om Islands heta källor (S) är (V_{finite}) värda ett besök? (Uses om for the embedded Yes/No question.).
+This consistent use of the SA-V structure confirms that Swedish syntax treats embedding—whether through complementizers (att), relative pronouns (som), or interrogative particles (om and Q-words)—as a unified structural trigger that globally suspends the V2 operation.
 IV.C. Imperative Sentences
-Imperative sentences (commands) represent the simplest structure and are an 
-exception to the requirement for an explicit subject, as the subject (second person 
-singular or plural) is always implicit.3 The imperative verb form ($V_{imperative}$) 
-initiates the sentence.
-The structure is: $V_{imperative}(P1) + (O) + (Adv)$.
-*	Example: L�s ($V_{imperative}$) boken (O) nu (Adv). (Read the book now.)
+Imperative sentences (commands) represent the simplest structure and are an exception to the requirement for an explicit subject, as the subject (second person singular or plural) is always implicit. The imperative verb form (V_{imperative}) initiates the sentence.
+The structure is: V_{imperative}(P1) + (O) + (Adv).
+ * Example: Läs (V_{imperative}) boken (O) nu (Adv). (Read the book now.)
 Table IV.1: Direct Question Word Order Patterns
-Questio
-n Type
-Initial 
-Element 
-(P1)
-P2
-P3
-V2 
-Enforced
-?
-SA 
-Position
-Yes/No
-$V_{finite}
-$
-Subject (S)
-$\emptyset
-$
-Yes (P2 is 
-S)
-P4 (After S)
-WH 
-(Non-
-Subject)
-Q-Word
-$V_{finite}
-$
-Subject (S)
-Yes (P2 is 
-V)
-P4 (After S)
-WH 
-(Subject)
-Q-Word (S)
-$V_{finite}
-$
-$\emptyset
-$
-Yes (P2 is 
-V)
-P3 (After 
-$V_{finite}$
-)
-V. The Final Field: Adverbial Hierarchy and Satellites 
-(P7)
-Beyond the Medial Field, the internal structure of the Final Field (P7) is also highly 
-regulated, primarily concerning the ordering of general adverbials.
+| Question Type | Initial Element (P1) | P2 | P3 | V2 Enforced? | SA Position |
+|---|---|---|---|---|---|
+| Yes/No | V_{finite} | Subject (S) | \emptyset | Yes (P2 is S) | P4 (After S) |
+| WH (Non-Subject) | Q-Word | V_{finite} | Subject (S) | Yes (P2 is V) | P4 (After S) |
+| WH (Subject) | Q-Word (S) | V_{finite} | \emptyset | Yes (P2 is V) | P3 (After V_{finite}) |
+V. The Final Field: Adverbial Hierarchy and Satellites (P7)
+Beyond the Medial Field, the internal structure of the Final Field (P7) is also highly regulated, primarily concerning the ordering of general adverbials.
 V.A. Separation of Adverbial Types
-A fundamental distinction must be maintained between Sentence Adverbials (SA) and 
-General Adverbials (Adv).
-1.	Sentence Adverbials (SA): Occupy P3 (subordinate) or P4 (main) and modify the 
-entire clause's truth value or modality.1
-2.	General Adverbials (Adv): Typically occupy the final positions (P7) and describe 
-the circumstances of the action (how, where, when). These elements follow the 
-object (P6).3
-Adverbials generally have flexibility in their placement, often appearing in P1 for focus, 
-but when they appear in the final position (P7), their order is strictly determined.5
+A fundamental distinction must be maintained between Sentence Adverbials (SA) and General Adverbials (Adv).
+ * Sentence Adverbials (SA): Occupy P3 (subordinate) or P4 (main) and modify the entire clause's truth value or modality.
+ * General Adverbials (Adv): Typically occupy the final positions (P7) and describe the circumstances of the action (how, where, when). These elements follow the object (P6).
+Adverbials generally have flexibility in their placement, often appearing in P1 for focus, but when they appear in the final position (P7), their order is strictly determined.
 V.B. The Manner-Place-Time (MPT) Canonical Order
-When multiple general adverbials occur in the final field (P7), their sequence is not 
-random but follows a fixed hierarchy known as the MPT rule. This ordering is generally 
-consistent across the Germanic V2 languages.3
-The required sequence is: Manner (M) $\rightarrow$ Place (P) $\rightarrow$ Time (T).
-1.	Manner (M): Describes how the action was done (tydligt 'clearly').1
-2.	Place (P): Describes where the action was done (i s�ngen 'in bed').1
-3.	Time (T): Describes when the action was done (p� morgonen 'in the morning').1
-This MPT sequence is structurally significant because it adheres to a principle of 
-informational weight, placing the elements most intrinsically related to the verb 
-(Manner) closest to the verbal phrase and the broader contextualizing elements (Time) 
-furthest away. This predictable structure simplifies the final field generation for the AI.
+When multiple general adverbials occur in the final field (P7), their sequence is not random but follows a fixed hierarchy known as the MPT rule. This ordering is generally consistent across the Germanic V2 languages.
+The required sequence is: Manner (M) \rightarrow Place (P) \rightarrow Time (T).
+ * Manner (M): Describes how the action was done (tydligt 'clearly').
+ * Place (P): Describes where the action was done (i sängen 'in bed').
+ * Time (T): Describes when the action was done (på morgonen 'in the morning').
+This MPT sequence is structurally significant because it adheres to a principle of informational weight, placing the elements most intrinsically related to the verb (Manner) closest to the verbal phrase and the broader contextualizing elements (Time) furthest away. This predictable structure simplifies the final field generation for the AI.
 Table V.1: General Adverbial Ordering (MPT Rule)
-Order
-Type
-Function
-Example
-Sentence 
-Position
-1
-Manner 
-(M)
-How the action 
-occurred
-snabbt 
-(quickly)
-P7a (Closest to 
-V/O)
-2
-Place 
-(P)
-Where the action 
-occurred
-i skolan (at 
-school)
-P7b
-3
-Time (T)
-When the action 
-occurred
-i g�r 
-(yesterday)
-P7c (Furthest from 
-V/O)
+| Order | Type | Function | Example | Sentence Position |
+|---|---|---|---|---|
+| 1 | Manner (M) | How the action occurred | snabbt (quickly) | P7a (Closest to V/O) |
+| 2 | Place (P) | Where the action occurred | i skolan (at school) | P7b |
+| 3 | Time (T) | When the action occurred | i går (yesterday) | P7c (Furthest from V/O) |
 VI. Syntactic Variations and Advanced Constructions
-The foundational field structure must accommodate complex syntactic phenomena 
-such as embedding through relative clauses and the use of the infinitive marker.
+The foundational field structure must accommodate complex syntactic phenomena such as embedding through relative clauses and the use of the infinitive marker.
 VI.A. Relative Clauses
-Relative clauses (RCs) are clauses that function adjectivally to modify a noun, and they 
-are introduced by relative pronouns, most commonly som (who/that/which).6 
-Structurally, relative clauses behave identically to other subordinate clauses.
-The relative pronoun functions as the initial element (P1). Since the clause is dependent, 
-it suspends V2 and adheres to the SA-V word order.6 The presence of the SA before the 
-finite verb is the key confirmation that the RC is subordinate.
-*	Structure: Relative Pronoun (P1) + S (P2) + SA (P3) + $V_{finite}$ (P4) +....6
-*	Example: Jag k�nner mannen som (P1) inte (SA) bor ($V_{finite}$) h�r l�ngre. (I 
-know the man who no longer lives here.).6
+Relative clauses (RCs) are clauses that function adjectivally to modify a noun, and they are introduced by relative pronouns, most commonly som (who/that/which). Structurally, relative clauses behave identically to other subordinate clauses.
+The relative pronoun functions as the initial element (P1). Since the clause is dependent, it suspends V2 and adheres to the SA-V word order. The presence of the SA before the finite verb is the key confirmation that the RC is subordinate.
+ * Structure: Relative Pronoun (P1) + S (P2) + SA (P3) + V_{finite} (P4) +....
+ * Example: Jag känner mannen som (P1) inte (SA) bor (V_{finite}) här längre. (I know the man who no longer lives here.).
 VI.B. Infinitive Constructions and the Marker Att
-The word att serves two distinct roles: as a subordinating conjunction (P1) and as an 
-infinitive marker preceding a non-finite verb ($V_{inf}$ or $V_2$).11 Its use in infinitive 
-constructions is subject to specific rules regarding government by the preceding verb.
+The word att serves two distinct roles: as a subordinating conjunction (P1) and as an infinitive marker preceding a non-finite verb (V_{inf} or V_2). Its use in infinitive constructions is subject to specific rules regarding government by the preceding verb.
 VI.B.1. Obligatory Omission
-The infinitive marker att must be omitted when the finite verb ($V_1$ in P2) is an 
-auxiliary verb (e.g., har 'have') or a modal verb (e.g., vill 'want', m�ste 'must', kan 'can').11 
-This omission is not a matter of preference but an obligatory grammatical rule. This 
-signifies that auxiliary verbs in Swedish directly govern the following infinitive, rendering 
-the marker redundant.
-*	Example (Omission): Jag vill ($V_1$, Modal) plugga ($V_{inf}$). (Att is omitted.).11
+The infinitive marker att must be omitted when the finite verb (V_1 in P2) is an auxiliary verb (e.g., har 'have') or a modal verb (e.g., vill 'want', måste 'must', kan 'can'). This omission is not a matter of preference but an obligatory grammatical rule. This signifies that auxiliary verbs in Swedish directly govern the following infinitive, rendering the marker redundant.
+ * Example (Omission): Jag vill (V_1, Modal) plugga (V_{inf}). (Att is omitted.).
 VI.B.2. Obligatory Inclusion
-Att is included when the preceding finite verb is a main verb that takes an infinitive 
-phrase as its complement, provided that verb is neither a modal nor an auxiliary verb.
-*	Example (Inclusion): Jag gl�mde ($V_1$, Main verb) att plugga ($att + V_{inf}$).
-To correctly generate sentences with complex verb phrases, the AI model must classify 
-all verbs into these two categories�Auxiliary/Modal (triggering att omission) and Main 
-Verb (triggering att inclusion).11
+Att is included when the preceding finite verb is a main verb that takes an infinitive phrase as its complement, provided that verb is neither a modal nor an auxiliary verb.
+ * Example (Inclusion): Jag glömde (V_1, Main verb) att plugga (att + V_{inf}).
+To correctly generate sentences with complex verb phrases, the AI model must classify all verbs into these two categories—Auxiliary/Modal (triggering att omission) and Main Verb (triggering att inclusion).
 Table VI.1: Rules for Omission of Infinitive Marker Att
-V1 (P2) 
-Category
-Role
-Att 
-Requirement 
-for V2
-Example
-Auxiliary/Modal 
-Verbs
-Govern 
-$V_{inf}$ directly
-Omission is 
-obligatory
-Han m�ste sova. (He 
-must sleep.)
-Main Verbs
-Require an 
-infinitive phrase
-Inclusion is 
-obligatory
-Han hoppas att sova. (He 
-hopes to sleep.)
-VII. Pedagogical Implications and Structural 
-Diagnostics
-The development of an automated learning application requires translating the 
-linguistic structures into a hierarchy of importance based on the frequency and severity 
-of learner errors.
+| V1 (P2) Category | Role | Att Requirement for V2 | Example |
+|---|---|---|---|
+| Auxiliary/Modal Verbs | Govern V_{inf} directly | Omission is obligatory | Han måste sova. (He must sleep.) |
+| Main Verbs | Require an infinitive phrase | Inclusion is obligatory | Han hoppas att sova. (He hopes to sleep.) |
+VII. Pedagogical Implications and Structural Diagnostics
+The development of an automated learning application requires translating the linguistic structures into a hierarchy of importance based on the frequency and severity of learner errors.
 VII.A. Analyzing High-Frequency Learner Errors
-Non-native speakers consistently struggle with the V2 constraint and the distinction 
-between main and subordinate clauses.9 These difficulties are not random, but directly 
-correspond to the most crucial, yet syntactically complex, features of the language.
-1.	V2 Constraint Failure in Fronting: The failure to execute subject-verb inversion 
-when a non-subject element occupies P1 (e.g., placing the subject immediately 
-after the fronted element: Imorgon jag g�r... instead of Imorgon g�r jag) is a high-
-frequency error.3 This structural failure demonstrates that the learner has not 
-grasped the primacy of the V2 rule over the baseline SVO assumption.
-2.	SA Plac
+Non-native speakers consistently struggle with the V2 constraint and the distinction between main and subordinate clauses. These difficulties are not random, but directly correspond to the most crucial, yet syntactically complex, features of the language. 
+V2 Constraint Failure in Fronting: The failure to execute subject-verb inversion when a non-subject element occupies P1 (e.g., placing the subject immediately after the fronted element: Imorgon jag går... instead of Imorgon går jag) is a high-frequency error. This structural failure demonstrates that the learner has not grasped the primacy of the V2 rule over the baseline SVO assumption. 
+SA Placement Error (Subordinates): Applying the V-SA rule of main clauses to subordinate clauses is another critical error. This indicates a lack of awareness that the subordinating conjunction fundamentally alters the field structure, requiring the SA to precede the finite verb. 
+These structural issues reveal that the learning hierarchy must prioritize mastery of the two main word order mechanisms: V2 inversion (for main clauses) and the SA shift (for subordinate clauses).
+VII.B. Structural Recommendations for App Development
+The application architecture should utilize the field structure model (P1 to P7) as its core validation system.
+The position of the SA is a unique and stable marker that provides sufficient data to classify the clause type. The app should therefore focus heavily on testing the distribution of Sentence Adverbials (like inte). Violations of the V2 rule (P1, P2, P3) and the SA placement rule (P3 vs. P4) must be treated as high-severity errors, as they violate the foundational syntax of the language. Conversely, while violations of the MPT rule in P7 are unidiomatic, they are less structurally critical and can be classified as medium-severity errors.
+Feedback provided to the user must be precise, referencing the constituent placement within the field model. For instance, feedback should state: "Error: Time adverbial found in P1, requiring V2 enforcement; Subject must shift to P3," or "Negation (inte) found in P4; expected P3 for subordinate clause following conjunction." This structured feedback facilitates direct cognitive mapping between the constituent position and the grammatical rule. Automated practice should include generation tasks where a main clause is provided and the user is required to embed it, explicitly forcing the operation of the SA shift.
+VIII. Conclusion and Recommendations
+Swedish word order is determined by a strict, two-tiered system: the mandatory Verb-Second (V2) constraint for main clauses and the fixed non-V2 structure for subordinate clauses. This analysis provides a comprehensive framework, based on a formal field model (P1–P7), suitable for developing a rule-based AI application for word order practice.
+The core operational rules for the Gemini AI Studio application must prioritize the following:
+Constituent Identification (P1): The AI must accurately identify the single constituent occupying the Front Field (P1) before determining if subject-verb inversion is required.
+V2 Enforcement (P2/P3): In main clauses, the finite verb must occupy P2. If P1 is non-subject, the subject must occupy P3. This rule governs all direct declarative and interrogative statements.
+Subordination Diagnostic (P3/P4): The position of the Sentence Adverbial (SA) is the primary structural difference. The AI must validate that SA precedes the finite verb (P3) in all subordinate clause types (complement, relative, indirect questions) and follows the finite verb (P4) in all main clause types.
+Final Field Ordering (P7): For natural production, the AI must enforce the Manner-Place-Time (MPT) hierarchy when multiple general adverbials occupy the final field.
+By strictly adhering to these field-based rules, particularly focusing on the complementary distribution of the Sentence Adverbial, the application will effectively diagnose and correct the most common and structurally critical word order errors made by learners, providing a robust and grammatically authoritative training environment.
