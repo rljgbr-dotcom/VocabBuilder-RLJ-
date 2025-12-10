@@ -1,10 +1,6 @@
-import React from 'react';
-import { Screen } from '../../types';
-import { useSettings } from '../../contexts/SettingsContext';
 
-interface SettingsScreenProps {
-    setScreen: (screen: Screen) => void;
-}
+import React from 'react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const themes = [
     { id: 'dark-default', name: 'Default Dark', colors: ['#6366f1', '#a855f7', '#10b981', '#1f2937'] },
@@ -44,7 +40,7 @@ const ThemeOption: React.FC<{
     )
 }
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
+const SettingsScreen: React.FC = () => {
     const { theme, setTheme } = useSettings();
 
     return (

@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Screen, Word } from '../../types';
+import { useNavigate } from 'react-router-dom';
+import { Word } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -12,9 +14,10 @@ interface Card {
   type: 'swedish' | 'source';
 }
 
-const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
+const MatchingGameScreen: React.FC = () => {
     const { words } = useWords();
     const { currentSourceLanguage } = useSettings();
+    const navigate = useNavigate();
     const [cards, setCards] = useState<Card[]>([]);
     const [selected, setSelected] = useState<Card[]>([]);
     const [matchedIds, setMatchedIds] = useState<string[]>([]);
@@ -73,7 +76,7 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
             <div className="text-center space-y-4">
                 <h2 className="text-2xl font-bold">You Win!</h2>
                 <p className="text-xl">You matched all the pairs.</p>
-                <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
+                <button onClick={() => navigate('/game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
                     Play Again
                 </button>
             </div>

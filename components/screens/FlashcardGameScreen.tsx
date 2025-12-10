@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useModal } from '../../contexts/ModalContext';
-import { FlashcardWord, Word, SwipeDirection, SwipeAction, Screen } from '../../types';
+import { FlashcardWord, Word, SwipeDirection, SwipeAction } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 
@@ -42,17 +43,13 @@ const PopupMenu: React.FC<{
     );
 };
 
-// FIX: Define the props interface for FlashcardGameScreen.
-interface FlashcardGameScreenProps {
-    setScreen: (screen: Screen) => void;
-}
-
-const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) => {
+const FlashcardGameScreen: React.FC = () => {
     const { words, updateWord } = useWords();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const navigate = useNavigate();
     
     const [deck, setDeck] = useState<FlashcardWord[]>([]);
     const [removedStack, setRemovedStack] = useState<FlashcardWord[]>([]);
@@ -507,7 +504,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                     <button onClick={initializeGame} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
                         Restart Game
                     </button>
-                    <button onClick={() => setScreen('game-selection')} className="bg-secondary text-secondary-content py-2 px-4 rounded-md hover:bg-secondary-focus">
+                    <button onClick={() => navigate('/game-selection')} className="bg-secondary text-secondary-content py-2 px-4 rounded-md hover:bg-secondary-focus">
                         Choose New Game
                     </button>
                 </div>

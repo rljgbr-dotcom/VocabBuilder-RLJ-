@@ -1,21 +1,17 @@
 
 import React, { useState } from 'react';
-import { Screen } from '../../types';
+import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useWords } from '../../contexts/WordsContext';
 import { useModal } from '../../contexts/ModalContext';
-
-interface GameSelectionScreenProps {
-    setScreen: (screen: Screen) => void;
-}
-
-const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) => {
+const GameSelectionScreen: React.FC = () => {
     const [activeOptions, setActiveOptions] = useState<string | null>(null);
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { words } = useWords();
     const { showModal } = useModal();
+    const navigate = useNavigate();
 
-    const handleStartGame = (gameScreen: Screen, minWords: number) => {
+    const handleStartGame = (gameScreen: string, minWords: number) => {
         const activeWords = words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
         if (activeWords.length < minWords) {
             showModal('info', {
@@ -28,13 +24,13 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
         if (gameScreen === 'flashcard-game') {
             setActiveOptions(activeOptions === 'flashcard' ? null : 'flashcard');
         } else {
-            setScreen(gameScreen);
+            navigate(`/${gameScreen}`);
         }
     };
 
     const handleStartFlashcards = (startFace: 'swedish' | 'source') => {
         localStorage.setItem('flashcard_start_face', startFace);
-        setScreen('flashcard-game');
+        navigate('/flashcard-game');
     };
 
     return (

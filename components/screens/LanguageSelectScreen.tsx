@@ -1,19 +1,16 @@
 
 import React from 'react';
-import { Screen } from '../../types';
+import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import { LANGUAGES, LANGUAGE_ORDER } from '../../constants';
 
-interface LanguageSelectScreenProps {
-    setScreen: (screen: Screen) => void;
-}
-
-const LanguageSelectScreen: React.FC<LanguageSelectScreenProps> = ({ setScreen }) => {
+const LanguageSelectScreen: React.FC = () => {
     const { setCurrentSourceLanguage } = useSettings();
+    const navigate = useNavigate();
 
     const handleSelectLanguage = (langCode: string) => {
         setCurrentSourceLanguage(langCode);
-        setScreen('main-menu');
+        navigate('/');
     };
 
     return (

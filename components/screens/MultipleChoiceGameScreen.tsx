@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Screen, Word } from '../../types';
+import { useNavigate } from 'react-router-dom';
+import { Word } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -14,9 +16,10 @@ interface Question {
     correctAnswer: string;
 }
 
-const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
+const MultipleChoiceGameScreen: React.FC = () => {
     const { words } = useWords();
     const { currentSourceLanguage, currentLanguageInfo } = useSettings();
+    const navigate = useNavigate();
     const [deck, setDeck] = useState<Question[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -31,10 +34,10 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
         if (activeWords.length >= 4) {
             const shuffledWords = shuffleArray(activeWords);
             // FIX: Explicitly type 'word' and 'w' to resolve 'unknown' type errors.
-            const newDeck = shuffledWords.map((word: Word, index, arr) => {
+            const newDeck = shuffledWords.map((word: Word) => {
                 const correctAnswer = word.translations[currentSourceLanguage].word;
                 
-                const distractors = arr
+                const distractors = activeWords
                     .filter((w: Word) => w.id !== word.id)
                     .map((w: Word) => w.translations[currentSourceLanguage].word);
                 
@@ -79,7 +82,7 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
             <div className="text-center space-y-4">
                 <h2 className="text-2xl font-bold">Game Over!</h2>
                 <p className="text-xl">Your score: {score} / {deck.length}</p>
-                <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
+                <button onClick={() => navigate('/game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
                     Play Again
                 </button>
             </div>

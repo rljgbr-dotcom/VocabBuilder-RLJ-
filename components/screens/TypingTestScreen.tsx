@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Screen } from '../../types';
+import { useNavigate } from 'react-router-dom';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
 
-const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
+const TypingTestScreen: React.FC = () => {
     const { words } = useWords();
     const { currentSourceLanguage, currentLanguageInfo } = useSettings();
+    const navigate = useNavigate();
     const [deck, setDeck] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [inputValue, setInputValue] = useState('');
@@ -60,7 +61,7 @@ const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ s
             <div className="text-center space-y-4">
                 <h2 className="text-2xl font-bold">Game Over!</h2>
                 <p className="text-xl">Your score: {score} / {deck.length}</p>
-                <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
+                <button onClick={() => navigate('/game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
                     Play Again
                 </button>
             </div>
