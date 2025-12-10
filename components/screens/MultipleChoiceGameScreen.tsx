@@ -33,7 +33,6 @@ const MultipleChoiceGameScreen: React.FC = () => {
     useEffect(() => {
         if (activeWords.length >= 4) {
             const shuffledWords = shuffleArray(activeWords);
-            // FIX: Explicitly type 'word' and 'w' to resolve 'unknown' type errors.
             const newDeck = shuffledWords.map((word: Word) => {
                 const correctAnswer = word.translations[currentSourceLanguage].word;
                 
