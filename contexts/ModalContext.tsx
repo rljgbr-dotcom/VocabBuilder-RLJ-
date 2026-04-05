@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-export type ModalType = 'confirmation' | 'info' | 'addWord' | 'flashcardHelp' | 'csvHelp' | 'readMe' | 'startupDisclaimer' | 'setStackSize' | 'swipeSettings';
+export type ModalType = 'confirmation' | 'info' | 'addWord' | 'flashcardHelp' | 'csvHelp' | 'readMe' | 'startupDisclaimer' | 'setStackSize' | 'swipeSettings' | 'flashcardBack' | 'flashcardBulk' | 'flashcardFilter';
 
 interface ModalState {
     type: ModalType | null;

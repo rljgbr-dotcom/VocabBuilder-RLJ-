@@ -25,6 +25,9 @@ import StartupDisclaimerModal from './components/modals/StartupDisclaimerModal';
 import ReadMeModal from './components/modals/ReadMeModal';
 import SetStackSizeModal from './components/modals/SetStackSizeModal';
 import SwipeSettingsModal from './components/modals/SwipeSettingsModal';
+import FlashcardBackModal from './components/modals/FlashcardBackModal';
+import FlashcardBulkModal from './components/modals/FlashcardBulkModal';
+import FlashcardFilterModal from './components/modals/FlashcardFilterModal';
 import { flashcardHelpContent, flashcardHelpContent_es, csvHelpContent, csvHelpContent_es } from './constants';
 import { Screen } from './types';
 
@@ -183,7 +186,7 @@ const AppContent: React.FC = () => {
             </main>
             
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.2.03a</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.2.04</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
@@ -192,6 +195,9 @@ const AppContent: React.FC = () => {
             <AddWordModal />
             <SetStackSizeModal />
             <SwipeSettingsModal />
+            <FlashcardBackModal />
+            <FlashcardBulkModal />
+            <FlashcardFilterModal />
             <HelpModal modalId="flashcardHelp" title={t('help.flashcards.title')} content={flashcardHelp} />
             <HelpModal modalId="csvHelp" title={t('help.csv.title')} content={csvHelp} />
             <ReadMeModal />

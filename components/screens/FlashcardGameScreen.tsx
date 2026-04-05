@@ -18,30 +18,6 @@ const difficultyColors: Record<Difficulty, string> = {
     hard: 'bg-red-600',
 };
 
-const PopupMenu: React.FC<{
-    children: React.ReactNode;
-    onClose: () => void;
-}> = ({ children, onClose }) => {
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [onClose]);
-
-    return (
-        <div ref={menuRef} className="absolute bottom-full mb-2 w-full bg-base-300 rounded-lg shadow-xl z-20 p-2 space-y-1">
-            {children}
-        </div>
-    );
-};
 
 // FIX: Define the props interface for FlashcardGameScreen.
 interface FlashcardGameScreenProps {
@@ -74,7 +50,6 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [toastMessage, setToastMessage] = useState('');
     
     const [difficultyFilters, setDifficultyFilters] = useState<Difficulty[]>(['unmarked', 'easy', 'medium', 'hard']);
-    const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
     const stateRef = useRef({ deck, currentIndex });
     useEffect(() => {
@@ -156,7 +131,6 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         }
         setIsFlipped(false);
         setIsActionDelayed(false);
-        setActiveMenu(null);
         if (currentWord.isBlurredNext) {
             setIsBlurred(true);
         } else {
@@ -369,10 +343,6 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             }
             return newFilters;
         });
-    };
-    
-    const toggleMenu = (menu: string) => {
-        setActiveMenu(prev => (prev === menu ? null : menu));
     };
 
     const cardFace = currentWord?.face;
@@ -592,61 +562,49 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
                 <div className={`w-full grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="relative">
-                        <button onClick={() => toggleMenu('back')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Back Options">
+                        <button
+                            onClick={() => showModal('flashcardBack', {
+                                onSendToBack: () => delayedAction(() => sendToBack()),
+                                onReverseAndBack: () => delayedAction(() => sendToBack(true)),
+                                onBackAndBlur: () => delayedAction(() => sendToBack(false, true)),
+                                onReverseBackAndBlur: () => delayedAction(() => sendToBack(true, true)),
+                            })}
+                            className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                            title="Back Options"
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
                             <span className="text-xs mt-1">{t('game.flashcards.back')}</span>
                         </button>
-                        {activeMenu === 'back' && (
-                            <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <button onClick={() => delayedAction(() => sendToBack())} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.sendToBack')}</button>
-                                <button onClick={() => delayedAction(() => sendToBack(true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.reverseAndBack')}</button>
-                                <button onClick={() => delayedAction(() => sendToBack(false, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.backAndBlur')}</button>
-                                <button onClick={() => delayedAction(() => sendToBack(true, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.reverseBackAndBlur')}</button>
-                            </PopupMenu>
-                        )}
                     </div>
                     <div className="relative">
-                        <button onClick={() => toggleMenu('bulk')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Bulk Actions">
+                        <button
+                            onClick={() => showModal('flashcardBulk', {
+                                languageName: currentLanguageInfo.englishName,
+                                onAllSwedish: () => bulkSwitchFace('swedish'),
+                                onAllSource: () => bulkSwitchFace('source'),
+                                onAllBlurred: () => bulkSetBlur(true),
+                                onAllUnblurred: () => bulkSetBlur(false),
+                            })}
+                            className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                            title="Bulk Actions"
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                             <span className="text-xs mt-1">{t('game.flashcards.changeAll')}</span>
                         </button>
-                        {activeMenu === 'bulk' && (
-                            <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <button onClick={() => bulkSwitchFace('swedish')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allSwedish')}</button>
-                                <button onClick={() => bulkSwitchFace('source')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allSource', {languageName: currentLanguageInfo.englishName})}</button>
-                                <button onClick={() => bulkSetBlur(true)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allBlurred')}</button>
-                                <button onClick={() => bulkSetBlur(false)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allUnblurred')}</button>
-                            </PopupMenu>
-                        )}
                     </div>
                     <div className="relative">
-                        <button onClick={() => toggleMenu('filter')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Filter & Deck Options">
+                        <button
+                            onClick={() => showModal('flashcardFilter', {
+                                difficultyFilters,
+                                onToggleFilter: handleToggleFilter,
+                                onShowToast: showToast,
+                            })}
+                            className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                            title="Filter & Deck Options"
+                        >
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                            <span className="text-xs mt-1">{t('game.flashcards.filter')}</span>
                         </button>
-                        {activeMenu === 'filter' && (
-                           <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <div className="space-y-1">
-                                    {difficultyLevels.map(diff => (
-                                        <button
-                                            key={diff}
-                                            onClick={() => handleToggleFilter(diff)}
-                                            className={`w-full flex items-center justify-between p-2 rounded text-sm transition-colors ${difficultyFilters.includes(diff) ? 'bg-primary/30' : 'hover:bg-base-100'}`}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div className={`h-4 w-4 rounded-full ${difficultyColors[diff]}`}></div>
-                                                <span className="capitalize">{t('game.difficulty.' + diff)}</span>
-                                            </div>
-                                            {difficultyFilters.includes(diff) && (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                           </PopupMenu>
-                        )}
                     </div>
                     <button onClick={() => showModal('swipeSettings')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Swipe Actions">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
