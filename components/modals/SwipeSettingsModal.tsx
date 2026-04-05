@@ -34,8 +34,8 @@ const SwipeSettingsModal: React.FC = () => {
                 onChange={(e) => handleSettingChange(direction, e.target.value as SwipeAction)}
                 className="p-2 bg-base-300 rounded-md text-base-content border border-base-300 focus:ring-primary focus:border-primary"
             >
-                {SWIPE_ACTIONS.map(({ value, label }) => (
-                    <option key={value} value={value}>{label}</option>
+                {SWIPE_ACTIONS.map(({ value }) => (
+                    <option key={value} value={value}>{t(`swipeAction.${value}`)}</option>
                 ))}
             </select>
         </div>

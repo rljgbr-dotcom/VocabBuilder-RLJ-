@@ -12,6 +12,9 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         // App / Header
         'app.title': 'AI Vocab Builder',
         'app.newVersion': 'A new version is available!',
+        'app.refresh': 'Refresh',
+        'help.flashcards.title': 'How to use Flashcards',
+        'help.csv.title': 'How to Format Your CSV File',
         
         // Game Selection
         'gameSelection.title': 'Select a Game',
@@ -166,8 +169,27 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'modal.startupDisclaimer.title': 'Vocab Builder - Under Development',
         'modal.startupDisclaimer.p1': 'This application is currently under development. Unauthorized copying, distribution, or modification is strictly prohibited.',
         'modal.startupDisclaimer.p2': 'By clicking "Confirm," you acknowledge and agree to these terms.',
+
+        // Swipe Action Labels (dropdown options in Swipe Settings)
+        'swipeAction.none': 'None',
+        'swipeAction.flip': 'Flip Card',
+        'swipeAction.readAloud': 'Read Aloud',
+        'swipeAction.move-1': 'Move +1',
+        'swipeAction.move-2': 'Move +2',
+        'swipeAction.move-3': 'Move +3',
+        'swipeAction.move-4': 'Move +4',
+        'swipeAction.move-5': 'Move +5',
+        'swipeAction.sendToBack': 'Send to Back',
+        'swipeAction.reverseAndBack': 'Reverse & Back',
+        'swipeAction.backAndBlur': 'Back & Blur',
+        'swipeAction.reverseBackAndBlur': 'Reverse, Back & Blur',
+        'swipeAction.hide': 'Hide Card',
+        'swipeAction.markEasy': 'Mark as Easy',
+        'swipeAction.markMedium': 'Mark as Medium',
+        'swipeAction.markHard': 'Mark as Hard',
     },
     es: {
+        'menu.home': 'Inicio',
         'menu.playGame': 'Jugar',
         'menu.manageWords': 'Gestionar Palabras',
         'menu.language': 'Idioma',
@@ -176,6 +198,9 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'menu.checkForUpdates': 'Buscar Actualizaciones',
         'app.title': 'Constructor de Vocabulario IA',
         'app.newVersion': '¡Nueva versión disponible!',
+        'app.refresh': 'Actualizar',
+        'help.flashcards.title': 'Cómo usar las Tarjetas Didácticas',
+        'help.csv.title': 'Cómo formatear tu archivo CSV',
         'gameSelection.title': 'Selecciona un Juego',
         'gameSelection.flashcards': 'Tarjetas Didácticas',
         'gameSelection.multipleChoice': 'Opción Múltiple',
@@ -301,6 +326,24 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'modal.startupDisclaimer.title': 'Vocab Builder - En Desarrollo',
         'modal.startupDisclaimer.p1': 'Esta aplicación está actualmente en desarrollo. La copia, distribución o modificación no autorizada está estrictamente prohibida.',
         'modal.startupDisclaimer.p2': 'Al hacer clic en "Confirmar", reconoces y aceptas estos términos.',
+
+        // Swipe Action Labels
+        'swipeAction.none': 'Ninguna',
+        'swipeAction.flip': 'Voltear Tarjeta',
+        'swipeAction.readAloud': 'Leer en Voz Alta',
+        'swipeAction.move-1': 'Mover +1',
+        'swipeAction.move-2': 'Mover +2',
+        'swipeAction.move-3': 'Mover +3',
+        'swipeAction.move-4': 'Mover +4',
+        'swipeAction.move-5': 'Mover +5',
+        'swipeAction.sendToBack': 'Enviar al Fondo',
+        'swipeAction.reverseAndBack': 'Invertir y Atrás',
+        'swipeAction.backAndBlur': 'Atrás y Desenfocar',
+        'swipeAction.reverseBackAndBlur': 'Invertir, Atrás y Desenfocar',
+        'swipeAction.hide': 'Ocultar Tarjeta',
+        'swipeAction.markEasy': 'Marcar como Fácil',
+        'swipeAction.markMedium': 'Marcar como Medio',
+        'swipeAction.markHard': 'Marcar como Difícil',
     },
     // Farsi
     fa: {

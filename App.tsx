@@ -37,7 +37,7 @@ const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                 onClick={onUpdate}
                 className="bg-accent-focus text-white font-bold py-1 px-3 rounded-md border border-white/50 hover:bg-white hover:text-accent-focus transition-colors"
             >
-                Refresh
+                {t('app.refresh')}
             </button>
         </div>
     );
@@ -189,8 +189,8 @@ const AppContent: React.FC = () => {
             <AddWordModal />
             <SetStackSizeModal />
             <SwipeSettingsModal />
-            <HelpModal modalId="flashcardHelp" title="How to use Flashcards" content={flashcardHelpContent} />
-            <HelpModal modalId="csvHelp" title="How to Format Your CSV File" content={csvHelpContent} />
+            <HelpModal modalId="flashcardHelp" title={t('help.flashcards.title')} content={flashcardHelpContent} />
+            <HelpModal modalId="csvHelp" title={t('help.csv.title')} content={csvHelpContent} />
             <ReadMeModal />
 
             {isModalOpen && <div className="fixed inset-0 bg-black bg-opacity-70 z-40"></div>}
