@@ -1,9 +1,10 @@
-
 import React from 'react';
 import { useModal } from '../../contexts/ModalContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const ReadMeModal: React.FC = () => {
     const { modalState, hideModal } = useModal();
+    const { t } = useTranslation();
     
     if (modalState.type !== 'readMe') {
         return null;
@@ -11,7 +12,7 @@ const ReadMeModal: React.FC = () => {
 
     return (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base-200 p-6 rounded-lg shadow-xl z-50 w-11/12 max-w-lg text-sm"> 
-            <h3 className="text-lg font-bold mb-4">Read Me First</h3> 
+            <h3 className="text-lg font-bold mb-4">{t('menu.readMeFirst')}</h3> 
             <div className="space-y-4 text-base-content max-h-[70vh] overflow-y-auto pr-2">
                 <div>
                     <h4 className="font-semibold text-md mb-2">How to Use This App</h4>
@@ -44,7 +45,7 @@ const ReadMeModal: React.FC = () => {
                 </div>
             </div>
             <div className="flex justify-end mt-5">
-                 <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md">Close</button>
+                 <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md">{t('action.close')}</button>
             </div>
         </div>
     );

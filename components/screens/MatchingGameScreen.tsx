@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Screen, Word } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
 
@@ -19,6 +20,7 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
     const [selected, setSelected] = useState<Card[]>([]);
     const [matchedIds, setMatchedIds] = useState<string[]>([]);
     const [isChecking, setIsChecking] = useState(false);
+    const { t } = useTranslation();
 
     const activeWords = useMemo(() => {
         return words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
@@ -66,15 +68,15 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
     
     const allMatched = matchedIds.length === 6;
 
-    if (cards.length === 0) return <div className="text-center">Loading game...</div>;
+    if (cards.length === 0) return <div className="text-center">{t('game.loading')}</div>;
 
     if (allMatched) {
          return (
             <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold">You Win!</h2>
-                <p className="text-xl">You matched all the pairs.</p>
+                <h2 className="text-2xl font-bold">{t('game.matching.youWin')}</h2>
+                <p className="text-xl">{t('game.matching.matchedAll')}</p>
                 <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                    Play Again
+                    {t('game.playAgain')}
                 </button>
             </div>
         );
@@ -82,8 +84,8 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
     
     return (
         <div className="max-w-3xl mx-auto text-center">
-             <h2 className="text-2xl font-bold mb-4">Matching Game</h2>
-             <p className="mb-6">Find the matching pairs.</p>
+             <h2 className="text-2xl font-bold mb-4">{t('gameSelection.matchingGame')}</h2>
+             <p className="mb-6">{t('game.matching.findPairs')}</p>
              <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
                 {cards.map(card => (
                     <div key={card.id} className="aspect-square" onClick={() => handleCardClick(card)}>

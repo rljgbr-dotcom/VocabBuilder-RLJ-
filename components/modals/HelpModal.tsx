@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { useModal } from '../../contexts/ModalContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface HelpModalProps {
     modalId: string;
@@ -10,6 +10,7 @@ interface HelpModalProps {
 
 const HelpModal: React.FC<HelpModalProps> = ({ modalId, title, content }) => {
     const { modalState, hideModal } = useModal();
+    const { t } = useTranslation();
     
     if (modalState.type !== modalId) {
         return null;
@@ -21,7 +22,7 @@ const HelpModal: React.FC<HelpModalProps> = ({ modalId, title, content }) => {
             <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-3 text-base-content" dangerouslySetInnerHTML={{ __html: content }}>
             </div>
             <div className="flex justify-end mt-5">
-                 <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md">Got it!</button>
+                 <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md">{t('action.gotIt')}</button>
             </div>
         </div>
     );

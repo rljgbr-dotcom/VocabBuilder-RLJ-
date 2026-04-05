@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Screen, Word } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Helper to shuffle array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -22,6 +23,7 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
     const [score, setScore] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+    const { t } = useTranslation();
 
     const activeWords = useMemo(() => {
         return words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
@@ -71,16 +73,16 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
     };
 
     if (deck.length === 0) {
-        return <div className="text-center">Loading game...</div>;
+        return <div className="text-center">{t('game.loading')}</div>;
     }
 
     if (currentIndex >= deck.length) {
         return (
             <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold">Game Over!</h2>
-                <p className="text-xl">Your score: {score} / {deck.length}</p>
+                <h2 className="text-2xl font-bold">{t('game.gameOver')}</h2>
+                <p className="text-xl">{t('game.yourScore', { score, total: deck.length })}</p>
                 <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                    Play Again
+                    {t('game.playAgain')}
                 </button>
             </div>
         );
@@ -90,8 +92,8 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
 
     return (
         <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">Multiple Choice</h2>
-            <p className="mb-8 text-lg">Score: {score} / {deck.length}</p>
+            <h2 className="text-2xl font-bold mb-4">{t('gameSelection.multipleChoice')}</h2>
+            <p className="mb-8 text-lg">{t('game.scoreTotal', { score, total: deck.length })}</p>
             
             <div className="bg-base-200 p-8 rounded-lg mb-6">
                 <p className="text-3xl font-bold">{currentQuestion.word.swedish}</p>
@@ -120,7 +122,7 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
 
             {selectedAnswer && (
                  <button onClick={handleNext} className="mt-8 bg-secondary text-secondary-content py-3 px-8 rounded-lg font-bold hover:bg-secondary-focus">
-                    Next
+                    {t('game.next')}
                 </button>
             )}
         </div>

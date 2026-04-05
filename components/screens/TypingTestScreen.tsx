@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Screen } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const shuffleArray = <T,>(array: T[]): T[] => [...array].sort(() => Math.random() - 0.5);
 
@@ -15,6 +16,7 @@ const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ s
     const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
     const [score, setScore] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation();
 
     const activeWords = useMemo(() => {
         return words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
@@ -52,16 +54,16 @@ const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ s
     };
 
     if (deck.length === 0) {
-        return <div className="text-center">Loading game...</div>;
+        return <div className="text-center">{t('game.loading')}</div>;
     }
 
     if (currentIndex >= deck.length) {
         return (
             <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold">Game Over!</h2>
-                <p className="text-xl">Your score: {score} / {deck.length}</p>
+                <h2 className="text-2xl font-bold">{t('game.gameOver')}</h2>
+                <p className="text-xl">{t('game.yourScore', { score, total: deck.length })}</p>
                 <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                    Play Again
+                    {t('game.playAgain')}
                 </button>
             </div>
         );
@@ -69,11 +71,11 @@ const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ s
 
     return (
         <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">Typing Test</h2>
-            <p className="mb-8 text-lg">Score: {score} / {deck.length}</p>
+            <h2 className="text-2xl font-bold mb-4">{t('gameSelection.typingTest')}</h2>
+            <p className="mb-8 text-lg">{t('game.scoreTotal', { score, total: deck.length })}</p>
 
             <div className="bg-base-200 p-8 rounded-lg mb-6">
-                <p className="text-sm text-gray-400">Translate the following word to Swedish:</p>
+                <p className="text-sm text-gray-400">{t('game.typing.instruction')}</p>
                 <p className="text-3xl font-bold">{currentWord.translations[currentSourceLanguage].word}</p>
             </div>
 
@@ -85,23 +87,23 @@ const TypingTestScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ s
                     onChange={(e) => setInputValue(e.target.value)}
                     disabled={feedback !== null}
                     className="w-full text-center text-2xl p-4 rounded-lg bg-base-300 border-2 border-transparent focus:border-primary focus:outline-none"
-                    placeholder="Type your answer"
+                    placeholder={t('game.typing.placeholder')}
                 />
                 {feedback === null ? (
                     <button type="submit" className="mt-4 bg-primary text-primary-content py-3 px-8 rounded-lg font-bold hover:bg-primary-focus">
-                        Check
+                        {t('game.check')}
                     </button>
                 ) : (
                     <div className="mt-4">
-                        {feedback === 'correct' && <p className="text-accent font-bold text-xl">Correct!</p>}
+                        {feedback === 'correct' && <p className="text-accent font-bold text-xl">{t('game.typing.correct')}</p>}
                         {feedback === 'incorrect' && (
                             <div>
-                                <p className="text-red-500 font-bold text-xl">Incorrect!</p>
-                                <p className="text-gray-400">The correct answer is: <strong className="text-white">{currentWord.swedish}</strong></p>
+                                <p className="text-red-500 font-bold text-xl">{t('game.typing.incorrect')}</p>
+                                <p className="text-gray-400">{t('game.typing.correctAnswerIs')} <strong className="text-white">{currentWord.swedish}</strong></p>
                             </div>
                         )}
                         <button type="button" onClick={handleNext} className="mt-4 bg-secondary text-secondary-content py-3 px-8 rounded-lg font-bold hover:bg-secondary-focus">
-                            Next
+                            {t('game.next')}
                         </button>
                     </div>
                 )}

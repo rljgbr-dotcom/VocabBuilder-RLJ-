@@ -6,6 +6,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { FlashcardWord, Word, SwipeDirection, SwipeAction, Screen } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -52,6 +53,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
+    const { t } = useTranslation();
     const touchStartRef = useRef<{ x: number; y: number } | null>(null);
     
     const [deck, setDeck] = useState<FlashcardWord[]>([]);
@@ -279,7 +281,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setDeck(d => d.map(updateFace));
         setRemovedStack(rs => rs.map(updateFace));
         setAllActiveWordsPool(p => p.map(updateFace));
-        showToast(`Switched all cards to show ${face === 'swedish' ? 'Swedish' : currentLanguageInfo.englishName} first.`);
+        showToast(face === 'swedish' ? t('game.flashcards.toast.switchedAllSwedish') : t('game.flashcards.toast.switchedAllSource', { languageName: currentLanguageInfo.englishName }));
     };
 
     const bulkSetBlur = (shouldBlur: boolean) => {
@@ -293,7 +295,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setDeck(updateAndPersist);
         setRemovedStack(updateAndPersist);
         setAllActiveWordsPool(updateAndPersist);
-        showToast(shouldBlur ? 'Set all cards to be blurred on next view.' : 'Set all cards to be unblurred.');
+        showToast(shouldBlur ? t('game.flashcards.toast.setAllBlurred') : t('game.flashcards.toast.setAllUnblurred'));
     };
     
     const handleSetStackSize = (newSize: number) => {
@@ -348,8 +350,8 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             if (newDeck[currentIndex]?.id === updatedCard.id) newDeck[currentIndex] = updatedCard;
             return newDeck;
         });
-        showToast(`Card marked as ${difficulty}.`);
-    }, [currentWord, currentIndex, updateWord, showToast]);
+        showToast(t('game.flashcards.toast.markedDifficulty', { difficulty: t(`game.difficulty.${difficulty}`) }));
+    }, [currentWord, currentIndex, updateWord, showToast, t]);
 
     const handleToggleFilter = (difficulty: Difficulty) => {
         setDifficultyFilters(prevFilters => {
@@ -359,7 +361,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 if (newFilters.length > 1) {
                     newFilters.splice(index, 1);
                 } else {
-                    showToast("At least one difficulty filter must be selected.");
+                    showToast(t('game.flashcards.toast.filterError'));
                     return prevFilters;
                 }
             } else {
@@ -489,10 +491,10 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     if (totalActiveWords === 0) {
         return (
             <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold">No Words Found</h2>
-                <p>No active words match your current difficulty filters for {currentLanguageInfo.englishName}.</p>
+                <h2 className="text-2xl font-bold">{t('game.flashcards.noWordsTitle')}</h2>
+                <p>{t('game.flashcards.noWordsBody', { languageName: currentLanguageInfo.englishName })}</p>
                 <button onClick={initializeGame} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                    Reset Filters and Restart
+                    {t('game.flashcards.resetFilters')}
                 </button>
             </div>
         );
@@ -501,14 +503,14 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     if (sessionCompleted) {
         return (
             <div className="text-center space-y-4">
-                <h2 className="text-2xl font-bold">Deck Complete!</h2>
-                <p>You've gone through all the cards in this session.</p>
+                <h2 className="text-2xl font-bold">{t('game.flashcards.deckCompleteTitle')}</h2>
+                <p>{t('game.flashcards.deckCompleteBody')}</p>
                 <div className="flex justify-center gap-4">
                     <button onClick={initializeGame} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                        Restart Game
+                        {t('game.flashcards.restartGame')}
                     </button>
                     <button onClick={() => setScreen('game-selection')} className="bg-secondary text-secondary-content py-2 px-4 rounded-md hover:bg-secondary-focus">
-                        Choose New Game
+                        {t('game.flashcards.chooseNewGame')}
                     </button>
                 </div>
             </div>
@@ -516,7 +518,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     }
 
     if (!currentWord) {
-        return <div className="text-center"><h2 className="text-2xl font-bold">Loading...</h2></div>
+        return <div className="text-center"><h2 className="text-2xl font-bold">{t('game.flashcards.loading')}</h2></div>
     }
     
     const currentDifficulty = currentWord.difficulty || 'unmarked';
@@ -557,7 +559,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
             <div className="max-w-xl mx-auto space-y-3 mt-2 w-full shrink-0">
                 <form onSubmit={handleSelfAssessment} className="relative">
-                    <input value={selfAssessment} onChange={e => setSelfAssessment(e.target.value)} type="text" placeholder="Type or use mic to answer, press Enter to flip" className="w-full bg-base-200 border border-base-300 rounded-lg p-3 text-center focus:ring-2 ring-primary focus:outline-none pr-12" disabled={isListening}/>
+                    <input value={selfAssessment} onChange={e => setSelfAssessment(e.target.value)} type="text" placeholder={t('game.flashcards.typeAnswer')} className="w-full bg-base-200 border border-base-300 rounded-lg p-3 text-center focus:ring-2 ring-primary focus:outline-none pr-12" disabled={isListening}/>
                     {recognitionRef.current && (
                         <button type="button" onClick={handleToggleListening} className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'hover:bg-base-300'}`} title="Use Voice Input">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
@@ -567,60 +569,60 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 
                 <div>
                     <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => handleSetDifficulty('easy')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['easy']} hover:opacity-80 ${currentDifficulty === 'easy' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>Easy</button>
-                        <button onClick={() => handleSetDifficulty('medium')} className={`py-3 rounded-lg text-black font-bold transition-all ${difficultyColors['medium']} hover:opacity-80 ${currentDifficulty === 'medium' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>Medium</button>
-                        <button onClick={() => handleSetDifficulty('hard')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['hard']} hover:opacity-80 ${currentDifficulty === 'hard' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>Hard</button>
+                        <button onClick={() => handleSetDifficulty('easy')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['easy']} hover:opacity-80 ${currentDifficulty === 'easy' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.easy')}</button>
+                        <button onClick={() => handleSetDifficulty('medium')} className={`py-3 rounded-lg text-black font-bold transition-all ${difficultyColors['medium']} hover:opacity-80 ${currentDifficulty === 'medium' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.medium')}</button>
+                        <button onClick={() => handleSetDifficulty('hard')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['hard']} hover:opacity-80 ${currentDifficulty === 'hard' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.hard')}</button>
                     </div>
                      <div className="h-2 flex justify-center items-center">
-                        {currentDifficulty !== 'unmarked' && <button onClick={() => handleSetDifficulty('unmarked')} className="text-xs text-gray-400 hover:bg-base-300 px-2 py-0.5 rounded-md" title="Clear difficulty mark">Clear</button>}
+                        {currentDifficulty !== 'unmarked' && <button onClick={() => handleSetDifficulty('unmarked')} className="text-xs text-gray-400 hover:bg-base-300 px-2 py-0.5 rounded-md" title="Clear difficulty mark">{t('game.difficulty.clear')}</button>}
                     </div>
                 </div>
 
                 <button onClick={() => ttsService.speak(isFlipped ? backAudioText : frontAudioText, isFlipped ? backLang : frontLang)} className="w-full p-3 bg-accent text-accent-content font-bold rounded-lg hover:bg-accent-focus transition-colors flex items-center justify-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
-                    <span>Read Aloud</span>
+                    <span>{t('game.flashcards.readAloud')}</span>
                 </button>
 
                 <div className={`grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     {[1, 2, 3, 4].map(n => (
                         <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content text-sm">+{n}</button>
                     ))}
-                    <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">Hide</button>
+                    <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">{t('game.flashcards.hide')}</button>
                 </div>
 
                 <div className={`w-full grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="relative">
                         <button onClick={() => toggleMenu('back')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Back Options">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                            <span className="text-xs mt-1">Back</span>
+                            <span className="text-xs mt-1">{t('game.flashcards.back')}</span>
                         </button>
                         {activeMenu === 'back' && (
                             <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <button onClick={() => delayedAction(() => sendToBack())} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">Send to Back</button>
-                                <button onClick={() => delayedAction(() => sendToBack(true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">Reverse & Back</button>
-                                <button onClick={() => delayedAction(() => sendToBack(false, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">Back & Blur</button>
-                                <button onClick={() => delayedAction(() => sendToBack(true, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">Reverse, Back & Blur</button>
+                                <button onClick={() => delayedAction(() => sendToBack())} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.sendToBack')}</button>
+                                <button onClick={() => delayedAction(() => sendToBack(true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.reverseAndBack')}</button>
+                                <button onClick={() => delayedAction(() => sendToBack(false, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.backAndBlur')}</button>
+                                <button onClick={() => delayedAction(() => sendToBack(true, true))} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.reverseBackAndBlur')}</button>
                             </PopupMenu>
                         )}
                     </div>
                     <div className="relative">
                         <button onClick={() => toggleMenu('bulk')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Bulk Actions">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                            <span className="text-xs mt-1">Change All</span>
+                            <span className="text-xs mt-1">{t('game.flashcards.changeAll')}</span>
                         </button>
                         {activeMenu === 'bulk' && (
                             <PopupMenu onClose={() => setActiveMenu(null)}>
-                                <button onClick={() => bulkSwitchFace('swedish')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">All Swedish</button>
-                                <button onClick={() => bulkSwitchFace('source')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">All {currentLanguageInfo.englishName}</button>
-                                <button onClick={() => bulkSetBlur(true)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">All Blurred</button>
-                                <button onClick={() => bulkSetBlur(false)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">All Unblurred</button>
+                                <button onClick={() => bulkSwitchFace('swedish')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allSwedish')}</button>
+                                <button onClick={() => bulkSwitchFace('source')} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allSource', {languageName: currentLanguageInfo.englishName})}</button>
+                                <button onClick={() => bulkSetBlur(true)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allBlurred')}</button>
+                                <button onClick={() => bulkSetBlur(false)} className="w-full text-left p-2 rounded hover:bg-primary hover:text-primary-content text-sm">{t('game.flashcards.allUnblurred')}</button>
                             </PopupMenu>
                         )}
                     </div>
                     <div className="relative">
                         <button onClick={() => toggleMenu('filter')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Filter & Deck Options">
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                           <span className="text-xs mt-1">Filter</span>
+                           <span className="text-xs mt-1">{t('game.flashcards.filter')}</span>
                         </button>
                         {activeMenu === 'filter' && (
                            <PopupMenu onClose={() => setActiveMenu(null)}>
@@ -633,7 +635,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                         >
                                             <div className="flex items-center gap-2">
                                                 <div className={`h-4 w-4 rounded-full ${difficultyColors[diff]}`}></div>
-                                                <span className="capitalize">{diff}</span>
+                                                <span className="capitalize">{t('game.difficulty.' + diff)}</span>
                                             </div>
                                             {difficultyFilters.includes(diff) && (
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
@@ -650,7 +652,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657l-5.657-5.657 5.657-5.657m-6.343 11.314l-5.657-5.657 5.657-5.657" />
                         </svg>
-                        <span className="text-xs mt-1">Swipes</span>
+                        <span className="text-xs mt-1">{t('game.flashcards.swipes')}</span>
                     </button>
                     <button onClick={() => showModal('setStackSize', { currentSize: deck.length, maxSize: totalActiveWords, onSet: handleSetStackSize })} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Set Deck Size">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -672,12 +674,12 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657l-5.657-5.657 5.657-5.657m-6.343 11.314l-5.657-5.657 5.657-5.657" />
                     </svg>
-                    <p className="text-sm ml-2">Swipe or Tap in this area</p>
+                    <p className="text-sm ml-2">{t('game.flashcards.swipeArea')}</p>
                 </div>
             </div>
 
             <div className="max-w-xl mx-auto flex justify-center pt-2 w-full shrink-0">
-                <button onClick={() => showModal('flashcardHelp')} className="text-xs text-blue-400 hover:underline">How to use Flashcards?</button>
+                <button onClick={() => showModal('flashcardHelp')} className="text-xs text-blue-400 hover:underline">{t('game.flashcards.howToUse')}</button>
             </div>
         </div>
     );

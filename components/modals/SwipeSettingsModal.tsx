@@ -4,10 +4,12 @@ import { useModal } from '../../contexts/ModalContext';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 import { SwipeDirection, SwipeAction } from '../../types';
 import { SWIPE_ACTIONS } from '../../constants';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const SwipeSettingsModal: React.FC = () => {
     const { modalState, hideModal } = useModal();
     const { swipeSettings, setSwipeSetting } = useSwipeSettings();
+    const { t } = useTranslation();
 
     if (modalState.type !== 'swipeSettings') {
         return null;
@@ -24,7 +26,7 @@ const SwipeSettingsModal: React.FC = () => {
                 {direction === 'down' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>}
                 {direction === 'left' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>}
                 {direction === 'right' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>}
-                <span>{direction}</span>
+                <span>{t(`modal.swipeSettings.${direction}`)}</span>
             </label>
             <select
                 id={`swipe-${direction}`}
@@ -41,7 +43,7 @@ const SwipeSettingsModal: React.FC = () => {
 
     return (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base-200 p-6 rounded-lg shadow-xl z-50 w-11/12 max-w-md">
-            <h3 className="text-xl font-bold mb-4">Configure Swipe Actions</h3>
+            <h3 className="text-xl font-bold mb-4">{t('modal.swipeSettings.title')}</h3>
             <div className="space-y-4">
                 {renderSelect('up')}
                 {renderSelect('down')}
@@ -49,7 +51,7 @@ const SwipeSettingsModal: React.FC = () => {
                 {renderSelect('right')}
             </div>
             <div className="flex justify-end mt-6">
-                <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary-focus">Done</button>
+                <button onClick={hideModal} className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary-focus">{t('action.done')}</button>
             </div>
         </div>
     );

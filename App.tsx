@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from './hooks/useTranslation';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { WordsProvider } from './contexts/WordsContext';
 import { ModalProvider, useModal } from './contexts/ModalContext';
@@ -27,20 +28,24 @@ import SwipeSettingsModal from './components/modals/SwipeSettingsModal';
 import { flashcardHelpContent, csvHelpContent } from './constants';
 import { Screen } from './types';
 
-const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-3 px-5 rounded-lg shadow-2xl z-50 flex items-center gap-4 animate-slide-in-up">
-        <p className="font-semibold">A new version is available!</p>
-        <button
-            onClick={onUpdate}
-            className="bg-accent-focus text-white font-bold py-1 px-3 rounded-md border border-white/50 hover:bg-white hover:text-accent-focus transition-colors"
-        >
-            Refresh
-        </button>
-    </div>
-);
+const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
+    const { t } = useTranslation();
+    return (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-3 px-5 rounded-lg shadow-2xl z-50 flex items-center gap-4 animate-slide-in-up">
+            <p className="font-semibold">{t('app.newVersion')}</p>
+            <button
+                onClick={onUpdate}
+                className="bg-accent-focus text-white font-bold py-1 px-3 rounded-md border border-white/50 hover:bg-white hover:text-accent-focus transition-colors"
+            >
+                Refresh
+            </button>
+        </div>
+    );
+};
 
 const AppContent: React.FC = () => {
     const [screen, setScreen] = useState<Screen>('main-menu');
+    const { t } = useTranslation();
     const { currentLanguageInfo } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const [disclaimerConfirmed, setDisclaimerConfirmed] = useState(false);
@@ -153,7 +158,7 @@ const AppContent: React.FC = () => {
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-base-200 shadow-md p-4 flex justify-between items-center sticky top-0 z-40">
-                <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">AI Vocab Builder</h1>
+                <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{t('app.title')}</h1>
                 {disclaimerConfirmed && (
                     <div className="flex items-center gap-4">
                         <span className="text-sm font-medium text-gray-400">
@@ -161,7 +166,7 @@ const AppContent: React.FC = () => {
                         </span>
                         {screen !== 'main-menu' && (
                             <button onClick={() => setScreen('main-menu')} className="bg-primary text-primary-content font-bold py-2 px-4 rounded-lg hover:bg-primary-focus transition-colors">
-                                Home
+                                {t('menu.home')}
                             </button>
                         )}
                     </div>

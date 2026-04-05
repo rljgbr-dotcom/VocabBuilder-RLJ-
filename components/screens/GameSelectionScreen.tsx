@@ -4,6 +4,7 @@ import { Screen } from '../../types';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useWords } from '../../contexts/WordsContext';
 import { useModal } from '../../contexts/ModalContext';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface GameSelectionScreenProps {
     setScreen: (screen: Screen) => void;
@@ -14,14 +15,15 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { words, syncWithDataFolder } = useWords();
     const { showModal } = useModal();
+    const { t } = useTranslation();
 
     const handleStartGame = (gameScreen: Screen, minWords: number) => {
         const activeWords = words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
         if (activeWords.length < minWords) {
             showModal('info', {
-                title: 'Not Enough Words',
-                content: `You need at least ${minWords} active words for ${currentLanguageInfo.englishName} to play this game. Activate some words in 'Manage Words' or update from the data folder.`,
-                actionLabel: 'Update from Data Folder',
+                title: t('gameSelection.notEnoughWords'),
+                content: t('gameSelection.notEnoughWordsDesc', { minWords, languageName: currentLanguageInfo.englishName }),
+                actionLabel: t('gameSelection.updateFromDataFolder'),
                 onAction: async () => {
                     const result = await syncWithDataFolder();
                     showModal('info', { title: result.success ? 'Sync Complete' : 'Sync Failed', content: result.message });
@@ -44,39 +46,39 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
 
     return (
         <div>
-            <h2 className="text-3xl font-bold text-center mb-8">Select a Game</h2>
+            <h2 className="text-3xl font-bold text-center mb-8">{t('gameSelection.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 <button
                     onClick={() => handleStartGame('flashcard-game', 1)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
-                    <span className="text-xl font-bold">Flashcards</span>
+                    <span className="text-xl font-bold">{t('gameSelection.flashcards')}</span>
                 </button>
                 <button
                     onClick={() => handleStartGame('multiple-choice-game', 4)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
-                    <span className="text-xl font-bold">Multiple Choice</span>
+                    <span className="text-xl font-bold">{t('gameSelection.multipleChoice')}</span>
                 </button>
                 <button
                     onClick={() => handleStartGame('matching-game', 6)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
-                    <span className="text-xl font-bold">Matching Game</span>
+                    <span className="text-xl font-bold">{t('gameSelection.matchingGame')}</span>
                 </button>
                 <button
                     onClick={() => handleStartGame('typing-test-game', 1)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
-                    <span className="text-xl font-bold">Typing Test</span>
+                    <span className="text-xl font-bold">{t('gameSelection.typingTest')}</span>
                 </button>
             </div>
             <div className="game-options-container mt-6 max-w-md mx-auto space-y-4">
                 {activeOptions === 'flashcard' && (
                     <div className="text-center p-4 bg-base-200 rounded-lg animate-fade-in">
-                        <h3 className="font-bold mb-3">Start with which side?</h3>
+                        <h3 className="font-bold mb-3">{t('gameSelection.startSide')}</h3>
                         <div className="flex justify-center gap-4">
-                            <button onClick={() => handleStartFlashcards('swedish')} className="flex-1 bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">Swedish</button>
+                            <button onClick={() => handleStartFlashcards('swedish')} className="flex-1 bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">{t('action.swedish')}</button>
                             <button onClick={() => handleStartFlashcards('source')} className="flex-1 bg-secondary text-secondary-content py-2 px-4 rounded-md hover:bg-secondary-focus">{currentLanguageInfo.englishName}</button>
                         </div>
                     </div>

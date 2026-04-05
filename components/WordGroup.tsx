@@ -4,6 +4,7 @@ import { Word } from '../types';
 import WordItem from './WordItem';
 import { useWords } from '../contexts/WordsContext';
 import { useModal } from '../contexts/ModalContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface GroupedWords {
     [key: string]: any;
@@ -47,6 +48,7 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
     const [isExpanded, setIsExpanded] = useState(false);
     const { toggleGroupActive, deleteWords } = useWords();
     const { showModal } = useModal();
+    const { t } = useTranslation();
 
     const currentPath = [...path, title];
 
@@ -61,7 +63,7 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
 
     const handleDeleteGroup = () => {
          showModal('confirmation', {
-            text: `Are you sure you want to delete all ${words.length} words from: ${currentPath.join(' > ')}? This cannot be undone.`,
+            text: t('wordGroup.deleteConfirm', { count: words.length, path: currentPath.join(' > ') }),
             onConfirm: () => {
                 const wordIdsToDelete = words.map(w => w.id);
                 deleteWords(wordIdsToDelete);
@@ -92,7 +94,7 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
                             handleDeleteGroup();
                         }}
                         className="p-1.5 hover:bg-base-100/50 rounded-full text-red-500 disabled:opacity-50"
-                        title={`Delete all words in "${title}"`}
+                        title={t('wordGroup.deleteTitle', { title })}
                         disabled={words.length === 0}
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
