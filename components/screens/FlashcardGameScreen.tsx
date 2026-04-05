@@ -539,12 +539,9 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 
                 <div>
                     <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => handleSetDifficulty('easy')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['easy']} hover:opacity-80 ${currentDifficulty === 'easy' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.easy')}</button>
-                        <button onClick={() => handleSetDifficulty('medium')} className={`py-3 rounded-lg text-black font-bold transition-all ${difficultyColors['medium']} hover:opacity-80 ${currentDifficulty === 'medium' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.medium')}</button>
-                        <button onClick={() => handleSetDifficulty('hard')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['hard']} hover:opacity-80 ${currentDifficulty === 'hard' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.hard')}</button>
-                    </div>
-                     <div className="h-2 flex justify-center items-center">
-                        {currentDifficulty !== 'unmarked' && <button onClick={() => handleSetDifficulty('unmarked')} className="text-xs text-gray-400 hover:bg-base-300 px-2 py-0.5 rounded-md" title="Clear difficulty mark">{t('game.difficulty.clear')}</button>}
+                        <button onClick={() => handleSetDifficulty(currentDifficulty === 'easy' ? 'unmarked' : 'easy')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['easy']} hover:opacity-80 ${currentDifficulty === 'easy' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.easy')}</button>
+                        <button onClick={() => handleSetDifficulty(currentDifficulty === 'medium' ? 'unmarked' : 'medium')} className={`py-3 rounded-lg text-black font-bold transition-all ${difficultyColors['medium']} hover:opacity-80 ${currentDifficulty === 'medium' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.medium')}</button>
+                        <button onClick={() => handleSetDifficulty(currentDifficulty === 'hard' ? 'unmarked' : 'hard')} className={`py-3 rounded-lg text-white font-bold transition-all ${difficultyColors['hard']} hover:opacity-80 ${currentDifficulty === 'hard' ? 'ring-2 ring-offset-2 ring-offset-base-100 ring-white' : ''}`}>{t('game.difficulty.hard')}</button>
                     </div>
                 </div>
 

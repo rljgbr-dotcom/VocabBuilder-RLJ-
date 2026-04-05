@@ -126,6 +126,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.flashcards.toast.markedDifficulty': 'Card marked as {difficulty}.',
         'game.flashcards.toast.filterError': 'At least one difficulty filter must be selected.',
         
+        'game.difficulty.unmarked': 'Unmarked',
         'game.difficulty.easy': 'Easy',
         'game.difficulty.medium': 'Medium',
         'game.difficulty.hard': 'Hard',
@@ -295,6 +296,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.flashcards.toast.setAllUnblurred': 'Se eliminó el desenfoque para todas las tarjetas.',
         'game.flashcards.toast.markedDifficulty': 'Tarjeta marcada como {difficulty}.',
         'game.flashcards.toast.filterError': 'Debes seleccionar al menos un filtro de dificultad.',
+        'game.difficulty.unmarked': 'Sin marcar',
         'game.difficulty.easy': 'Fácil',
         'game.difficulty.medium': 'Medio',
         'game.difficulty.hard': 'Difícil',
