@@ -12,7 +12,7 @@ interface GameSelectionScreenProps {
 const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) => {
     const [activeOptions, setActiveOptions] = useState<string | null>(null);
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
-    const { words } = useWords();
+    const { words, syncWithDataFolder } = useWords();
     const { showModal } = useModal();
 
     const handleStartGame = (gameScreen: Screen, minWords: number) => {
@@ -20,7 +20,12 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
         if (activeWords.length < minWords) {
             showModal('info', {
                 title: 'Not Enough Words',
-                content: `You need at least ${minWords} active words for ${currentLanguageInfo.englishName} to play this game. Activate some words in 'Manage Words'.`
+                content: `You need at least ${minWords} active words for ${currentLanguageInfo.englishName} to play this game. Activate some words in 'Manage Words' or update from the data folder.`,
+                actionLabel: 'Update from Data Folder',
+                onAction: async () => {
+                    const result = await syncWithDataFolder();
+                    showModal('info', { title: result.success ? 'Sync Complete' : 'Sync Failed', content: result.message });
+                }
             });
             return;
         }
