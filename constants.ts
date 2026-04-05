@@ -44,6 +44,32 @@ export const csvHelpContent = `
 </div>
 `;
 
+export const flashcardHelpContent_es = `
+<div class="space-y-3 text-sm">
+    <p><strong class="text-primary">Haz clic/toca la tarjeta</strong> para girarla y revelar la respuesta.</p>
+    <p><strong class="text-primary">Gestos de deslizamiento / Teclas de flecha:</strong> Usa deslizamientos o las teclas de dirección del teclado para realizar acciones rápidamente. Haz clic en el botón "Deslizamientos" para configurar qué acción realiza cada dirección.</p>
+    <p><strong class="text-primary">Leer tarjeta:</strong> El botón "Leer en voz alta" pronuncia la palabra (y el ejemplo) que se muestra actualmente en el frente de la tarjeta.</p>
+    <p><strong class="text-primary">Número de tarjetas:</strong> Haz clic en el botón "Tarjetas: [número]/[total]" para abrir un cuadro de diálogo donde puedes establecer el número exacto de tarjetas para tu sesión activa. Las tarjetas eliminadas van a una pila temporal y se agregan primero al volver.</p>
+    <p><strong class="text-primary">Mover tarjeta:</strong> Usa los botones +1 a +5 para mover la tarjeta actual ese número de posiciones hacia adelante. El botón "Enviar al fondo" la envía al final. **Si presionas un botón de mover antes de girar una tarjeta sin desenfoque, la respuesta se mostrará durante 2 segundos antes de que se mueva la tarjeta. Para tarjetas desenfocadas, la tarjeta se desenfoca durante 2 segundos, luego gira y muestra el otro lado durante 2 segundos antes de moverse.** El número en la esquina superior derecha indica cuántas veces se ha movido hacia atrás.</p>
+    <p><strong class="text-primary">Invertir y atrás:</strong> Envía la tarjeta actual al final del mazo y la voltea para su próxima aparición (por ej., de sueco al idioma de origen). El contador se mantiene en todos los juegos.</p>
+    <p><strong class="text-primary">Ocultar tarjeta:</strong> Desactiva la palabra actual de todos los juegos hasta que la vuelvas a activar en "Gestionar Palabras". Puedes deshacer el último ocultamiento.</p>
+    <p><strong class="text-primary">Acciones masivas:</strong> Los botones "Todo Sueco", "Todo [Idioma]", "Todo Desenfocado" y "Todo sin Desenfocar" modifican instantáneamente la cara o el estado de desenfoque de todas las tarjetas de tu sesión actual.</p>
+    <p><strong class="text-primary">Autoevaluación:</strong> El cuadro de texto es para practicar. Escribe tu respuesta y presiona Enter para girar la tarjeta. Escribe <strong>..</strong> y presiona Enter para enviar la tarjeta al final del mazo.</p>
+</div>
+`;
+
+export const csvHelpContent_es = `
+<div class="space-y-3 text-sm">
+    <p>Para añadir nuevas palabras subiendo un archivo, necesitas un archivo CSV (Valores Separados por Comas) con un formato específico. Debe contener **29 columnas**.</p>
+    <p><strong>1. Fila de encabezado:</strong> La primera línea de tu archivo DEBE ser la fila de encabezado, exactamente así (todo en una línea):</p>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Source,Subtopic1,Subtopic2,Swedish,SwedishExample,en_Word,en_Example,es_Word,es_Example,fa_Word,fa_Example,el_Word,el_Example,uk_Word,uk_Example,ru_Word,ru_Example,hi_Word,hi_Example,bn_Word,bn_Example,sq_Word,sq_Example,tr_Word,tr_Example,ms_Word,ms_Example,fil_Word,fil_Example</code></pre>
+    <p><strong>2. Filas de datos:</strong> Cada línea siguiente representa una palabra en sueco y todas sus traducciones. Los campos están separados por comas. Los ejemplos son opcionales.</p>
+    <p><strong>Fila de ejemplo:</strong></p>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Rivstart A1,Kapitel 1,Verbs,att arbeta,"Jag arbetar...","to work","I work...","trabajar","Yo trabajo...",,,,,,,,,,,,,,,,,,,</code></pre>
+    <p><strong>Importante:</strong> Si algún campo contiene una coma, DEBES encerrar ese campo entre comillas dobles (\`"\`) como se muestra en los ejemplos anteriores. Deja los campos en blanco si no tienes una traducción para ese idioma.</p>
+</div>
+`;
+
 export const SWIPE_ACTIONS: { value: SwipeAction, label: string }[] = [
     { value: 'none', label: 'None' },
     { value: 'flip', label: 'Flip Card' },

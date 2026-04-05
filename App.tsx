@@ -25,7 +25,7 @@ import StartupDisclaimerModal from './components/modals/StartupDisclaimerModal';
 import ReadMeModal from './components/modals/ReadMeModal';
 import SetStackSizeModal from './components/modals/SetStackSizeModal';
 import SwipeSettingsModal from './components/modals/SwipeSettingsModal';
-import { flashcardHelpContent, csvHelpContent } from './constants';
+import { flashcardHelpContent, flashcardHelpContent_es, csvHelpContent, csvHelpContent_es } from './constants';
 import { Screen } from './types';
 
 const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
@@ -46,12 +46,15 @@ const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
 const AppContent: React.FC = () => {
     const [screen, setScreen] = useState<Screen>('main-menu');
     const { t } = useTranslation();
-    const { currentLanguageInfo } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const [disclaimerConfirmed, setDisclaimerConfirmed] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
     const [infoToast, setInfoToast] = useState('');
+
+    const flashcardHelp = currentSourceLanguage === 'es' ? flashcardHelpContent_es : flashcardHelpContent;
+    const csvHelp = currentSourceLanguage === 'es' ? csvHelpContent_es : csvHelpContent;
 
     const showInfoToast = useCallback((message: string, duration = 3000) => {
         setInfoToast(message);
@@ -189,8 +192,8 @@ const AppContent: React.FC = () => {
             <AddWordModal />
             <SetStackSizeModal />
             <SwipeSettingsModal />
-            <HelpModal modalId="flashcardHelp" title={t('help.flashcards.title')} content={flashcardHelpContent} />
-            <HelpModal modalId="csvHelp" title={t('help.csv.title')} content={csvHelpContent} />
+            <HelpModal modalId="flashcardHelp" title={t('help.flashcards.title')} content={flashcardHelp} />
+            <HelpModal modalId="csvHelp" title={t('help.csv.title')} content={csvHelp} />
             <ReadMeModal />
 
             {isModalOpen && <div className="fixed inset-0 bg-black bg-opacity-70 z-40"></div>}
