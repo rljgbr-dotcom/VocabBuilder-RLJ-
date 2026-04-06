@@ -15,7 +15,7 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, syncWithDataFolder } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,9 +97,21 @@ const ManageWordsScreen: React.FC = () => {
                         <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">{t('manageWords.activateAll')}</button>
                         <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">{t('manageWords.deactivateAll')}</button>
                     </div>
+                    <div className="flex gap-2 border-l border-gray-600 pl-2">
+                        <span className="text-xs text-purple-400 font-bold mr-1">SRS:</span>
+                        <button onClick={() => toggleGroupSrsActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-purple-600 hover:text-white">{t('manageWords.srsAddAll')}</button>
+                        <button onClick={() => toggleGroupSrsActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-purple-600 hover:text-white">{t('manageWords.srsRemoveAll')}</button>
+                    </div>
                 </div>
             </div>
             <div className="space-y-2">
+                {/* Column header labels for the toggles */}
+                <div className="flex justify-end pr-1 gap-4 text-xs text-gray-500 font-medium mb-1">
+                    <span className="w-10 text-center">{t('word.active')}</span>
+                    <span className="w-10 text-center text-purple-400">SRS</span>
+                    <span className="w-6"></span>
+                    <span className="w-6"></span>
+                </div>
                 {words.length === 0 ? (
                     <p className="text-center text-gray-400 mt-8">{t('manageWords.noWords')}</p>
                 ) : (

@@ -290,6 +290,10 @@
         .toggle-checkbox:indeterminate + .toggle-label { background-color: var(--accent); }
         .toggle-checkbox:indeterminate { left: 50%; transform: translateX(-50%); border-color: var(--accent); }
 
+        /* SRS toggle switch (purple) */
+        .srs-toggle-checkbox:checked { right: 0; border-color: #a855f7; }
+        .srs-toggle-checkbox:checked + .srs-toggle-label { background-color: #a855f7; }
+
         /* Toast animation */
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }

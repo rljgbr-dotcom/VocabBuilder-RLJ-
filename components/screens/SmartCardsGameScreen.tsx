@@ -20,14 +20,19 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const [sessionQueue, setSessionQueue] = useState<Word[]>([]);
     const [isFlipped, setIsFlipped]       = useState(false);
     const [sessionDone, setSessionDone]   = useState(false);
+    const [noSrsWords, setNoSrsWords]     = useState(false);
     const [reviewedCount, setReviewedCount] = useState(0);
     const totalDueRef = useRef(0);
 
     // ── Initialise ─────────────────────────────────────────────────────────────
     useEffect(() => {
-        const due = words.filter(
-            w => w.active && w.translations[currentSourceLanguage]?.word && isDueToday(w)
-        );
+        const srsWords = words.filter(w => w.srs_active && w.translations[currentSourceLanguage]?.word);
+        if (srsWords.length === 0) {
+            setNoSrsWords(true);
+            setSessionDone(true);
+            return;
+        }
+        const due = srsWords.filter(isDueToday);
         totalDueRef.current = due.length;
         if (due.length === 0) {
             setSessionDone(true);
@@ -83,8 +88,26 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         return `~${i}d`;
     };
 
-    // ── Deck mastered ──────────────────────────────────────────────────────────
+    // ── Deck mastered / No SRS words ───────────────────────────────────────────
     if (sessionDone) {
+        if (noSrsWords) {
+            return (
+                <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
+                    <div className="text-6xl">🧠</div>
+                    <h2 className="text-3xl font-bold">{t('game.smartCards.noSrsWords')}</h2>
+                    <p className="text-gray-400 max-w-sm">{t('game.smartCards.noSrsWordsSub')}</p>
+                    <button
+                        onClick={() => setScreen('manage-words')}
+                        className="bg-purple-600 text-white py-2 px-8 rounded-lg font-bold hover:bg-purple-700 transition-colors"
+                    >
+                        {t('game.smartCards.goToManageWords')}
+                    </button>
+                    <button onClick={() => setScreen('game-selection')} className="text-sm text-gray-400 hover:underline">
+                        {t('game.backToGames')}
+                    </button>
+                </div>
+            );
+        }
         return (
             <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
                 <div className="text-6xl">🎉</div>

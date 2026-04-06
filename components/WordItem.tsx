@@ -13,7 +13,7 @@ interface WordItemProps {
 
 const WordItem: React.FC<WordItemProps> = ({ word }) => {
     const { currentSourceLanguage } = useSettings();
-    const { toggleWordActive, deleteWord } = useWords();
+    const { toggleWordActive, toggleWordSrsActive, deleteWord } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
 
@@ -45,9 +45,15 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
                 <button onClick={() => ttsService.speak(word.swedish, 'sv-SE')} className="p-1.5 hover:bg-base-300 rounded-full" title={t('word.pronounce')}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                 </button>
+                {/* Active toggle */}
                 <div className="relative inline-block w-10 mx-1 align-middle">
                     <input type="checkbox" onChange={() => toggleWordActive(word.id)} id={`toggle-${word.id}`} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={word.active} />
                     <label htmlFor={`toggle-${word.id}`} className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer"></label>
+                </div>
+                {/* SRS toggle */}
+                <div className="relative inline-block w-10 mx-1 align-middle" title={word.srs_active ? t('word.srsActive') : t('word.srsInactive')}>
+                    <input type="checkbox" onChange={() => toggleWordSrsActive(word.id)} id={`srs-toggle-${word.id}`} className="srs-toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={!!word.srs_active} />
+                    <label htmlFor={`srs-toggle-${word.id}`} className="srs-toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer"></label>
                 </div>
                 <button onClick={handleEdit} className="p-1.5 hover:bg-base-300 rounded-full" title={t('word.edit')}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z" /></svg>

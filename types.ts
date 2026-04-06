@@ -26,6 +26,7 @@ export interface Word {
   // FIX: Add optional 'isBlurredNext' property to allow persisting the blur state for a word.
   isBlurredNext?: boolean;
   // SRS (SM-2) fields
+  srs_active?: boolean;       // Whether this word is in the SRS deck
   srs_interval?: number;      // Days until next review
   srs_repetition?: number;    // Successful recall count
   srs_efactor?: number;       // Easiness factor (default 2.5)
