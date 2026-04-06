@@ -5,6 +5,7 @@ import { useModal } from '../../contexts/ModalContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Word } from '../../types';
 import WordGroup from '../WordGroup';
+import { LANGUAGE_ORDER } from '../../constants';
 
 interface GroupedWords {
     [source: string]: {
@@ -20,6 +21,14 @@ const ManageWordsScreen: React.FC = () => {
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    
+    // Statistics
+    const stats = useMemo(() => {
+        const total = words.length;
+        const active = words.filter(w => w.active).length;
+        const srs = words.filter(w => w.srs_active).length;
+        return { total, active, srs };
+    }, [words]);
 
     const groupedWords = useMemo(() => {
         return words.reduce((acc, word) => {
@@ -74,33 +83,76 @@ const ManageWordsScreen: React.FC = () => {
         }
     };
 
+    const handleDownloadTemplate = () => {
+        const header = ['Source', 'Subtopic1', 'Subtopic2', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
+        const csvContent = header.join(',');
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "vocab_template.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
-        <div>
+        <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-6">{t('manageWords.title')}</h2>
-            <div className="bg-base-200 p-3 rounded-lg mb-4 sticky top-[72px] z-30">
-                <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center items-center">
-                    <button onClick={() => showModal('addWord')} className="px-3 py-1.5 text-sm bg-accent text-accent-content rounded-md hover:bg-accent-focus">{t('manageWords.addWord')}</button>
-                    <div className="flex items-center gap-1">
-                        <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} />
-                        <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">{t('manageWords.loadCsv')}</button>
-                        <button onClick={() => showModal('csvHelp')} className="text-xs text-blue-400 hover:underline">{t('manageWords.formatHelp')}</button>
+            
+            {/* Stats Bar */}
+            <div className="flex justify-center gap-6 mb-4 text-sm font-medium">
+                <div className="bg-base-200 px-4 py-1.5 rounded-full border border-base-300">
+                    <span className="text-gray-400 mr-2">{t('manageWords.statsTotal', { count: String(stats.total) })}</span>
+                    <span className="text-primary mr-2">•</span>
+                    <span className="text-gray-400 mr-2">{t('manageWords.statsActive', { count: String(stats.active) })}</span>
+                    <span className="text-purple-400 mr-2">•</span>
+                    <span className="text-gray-400">{t('manageWords.statsSrs', { count: String(stats.srs) })}</span>
+                </div>
+            </div>
+
+            <div className="bg-base-200 p-4 rounded-xl mb-6 sticky top-[72px] z-30 shadow-md border border-base-300">
+                <div className="flex flex-col gap-4">
+                    {/* Row 1: Data Management */}
+                    <div className="flex flex-wrap gap-2 justify-center items-center pb-3 border-b border-base-300/50">
+                        <button onClick={() => showModal('addWord')} className="px-3 py-1.5 text-xs font-bold bg-accent text-accent-content rounded-md hover:bg-accent-focus transition-colors shadow-sm">{t('manageWords.addWord')}</button>
+                        <div className="h-4 w-px bg-base-300 mx-1"></div>
+                        <div className="flex items-center gap-2">
+                            <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={handleFileChange} />
+                            <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm">{t('manageWords.loadCsv')}</button>
+                            <button onClick={handleDownloadTemplate} className="px-3 py-1.5 text-xs font-bold bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-md hover:bg-blue-600/30 transition-colors" title="Download empty CSV header">{t('manageWords.downloadTemplate')}</button>
+                        </div>
+                        <div className="h-4 w-px bg-base-300 mx-1"></div>
+                        <button 
+                            onClick={handleSyncFolder} 
+                            disabled={isSyncing}
+                            className="px-3 py-1.5 text-xs font-bold bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+                        >
+                            {isSyncing ? t('manageWords.syncing') : t('manageWords.updateDataFolder')}
+                        </button>
+                        <button onClick={handleExport} className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-sm">{t('manageWords.exportCsv')}</button>
                     </div>
-                    <button 
-                        onClick={handleSyncFolder} 
-                        disabled={isSyncing}
-                        className="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                        {isSyncing ? t('manageWords.syncing') : t('manageWords.updateDataFolder')}
-                    </button>
-                    <button onClick={handleExport} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">{t('manageWords.exportCsv')}</button>
-                    <div className="flex gap-2 border-l border-gray-600 pl-2">
-                        <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">{t('manageWords.activateAll')}</button>
-                        <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-primary hover:text-primary-content">{t('manageWords.deactivateAll')}</button>
-                    </div>
-                    <div className="flex gap-2 border-l border-gray-600 pl-2">
-                        <span className="text-xs text-purple-400 font-bold mr-1">SRS:</span>
-                        <button onClick={() => toggleGroupSrsActive(() => true, true)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-purple-600 hover:text-white">{t('manageWords.srsAddAll')}</button>
-                        <button onClick={() => toggleGroupSrsActive(() => true, false)} className="px-3 py-1.5 text-sm bg-base-300 rounded-md hover:bg-purple-600 hover:text-white">{t('manageWords.srsRemoveAll')}</button>
+
+                    {/* Row 2: Bulk Controls */}
+                    <div className="flex flex-wrap gap-6 justify-center items-center">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{t('word.active')}:</span>
+                            <div className="flex gap-1.5">
+                                <button onClick={() => toggleGroupActive(() => true, true)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-primary hover:text-primary-content transition-colors">{t('manageWords.activateAll')}</button>
+                                <button onClick={() => toggleGroupActive(() => true, false)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-primary hover:text-primary-content transition-colors">{t('manageWords.deactivateAll')}</button>
+                            </div>
+                        </div>
+
+                        <div className="h-4 w-px bg-base-300"></div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wider text-purple-400 font-bold">SRS:</span>
+                            <div className="flex gap-1.5">
+                                <button onClick={() => toggleGroupSrsActive(() => true, true)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-purple-600 hover:text-white transition-colors">{t('manageWords.srsAddAll')}</button>
+                                <button onClick={() => toggleGroupSrsActive(() => true, false)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-purple-600 hover:text-white transition-colors">{t('manageWords.srsRemoveAll')}</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
