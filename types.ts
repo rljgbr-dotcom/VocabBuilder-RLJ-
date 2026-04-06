@@ -1,5 +1,5 @@
 
-export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings';
+export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game';
 
 export interface Language {
   nativeName: string;
@@ -25,6 +25,11 @@ export interface Word {
   difficulty: 'easy' | 'medium' | 'hard' | 'unmarked';
   // FIX: Add optional 'isBlurredNext' property to allow persisting the blur state for a word.
   isBlurredNext?: boolean;
+  // SRS (SM-2) fields
+  srs_interval?: number;      // Days until next review
+  srs_repetition?: number;    // Successful recall count
+  srs_efactor?: number;       // Easiness factor (default 2.5)
+  srs_next_review?: string;   // ISO date string (YYYY-MM-DD)
 }
 
 export interface FlashcardWord extends Word {

@@ -15,6 +15,7 @@ import MultipleChoiceGameScreen from './components/screens/MultipleChoiceGameScr
 import MatchingGameScreen from './components/screens/MatchingGameScreen';
 import TypingTestScreen from './components/screens/TypingTestScreen';
 import SettingsScreen from './components/screens/SettingsScreen';
+import SmartCardsGameScreen from './components/screens/SmartCardsGameScreen';
 
 
 import ConfirmationModal from './components/modals/ConfirmationModal';
@@ -153,6 +154,8 @@ const AppContent: React.FC = () => {
                 return <MatchingGameScreen setScreen={setScreen} />;
             case 'typing-test-game':
                 return <TypingTestScreen setScreen={setScreen} />;
+            case 'smart-cards-game':
+                return <SmartCardsGameScreen setScreen={setScreen} />;
             case 'settings':
                 return <SettingsScreen setScreen={setScreen} />;
             case 'main-menu':
@@ -186,7 +189,7 @@ const AppContent: React.FC = () => {
             </main>
             
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v3.2.05</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.0.01</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />

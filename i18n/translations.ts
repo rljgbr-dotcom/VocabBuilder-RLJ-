@@ -49,6 +49,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'gameSelection.notEnoughWords': 'Not Enough Words',
         'gameSelection.notEnoughWordsDesc': 'You need at least {minWords} active words for {languageName} to play this game. Activate some words in \'Manage Words\' or update from the data folder.',
         'gameSelection.updateFromDataFolder': 'Update from Data Folder',
+        'gameSelection.smartCards': 'Smart Cards',
         
         // Manage Words
         'manageWords.title': 'Manage Words',
@@ -96,6 +97,21 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.gameOver': 'Game Over!',
         'game.backToMenu': 'Back to Menu',
         'game.backToGames': 'Back to Games',
+
+        // Smart Cards (SRS)
+        'game.smartCards.deckMastered': 'Deck Mastered for Today!',
+        'game.smartCards.deckMasteredSub': 'Come back tomorrow for your next review.',
+        'game.smartCards.again': 'Again',
+        'game.smartCards.hard': 'Hard',
+        'game.smartCards.good': 'Good',
+        'game.smartCards.easy': 'Easy',
+        'game.smartCards.showAnswer': 'Show Answer',
+        'game.smartCards.howWell': 'How well did you remember?',
+        'game.smartCards.reviewed': 'Reviewed: {count}',
+        'game.smartCards.dueToday': 'Due today: {count}',
+        'game.smartCards.remaining': 'Remaining: {count}',
+        'game.smartCards.nextReview': 'Next review: {date}',
+        'game.smartCards.newCard': 'New',
 
         // Matching Game
         'game.matching.youWin': 'You Win!',
@@ -234,6 +250,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'gameSelection.notEnoughWords': 'No hay suficientes palabras',
         'gameSelection.notEnoughWordsDesc': 'Necesitas al menos {minWords} palabras activas en {languageName} para jugar este juego. Activa algunas palabras en \'Gestionar Palabras\' o actualiza desde la carpeta de datos.',
         'gameSelection.updateFromDataFolder': 'Actualizar desde la Carpeta de Datos',
+        'gameSelection.smartCards': 'Tarjetas Inteligentes',
         'manageWords.title': 'Gestionar Palabras',
         'manageWords.addWord': 'Añadir Nueva Palabra',
         'manageWords.loadCsv': 'Cargar CSV',
@@ -274,6 +291,21 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.gameOver': '¡Juego Terminado!',
         'game.backToMenu': 'Volver al Menú',
         'game.backToGames': 'Volver a Juegos',
+
+        // Smart Cards (SRS)
+        'game.smartCards.deckMastered': '¡Mazo Dominado por Hoy!',
+        'game.smartCards.deckMasteredSub': 'Vuelve mañana para tu próxima revisión.',
+        'game.smartCards.again': 'De Nuevo',
+        'game.smartCards.hard': 'Difícil',
+        'game.smartCards.good': 'Bien',
+        'game.smartCards.easy': 'Fácil',
+        'game.smartCards.showAnswer': 'Mostrar Respuesta',
+        'game.smartCards.howWell': '¿Qué tan bien lo recordaste?',
+        'game.smartCards.reviewed': 'Revisadas: {count}',
+        'game.smartCards.dueToday': 'Pendientes hoy: {count}',
+        'game.smartCards.remaining': 'Restantes: {count}',
+        'game.smartCards.nextReview': 'Próxima revisión: {date}',
+        'game.smartCards.newCard': 'Nueva',
         'game.matching.youWin': '¡Ganaste!',
         'game.matching.matchedAll': 'Has emparejado todos los pares.',
         'game.matching.findPairs': 'Encuentra los pares coincidentes.',
