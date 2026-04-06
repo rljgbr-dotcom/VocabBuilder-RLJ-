@@ -65,6 +65,19 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         }, 3000);
     }, []);
 
+    const recordAction = useCallback((word: Word, action: string) => {
+        const history = [...(word.history || [])];
+        history.push(action);
+        if (history.length > 3) history.shift();
+        const updatedWord = { 
+            ...word, 
+            history, 
+            backCount: (word.backCount || 0) + 1 
+        };
+        updateWord(updatedWord);
+        return updatedWord;
+    }, [updateWord]);
+
     const initializeGame = useCallback(() => {
         const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
         const filteredWords = words
@@ -179,7 +192,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const moveCard = (positions: number) => {
         const { deck, currentIndex } = stateRef.current;
         if (deck.length < 2) return;
-        const cardToMove = deck[currentIndex];
+        const cardToMove = recordAction(deck[currentIndex], `+${positions}`) as FlashcardWord;
         const newDeck = deck.filter((_, i) => i !== currentIndex);
         const newIndex = Math.min(currentIndex + positions, newDeck.length);
         newDeck.splice(newIndex, 0, cardToMove);
@@ -193,13 +206,12 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const sendToBack = (reverse: boolean = false, blur: boolean = false) => {
         const { deck, currentIndex } = stateRef.current;
         if (deck.length < 2) return;
+        const baseAction = reverse ? t('game.flashcards.reverseBackAndBlur').split(' ')[0] : t('game.flashcards.back'); // 'Rev' or 'Back'
         const cardToMove = {
-            ...deck[currentIndex],
-            backCount: (deck[currentIndex].backCount || 0) + 1,
+            ...(recordAction(deck[currentIndex], baseAction) as FlashcardWord),
             face: reverse ? (deck[currentIndex].face === 'swedish' ? 'source' : 'swedish') : deck[currentIndex].face,
             isBlurredNext: blur,
         };
-        updateWord(cardToMove);
         const wasLastCard = currentIndex === deck.length - 1;
         const newDeck = deck.filter((_, i) => i !== currentIndex);
         newDeck.push(cardToMove);
@@ -210,7 +222,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
     const hideCard = () => {
         if(!currentWord) return;
-        const wordToHide = {...currentWord, active: false};
+        const wordToHide = {...recordAction(currentWord, t('game.flashcards.hide')), active: false};
         updateWord(wordToHide);
         setLastHiddenWord(currentWord);
         setTotalActiveWords(t => t - 1);
@@ -317,11 +329,11 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
     const handleSetDifficulty = useCallback((difficulty: Difficulty) => {
         if (!currentWord) return;
-        const updatedCard = { ...currentWord, difficulty };
-        updateWord(updatedCard as Word);
+        const label = difficulty === 'unmarked' ? 'Clr' : t(`game.difficulty.${difficulty}`);
+        const updatedWord = { ...(recordAction(currentWord, label) as FlashcardWord), difficulty };
         setDeck(prevDeck => {
             const newDeck = [...prevDeck];
-            if (newDeck[currentIndex]?.id === updatedCard.id) newDeck[currentIndex] = updatedCard;
+            if (newDeck[currentIndex]?.id === updatedWord.id) newDeck[currentIndex] = updatedWord;
             return newDeck;
         });
         showToast(t('game.flashcards.toast.markedDifficulty', { difficulty: t(`game.difficulty.${difficulty}`) }));
@@ -511,7 +523,20 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
-                            <div className="absolute top-2 right-3 bg-primary text-primary-content text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">{currentWord.backCount}</div>
+                            <div className="absolute top-2 right-3 flex items-center gap-1.5">
+                                {currentWord.history && currentWord.history.length > 0 && (
+                                    <div className="flex gap-1">
+                                        {currentWord.history.map((act, i) => (
+                                            <span key={i} className="px-1.5 py-0.5 bg-base-300/80 text-[10px] text-gray-400 rounded-md font-medium border border-gray-700/30">
+                                                {act}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="bg-primary text-primary-content text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full" title="Times seen">
+                                    {currentWord.backCount || 0}
+                                </div>
+                            </div>
                         </div>
                         {/* Back Face */}
                         <div className="card-face card-back absolute w-full h-full bg-base-300 rounded-xl flex flex-col items-center justify-center p-4 text-center">
@@ -521,7 +546,20 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
-                             <div className="absolute top-2 right-3 bg-primary text-primary-content text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">{currentWord.backCount}</div>
+                            <div className="absolute top-2 right-3 flex items-center gap-1.5">
+                                {currentWord.history && currentWord.history.length > 0 && (
+                                    <div className="flex gap-1">
+                                        {currentWord.history.map((act, i) => (
+                                            <span key={i} className="px-1.5 py-0.5 bg-base-100/80 text-[10px] text-gray-500 rounded-md font-medium border border-gray-700/20">
+                                                {act}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="bg-primary text-primary-content text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full" title="Times seen">
+                                    {currentWord.backCount || 0}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
