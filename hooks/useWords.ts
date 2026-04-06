@@ -119,6 +119,14 @@ export const useWords = () => {
     const toggleGroupSrsActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
         setWords(prevWords => prevWords.map(w => filter(w) ? { ...w, srs_active: isActive } : w));
     }, [setWords]);
+
+    const syncActiveToSrs = useCallback(() => {
+        setWords(prevWords => prevWords.map(w => ({ ...w, srs_active: w.active })));
+    }, [setWords]);
+
+    const syncSrsToActive = useCallback(() => {
+        setWords(prevWords => prevWords.map(w => ({ ...w, active: !!w.srs_active })));
+    }, [setWords]);
     
     const importFromCSV = useCallback((csvText: string): { success: boolean, message: string } => {
         try {
@@ -262,6 +270,8 @@ export const useWords = () => {
         toggleWordSrsActive,
         toggleGroupActive,
         toggleGroupSrsActive,
+        syncActiveToSrs,
+        syncSrsToActive,
         importFromCSV,
         syncWithDataFolder,
         exportToCSV,

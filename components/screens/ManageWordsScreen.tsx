@@ -16,7 +16,7 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -151,6 +151,16 @@ const ManageWordsScreen: React.FC = () => {
                             <div className="flex gap-1.5">
                                 <button onClick={() => toggleGroupSrsActive(() => true, true)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-purple-600 hover:text-white transition-colors">{t('manageWords.srsAddAll')}</button>
                                 <button onClick={() => toggleGroupSrsActive(() => true, false)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-purple-600 hover:text-white transition-colors">{t('manageWords.srsRemoveAll')}</button>
+                            </div>
+                        </div>
+
+                        <div className="h-4 w-px bg-base-300"></div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Sync:</span>
+                            <div className="flex gap-1.5">
+                                <button onClick={syncActiveToSrs} className="px-3 py-1 text-xs bg-purple-600/10 text-purple-400 border border-purple-500/30 rounded-md hover:bg-purple-600/20 transition-colors" title="Set SRS state to match Active state for all words">{t('manageWords.syncActiveToSrs')}</button>
+                                <button onClick={syncSrsToActive} className="px-3 py-1 text-xs bg-primary/10 text-primary border border-primary/30 rounded-md hover:bg-primary/20 transition-colors" title="Set Active state to match SRS state for all words">{t('manageWords.syncSrsToActive')}</button>
                             </div>
                         </div>
                     </div>

@@ -74,6 +74,8 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'manageWords.statsTotal': 'Total: {count}',
         'manageWords.statsActive': 'Active: {count}',
         'manageWords.statsSrs': 'SRS: {count}',
+        'manageWords.syncActiveToSrs': 'Match SRS with Active',
+        'manageWords.syncSrsToActive': 'Match Active with SRS',
         'manageWords.exportFail': 'Export Failed',
         // Word Group / Item
         'wordGroup.deleteConfirm': 'Are you sure you want to delete all {count} words from: {path}? This cannot be undone.',
