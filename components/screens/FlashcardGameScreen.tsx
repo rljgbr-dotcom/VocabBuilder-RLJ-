@@ -576,6 +576,9 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                             <button onClick={e => {e.stopPropagation(); ttsService.speak(frontAudioText, frontLang);}} className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-300/50">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
+                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            </div>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
                             <div className="absolute top-2 right-3 flex items-center gap-1.5">
                                 {currentWord.history && currentWord.history.length > 0 && (
@@ -599,6 +602,9 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                              <button onClick={e => {e.stopPropagation(); ttsService.speak(backAudioText, backLang);}} className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
+                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            </div>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
                             <div className="absolute top-2 right-3 flex items-center gap-1.5">
                                 {currentWord.history && currentWord.history.length > 0 && (
