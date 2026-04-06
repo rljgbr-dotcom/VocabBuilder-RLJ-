@@ -7,7 +7,7 @@ import { FlashcardWord, Word, SwipeDirection, SwipeAction, Screen } from '../../
 import { ttsService } from '../../services/ttsService';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { applySM2 } from '../../services/srsService';
+import { applySM2, nowISO } from '../../services/srsService';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -259,10 +259,13 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             active: false,
             srs_active: true
         };
-        // If it's never been in SRS, initialize it for first review tomorrow (Quality 4/Good)
+        // If it's never been in SRS, initialize it and make available IMMEDIATELY
         if (!wordUpdate.srs_next_review) {
             const initialSrs = applySM2(wordUpdate, 4);
-            Object.assign(wordUpdate, initialSrs);
+            Object.assign(wordUpdate, { 
+                ...initialSrs, 
+                srs_next_review: nowISO() // Make due now instead of 1 day from now
+            });
         }
         updateWord(wordUpdate);
         
