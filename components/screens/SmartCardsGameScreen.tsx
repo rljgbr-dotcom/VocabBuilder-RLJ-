@@ -4,7 +4,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { Screen, Word } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useTranslation } from '../../hooks/useTranslation';
-import { applySM2, isDueToday, todayISO } from '../../services/srsService';
+import { applySM2, isDueToday, nowISO } from '../../services/srsService';
 
 interface SmartCardsGameScreenProps {
     setScreen: (screen: Screen) => void;
@@ -269,6 +269,10 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" />
                                 </svg>
                             </button>
+                            {/* Breadcrumbs */}
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
+                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            </div>
                             {/* SRS badge */}
                             <div className="absolute top-3 left-3 text-xs text-gray-500 bg-base-300 px-2 py-0.5 rounded-full flex gap-2 items-center">
                                 <span className="font-bold">{intervalBadge}</span>
@@ -306,6 +310,10 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" />
                                 </svg>
                             </button>
+                            {/* Breadcrumbs */}
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
+                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            </div>
                         </div>
                     </div>
                 </div>
