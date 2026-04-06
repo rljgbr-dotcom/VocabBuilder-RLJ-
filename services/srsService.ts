@@ -5,6 +5,8 @@ export interface SRSResult {
     srs_repetition: number;
     srs_efactor: number;
     srs_next_review: string;
+    srs_last_reviewed_at: string;
+    srs_last_quality: number;
 }
 
 /** Returns today's date as a YYYY-MM-DD string in local time */
@@ -64,6 +66,8 @@ export const applySM2 = (word: Word, q: number): SRSResult => {
         srs_repetition: repetition,
         srs_efactor: parseFloat(efactor.toFixed(4)),
         srs_next_review,
+        srs_last_reviewed_at: new Date().toISOString(),
+        srs_last_quality: q,
     };
 };
 

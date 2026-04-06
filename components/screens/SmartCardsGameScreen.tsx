@@ -79,6 +79,44 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const frontLang    = startFace === 'swedish' ? 'sv-SE'                     : currentLanguageInfo.ttsCode;
     const backLang     = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
 
+    // ── Metadata helpers ──────────────────────────────────────────────────────
+    const formatRelativeTime = (isoString: string | undefined): string => {
+        if (!isoString) return '';
+        const past = new Date(isoString).getTime();
+        const now = new Date().getTime();
+        const diffInSeconds = Math.floor((now - past) / 1000);
+
+        if (diffInSeconds < 60) return t('game.smartCards.justNow');
+
+        const units = [
+            { name: 'years',   seconds: 31536000 },
+            { name: 'months',  seconds: 2592000 },
+            { name: 'weeks',   seconds: 604800 },
+            { name: 'days',    seconds: 86400 },
+            { name: 'hours',   seconds: 3600 },
+            { name: 'minutes', seconds: 60 }
+        ];
+
+        for (const unit of units) {
+            const count = Math.floor(diffInSeconds / unit.seconds);
+            if (count >= 1) {
+                return t(`game.smartCards.${unit.name}Ago`, { count: String(count) });
+            }
+        }
+        return t('game.smartCards.justNow');
+    };
+
+    const getLastQualityLabel = (q: number | undefined): string => {
+        if (q === undefined) return '';
+        const map: Record<number, string> = {
+            0: t('game.smartCards.again'),
+            3: t('game.smartCards.hard'),
+            4: t('game.smartCards.good'),
+            5: t('game.smartCards.easy')
+        };
+        return map[q] || '';
+    };
+
     // Estimated next interval preview for button subtitles
     const previewInterval = (q: number): string => {
         if (!currentWord) return '';
@@ -176,8 +214,24 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                 </svg>
                             </button>
                             {/* SRS badge */}
-                            <div className="absolute top-3 left-3 text-xs text-gray-500 bg-base-300 px-2 py-0.5 rounded-full">
-                                {intervalBadge}
+                            <div className="absolute top-3 left-3 text-xs text-gray-500 bg-base-300 px-2 py-0.5 rounded-full flex gap-2 items-center">
+                                <span className="font-bold">{intervalBadge}</span>
+                                {currentWord.srs_last_reviewed_at && (
+                                    <>
+                                        <span className="opacity-30">|</span>
+                                        <span className="opacity-80">
+                                            {formatRelativeTime(currentWord.srs_last_reviewed_at)}
+                                        </span>
+                                        {currentWord.srs_last_quality !== undefined && (
+                                            <>
+                                                <span className="opacity-30">•</span>
+                                                <span className="opacity-80">
+                                                    {getLastQualityLabel(currentWord.srs_last_quality)}
+                                                </span>
+                                            </>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
 

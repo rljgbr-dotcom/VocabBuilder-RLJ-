@@ -31,6 +31,8 @@ export interface Word {
   srs_repetition?: number;    // Successful recall count
   srs_efactor?: number;       // Easiness factor (default 2.5)
   srs_next_review?: string;   // ISO date string (YYYY-MM-DD)
+  srs_last_reviewed_at?: string; // ISO timestamp
+  srs_last_quality?: number;     // 0, 3, 4, 5
 }
 
 export interface FlashcardWord extends Word {
