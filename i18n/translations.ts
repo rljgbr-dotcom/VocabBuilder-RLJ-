@@ -164,6 +164,8 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.flashcards.toast.setAllUnblurred': 'Set all cards to be unblurred.',
         'game.flashcards.toast.markedDifficulty': 'Card marked as {difficulty}.',
         'game.flashcards.toast.filterError': 'At least one difficulty filter must be selected.',
+        'game.flashcards.moveToSrs': 'Move to SRS',
+        'game.flashcards.toast.movedToSrs': 'Word moved to SRS deck and hidden from this pool.',
         
         'game.difficulty.unmarked': 'Unmarked',
         'game.difficulty.easy': 'Easy',
@@ -368,6 +370,8 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
         'game.flashcards.toast.setAllUnblurred': 'Se eliminó el desenfoque para todas las tarjetas.',
         'game.flashcards.toast.markedDifficulty': 'Tarjeta marcada como {difficulty}.',
         'game.flashcards.toast.filterError': 'Debes seleccionar al menos un filtro de dificultad.',
+        'game.flashcards.moveToSrs': 'Mover a SRS',
+        'game.flashcards.toast.movedToSrs': 'Palabra movida al mazo SRS y oculta de este grupo.',
         'game.difficulty.unmarked': 'Sin marcar',
         'game.difficulty.easy': 'Fácil',
         'game.difficulty.medium': 'Medio',

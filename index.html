@@ -284,15 +284,17 @@
         ::-webkit-scrollbar-thumb { background: var(--base-300); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
-        /* Toggle switch */
-        .toggle-checkbox:checked { right: 0; border-color: var(--primary); }
+        /* Toggle switches */
+        .toggle-checkbox, .srs-toggle-checkbox { transition: all 0.2s ease-in-out; left: 0; }
+        .toggle-checkbox:checked { left: auto; right: 0; border-color: var(--primary); }
         .toggle-checkbox:checked + .toggle-label { background-color: var(--primary); }
-        .toggle-checkbox:indeterminate + .toggle-label { background-color: var(--accent); }
         .toggle-checkbox:indeterminate { left: 50%; transform: translateX(-50%); border-color: var(--accent); }
-
-        /* SRS toggle switch (purple) */
-        .srs-toggle-checkbox:checked { right: 0; border-color: #a855f7; }
+        .toggle-checkbox:indeterminate + .toggle-label { background-color: var(--accent); }
+        
+        .srs-toggle-checkbox:checked { left: auto; right: 0; border-color: #a855f7; }
         .srs-toggle-checkbox:checked + .srs-toggle-label { background-color: #a855f7; }
+        .srs-toggle-checkbox:indeterminate { left: 50%; transform: translateX(-50%); border-color: var(--accent); }
+        .srs-toggle-checkbox:indeterminate + .srs-toggle-label { background-color: var(--accent); }
 
         /* Toast animation */
         @keyframes fadeInOut {
