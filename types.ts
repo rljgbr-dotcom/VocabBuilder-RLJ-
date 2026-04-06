@@ -56,6 +56,7 @@ export type SwipeAction =
   | 'backAndBlur'
   | 'reverseBackAndBlur'
   | 'hide'
+  | 'moveToSrs'
   | 'markEasy'
   | 'markMedium'
   | 'markHard';

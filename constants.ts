@@ -84,6 +84,7 @@ export const SWIPE_ACTIONS: { value: SwipeAction, label: string }[] = [
     { value: 'backAndBlur', label: 'Back & Blur' },
     { value: 'reverseBackAndBlur', label: 'Reverse, Back & Blur' },
     { value: 'hide', label: 'Hide Card' },
+    { value: 'moveToSrs', label: 'Move to SRS' },
     { value: 'markEasy', label: 'Mark as Easy' },
     { value: 'markMedium', label: 'Mark as Medium' },
     { value: 'markHard', label: 'Mark as Hard' },

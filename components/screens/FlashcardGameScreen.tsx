@@ -428,6 +428,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             'flip': handleFlip,
             'readAloud': () => ttsService.speak(isFlipped ? backAudioText : frontAudioText, isFlipped ? backLang : frontLang),
             'hide': hideCard,
+            'moveToSrs': moveToSrs,
             'markEasy': () => handleSetDifficulty('easy'),
             'markMedium': () => handleSetDifficulty('medium'),
             'markHard': () => handleSetDifficulty('hard'),
