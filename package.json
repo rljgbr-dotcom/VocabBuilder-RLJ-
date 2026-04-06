@@ -2,7 +2,7 @@
 {
   "name": "ai-vocab-builder",
   "private": true,
-  "version": "4.1.03",
+  "version": "4.1.04",
   "type": "module",
   "scripts": {
     "dev": "vite",

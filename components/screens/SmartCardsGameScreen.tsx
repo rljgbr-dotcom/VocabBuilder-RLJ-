@@ -23,6 +23,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const [noSrsWords, setNoSrsWords]     = useState(false);
     const [reviewedCount, setReviewedCount] = useState(0);
     const totalDueRef = useRef(0);
+    const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
     // ── Initialise ─────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -68,6 +69,57 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             return next;
         });
     }, [currentWord, updateWord]);
+
+    // ── Keyboard Support ──────────────────────────────────────────────────────
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
+            const systemKeys = ['Tab', 'Control', 'Alt', 'Meta', 'Shift', 'CapsLock', 'Escape'];
+            if (systemKeys.includes(e.key)) return;
+
+            if (!isFlipped) {
+                setIsFlipped(true);
+            } else {
+                switch (e.key) {
+                    case '1': handleRateCard(0); break;
+                    case '2': handleRateCard(3); break;
+                    case '3': handleRateCard(4); break;
+                    case '4': handleRateCard(5); break;
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFlipped, handleRateCard]);
+
+    // ── Touch Gestures ────────────────────────────────────────────────────────
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!touchStartRef.current) return;
+        const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        const dx = touchEnd.x - touchStartRef.current.x;
+        const dy = touchEnd.y - touchStartRef.current.y;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        const minSwipeDistance = 50;
+
+        if (Math.max(absDx, absDy) > minSwipeDistance) {
+            if (!isFlipped) return;
+            if (absDx > absDy) {
+                if (dx > 0) handleRateCard(4);
+                else handleRateCard(0);
+            } else {
+                if (dy > 0) handleRateCard(3);
+                else handleRateCard(5);
+            }
+        } else {
+            if (!isFlipped) setIsFlipped(true);
+        }
+        touchStartRef.current = null;
+    };
 
     // ── Text/audio helpers ──────────────────────────────────────────────────────
     const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
@@ -192,7 +244,11 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             </div>
 
             {/* Card */}
-            <div className="w-full max-w-xl mx-auto mb-5 shrink-0">
+            <div 
+                className="w-full max-w-xl mx-auto mb-5 shrink-0 swipe-area touch-none"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+            >
                 <div className="aspect-[16/9] perspective-[1000px]">
                     <div
                         className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''}`}
