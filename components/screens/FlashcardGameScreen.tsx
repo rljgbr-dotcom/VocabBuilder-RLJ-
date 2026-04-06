@@ -7,6 +7,7 @@ import { FlashcardWord, Word, SwipeDirection, SwipeAction, Screen } from '../../
 import { ttsService } from '../../services/ttsService';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { applySM2 } from '../../services/srsService';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -64,7 +65,6 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             setToastMessage('');
         }, 3000);
     }, []);
-
     const recordAction = useCallback((word: Word, action: string) => {
         const history = [...(word.history || [])];
         history.push(action);
@@ -77,6 +77,17 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         updateWord(updatedWord);
         return updatedWord;
     }, [updateWord]);
+
+    const recordActionNoPersist = useCallback((word: Word, action: string) => {
+        const history = [...(word.history || [])];
+        history.push(action);
+        if (history.length > 3) history.shift();
+        return { 
+            ...word, 
+            history, 
+            backCount: (word.backCount || 0) + 1 
+        };
+    }, []);
 
     const initializeGame = useCallback(() => {
         const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
@@ -222,7 +233,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
     const hideCard = () => {
         if(!currentWord) return;
-        const wordToHide = {...recordAction(currentWord, t('game.flashcards.hide')), active: false};
+        const wordToHide = {...recordActionNoPersist(currentWord, t('game.flashcards.hide')), active: false};
         updateWord(wordToHide);
         setLastHiddenWord(currentWord);
         setTotalActiveWords(t => t - 1);
@@ -238,6 +249,38 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setIsFlipped(false);
         if (currentIndex >= newDeck.length && newDeck.length > 0) setCurrentIndex(0);
         setDeck(newDeck);
+    };
+    
+    const moveToSrs = () => {
+        if(!currentWord) return;
+        // Mark as SRS active and hide from regular active pool as requested
+        const wordUpdate = {
+            ...recordActionNoPersist(currentWord, 'SRS'),
+            active: false,
+            srs_active: true
+        };
+        // If it's never been in SRS, initialize it for first review tomorrow (Quality 4/Good)
+        if (!wordUpdate.srs_next_review) {
+            const initialSrs = applySM2(wordUpdate, 4);
+            Object.assign(wordUpdate, initialSrs);
+        }
+        updateWord(wordUpdate);
+        
+        // Remove from current session (same logic as hideCard)
+        setTotalActiveWords(t => t - 1);
+        let newCard = removedStack.pop() || allActiveWordsPool.shift();
+        const newDeck = [...deck];
+        if (newCard) {
+            newDeck[currentIndex] = newCard;
+            setRemovedStack(rs => rs.slice(0, -1));
+            if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
+        } else {
+            newDeck.splice(currentIndex, 1);
+        }
+        setIsFlipped(false);
+        if (currentIndex >= newDeck.length && newDeck.length > 0) setCurrentIndex(0);
+        setDeck(newDeck);
+        showToast(t('game.flashcards.toast.movedToSrs'));
     };
 
     const handleSelfAssessment = (e: React.FormEvent) => {
@@ -330,14 +373,21 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const handleSetDifficulty = useCallback((difficulty: Difficulty) => {
         if (!currentWord) return;
         const label = difficulty === 'unmarked' ? 'Clr' : t(`game.difficulty.${difficulty}`);
-        const updatedWord = { ...(recordAction(currentWord, label) as FlashcardWord), difficulty };
+        // Consolidate updates: difficulty + record history
+        const updatedWord = { 
+            ...recordActionNoPersist(currentWord, label), 
+            difficulty 
+        };
+        updateWord(updatedWord);
         setDeck(prevDeck => {
             const newDeck = [...prevDeck];
-            if (newDeck[currentIndex]?.id === updatedWord.id) newDeck[currentIndex] = updatedWord;
+            if (newDeck[currentIndex]?.id === updatedWord.id) {
+                newDeck[currentIndex] = { ...updatedWord, face: currentWord.face, isBlurredNext: currentWord.isBlurredNext } as FlashcardWord;
+            }
             return newDeck;
         });
         showToast(t('game.flashcards.toast.markedDifficulty', { difficulty: t(`game.difficulty.${difficulty}`) }));
-    }, [currentWord, currentIndex, updateWord, showToast, t]);
+    }, [currentWord, currentIndex, updateWord, showToast, t, recordActionNoPersist]);
 
     const handleToggleFilter = (difficulty: Difficulty) => {
         setDifficultyFilters(prevFilters => {
@@ -588,10 +638,14 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                     <span>{t('game.flashcards.readAloud')}</span>
                 </button>
 
-                <div className={`grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`grid grid-cols-6 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     {[1, 2, 3, 4].map(n => (
                         <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content text-sm">+{n}</button>
                     ))}
+                    <button onClick={moveToSrs} className="p-2 bg-base-300 rounded-md hover:bg-purple-600 hover:text-white text-sm font-bold text-purple-400 border border-base-300 hover:border-purple-600 flex flex-col items-center justify-center -gap-1" title={t('game.flashcards.moveToSrs')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                        <span className="text-[10px]">SRS</span>
+                    </button>
                     <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">{t('game.flashcards.hide')}</button>
                 </div>
 

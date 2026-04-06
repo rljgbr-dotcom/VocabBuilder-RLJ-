@@ -9,23 +9,21 @@ export interface SRSResult {
     srs_last_quality: number;
 }
 
-/** Returns today's date as a YYYY-MM-DD string in local time */
-export const todayISO = (): string => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+/** Returns the current time as an ISO string */
+export const nowISO = (): string => new Date().toISOString();
+
+/** Add seconds to an ISO timestamp */
+const addSeconds = (isoDate: string, seconds: number): string => {
+    const d = new Date(isoDate);
+    d.setSeconds(d.getSeconds() + seconds);
+    return d.toISOString();
 };
 
-/** Add `days` calendar days to a YYYY-MM-DD string */
+/** Add days to an ISO timestamp */
 const addDays = (isoDate: string, days: number): string => {
-    const d = new Date(`${isoDate}T00:00:00`);
+    const d = new Date(isoDate);
     d.setDate(d.getDate() + days);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return d.toISOString();
 };
 
 /**
@@ -33,7 +31,7 @@ const addDays = (isoDate: string, days: number): string => {
  * Returns the updated SRS fields without mutating the word.
  */
 export const applySM2 = (word: Word, q: number): SRSResult => {
-    const today = todayISO();
+    const now = nowISO();
 
     let interval   = word.srs_interval   ?? 0;
     let repetition = word.srs_repetition ?? 0;
@@ -43,11 +41,17 @@ export const applySM2 = (word: Word, q: number): SRSResult => {
     efactor = efactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
     if (efactor < 1.3) efactor = 1.3;
 
+    let nextReview: string;
+
     // B. Update Repetition & Interval
     if (q < 3) {
+        // FAIL: Score < 3 resets repetition chain.
+        // User requested 30s for failed cards.
         repetition = 0;
-        interval = 1;
+        interval = 0; // represent sub-day interval as 0
+        nextReview = addSeconds(now, 30);
     } else {
+        // SUCCESS
         repetition = repetition + 1;
         if (repetition === 1) {
             interval = 1;
@@ -56,25 +60,23 @@ export const applySM2 = (word: Word, q: number): SRSResult => {
         } else {
             interval = Math.round(interval * efactor);
         }
+        nextReview = addDays(now, interval);
     }
-
-    // C. Set next review date
-    const srs_next_review = addDays(today, interval);
 
     return {
         srs_interval: interval,
         srs_repetition: repetition,
         srs_efactor: parseFloat(efactor.toFixed(4)),
-        srs_next_review,
-        srs_last_reviewed_at: new Date().toISOString(),
+        srs_next_review: nextReview,
+        srs_last_reviewed_at: now,
         srs_last_quality: q,
     };
 };
 
 /**
- * Returns true if a card is due for review today (or is brand new with no date).
+ * Returns true if a card is due for review now.
  */
 export const isDueToday = (word: Word): boolean => {
     if (!word.srs_next_review) return true; // new card → always due
-    return word.srs_next_review <= todayISO();
+    return new Date(word.srs_next_review) <= new Date();
 };
