@@ -49,6 +49,13 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
             <h2 className="text-3xl font-bold text-center mb-8">{t('gameSelection.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 <button
+                    onClick={() => setScreen('smart-cards-game')}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-purple-500/30"
+                >
+                    <span className="absolute top-2 right-2 text-xs bg-purple-600 text-white px-2 py-0.5 rounded-full font-bold">SRS</span>
+                    <span className="text-xl font-bold">{t('gameSelection.smartCards')}</span>
+                </button>
+                <button
                     onClick={() => handleStartGame('flashcard-game', 1)}
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
@@ -71,13 +78,6 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.typingTest')}</span>
-                </button>
-                <button
-                    onClick={() => setScreen('smart-cards-game')}
-                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative"
-                >
-                    <span className="absolute top-2 right-2 text-xs bg-accent text-accent-content px-2 py-0.5 rounded-full font-bold">SRS</span>
-                    <span className="text-xl font-bold">{t('gameSelection.smartCards')}</span>
                 </button>
             </div>
             <div className="game-options-container mt-6 max-w-md mx-auto space-y-4">

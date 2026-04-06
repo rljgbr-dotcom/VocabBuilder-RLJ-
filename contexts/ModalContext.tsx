@@ -29,7 +29,7 @@ export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, []);
 
     const isModalOpen = modalState.type !== null;
-    
+
     const value = {
         showModal,
         hideModal,

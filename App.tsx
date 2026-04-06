@@ -71,7 +71,7 @@ const AppContent: React.FC = () => {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.ready.then(reg => {
                 if (!reg) return;
-                
+
                 const onUpdate = (worker: ServiceWorker) => {
                     setWaitingWorker(worker);
                     setUpdateAvailable(true);
@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
                 if (reg.waiting) {
                     onUpdate(reg.waiting);
                 }
-                
+
                 reg.addEventListener('updatefound', () => {
                     const newWorker = reg.installing;
                     if (newWorker) {
@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
             });
         }
     }, []);
-    
+
     const handleUpdate = () => {
         if (waitingWorker) {
             waitingWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -187,9 +187,9 @@ const AppContent: React.FC = () => {
                     {renderScreen()}
                 </div>
             </main>
-            
+
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.1.08</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.1.09</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
@@ -206,13 +206,13 @@ const AppContent: React.FC = () => {
             <ReadMeModal />
 
             {isModalOpen && <div className="fixed inset-0 bg-black bg-opacity-70 z-40"></div>}
-            
+
             {infoToast && (
                 <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-2 px-6 rounded-full shadow-lg z-50 animate-fade-in-out">
                     {infoToast}
                 </div>
             )}
-            
+
             {updateAvailable && <UpdateToast onUpdate={handleUpdate} />}
         </div>
     );

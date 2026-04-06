@@ -32,13 +32,23 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
         showModal('addWord', { wordToEdit: word });
     };
 
+    const difficultyColors: Record<string, string> = {
+        unmarked: 'bg-gray-500',
+        easy: 'bg-green-500',
+        medium: 'bg-yellow-500',
+        hard: 'bg-red-600',
+    };
+
     return (
         <div className="flex items-center justify-between p-1.5 border-b border-base-300 last:border-b-0">
-            <div className="flex-1">
-                <p className="font-medium">{word.swedish}</p>
-                <p className="text-sm text-gray-400">{sourceWord}</p>
-                {word.swedishExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300">{word.swedishExample}</p>}
-                {sourceWordExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300">{sourceWordExample}</p>}
+            <div className="flex items-center gap-3 flex-1 overflow-hidden">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${difficultyColors[word.difficulty || 'unmarked']}`} title={`Difficulty: ${word.difficulty || 'unmarked'}`}></div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{word.swedish}</p>
+                    <p className="text-sm text-gray-400 truncate">{sourceWord}</p>
+                    {word.swedishExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300 line-clamp-2">{word.swedishExample}</p>}
+                    {sourceWordExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300 line-clamp-2">{sourceWordExample}</p>}
+                </div>
             </div>
             <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-primary mr-1">{word.backCount || 0}</span>
