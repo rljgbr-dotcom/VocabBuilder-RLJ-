@@ -112,6 +112,10 @@ export const useWords = () => {
         setWords(prevWords => prevWords.map(w => w.id === wordId ? { ...w, srs_active: !w.srs_active } : w));
     }, [setWords]);
 
+    const toggleWordFlag = useCallback((wordId: string) => {
+        setWords(prevWords => prevWords.map(w => w.id === wordId ? { ...w, flagged: !w.flagged } : w));
+    }, [setWords]);
+
     const toggleGroupActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
         setWords(prevWords => prevWords.map(w => filter(w) ? { ...w, active: isActive } : w));
     }, [setWords]);
@@ -268,6 +272,7 @@ export const useWords = () => {
         deleteWords,
         toggleWordActive,
         toggleWordSrsActive,
+        toggleWordFlag,
         toggleGroupActive,
         toggleGroupSrsActive,
         syncActiveToSrs,

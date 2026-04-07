@@ -16,7 +16,7 @@ interface Question {
 }
 
 const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
-    const { words } = useWords();
+    const { words, toggleWordFlag } = useWords();
     const { currentSourceLanguage, currentLanguageInfo } = useSettings();
     const [deck, setDeck] = useState<Question[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -89,13 +89,23 @@ const MultipleChoiceGameScreen: React.FC<{ setScreen: (screen: Screen) => void }
     }
     
     const currentQuestion = deck[currentIndex];
+    const flagged = useMemo(() => words.find(w => w.id === currentQuestion.word.id)?.flagged, [words, currentQuestion.word.id]);
 
     return (
         <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl font-bold mb-4">{t('gameSelection.multipleChoice')}</h2>
             <p className="mb-8 text-lg">{t('game.scoreTotal', { score, total: deck.length })}</p>
             
-            <div className="bg-base-200 p-8 rounded-lg mb-6">
+            <div className="bg-base-200 p-8 rounded-lg mb-6 relative">
+                <button 
+                    onClick={() => toggleWordFlag(currentQuestion.word.id)}
+                    className={`absolute top-2 right-2 p-2 rounded-full transition-colors ${flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
+                    title="Flag translation"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                    </svg>
+                </button>
                 <p className="text-3xl font-bold">{currentQuestion.word.swedish}</p>
                 <p className="text-gray-400 italic">{currentQuestion.word.swedishExample}</p>
             </div>

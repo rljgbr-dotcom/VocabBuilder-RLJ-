@@ -21,17 +21,24 @@ const ManageWordsScreen: React.FC = () => {
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
     
     // Statistics
     const stats = useMemo(() => {
         const total = words.length;
         const active = words.filter(w => w.active).length;
         const srs = words.filter(w => w.srs_active).length;
-        return { total, active, srs };
+        const flagged = words.filter(w => w.flagged).length;
+        return { total, active, srs, flagged };
     }, [words]);
 
+    const filteredWords = useMemo(() => {
+        if (!showFlaggedOnly) return words;
+        return words.filter(w => w.flagged);
+    }, [words, showFlaggedOnly]);
+
     const groupedWords = useMemo(() => {
-        return words.reduce((acc, word) => {
+        return filteredWords.reduce((acc, word) => {
             const { source, subtopic1, subtopic2 } = word;
             if (!acc[source]) acc[source] = {};
             if (!acc[source][subtopic1]) acc[source][subtopic1] = {};
@@ -108,7 +115,9 @@ const ManageWordsScreen: React.FC = () => {
                     <span className="text-primary mr-2">•</span>
                     <span className="text-gray-400 mr-2">{t('manageWords.statsActive', { count: String(stats.active) })}</span>
                     <span className="text-purple-400 mr-2">•</span>
-                    <span className="text-gray-400">{t('manageWords.statsSrs', { count: String(stats.srs) })}</span>
+                    <span className="text-gray-400 mr-2">{t('manageWords.statsSrs', { count: String(stats.srs) })}</span>
+                    <span className="text-red-500 mr-2">•</span>
+                    <span className="text-gray-400">{t('manageWords.statsFlagged', { count: String(stats.flagged) })}</span>
                 </div>
             </div>
 
@@ -134,8 +143,23 @@ const ManageWordsScreen: React.FC = () => {
                         <button onClick={handleExport} className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-sm">{t('manageWords.exportCsv')}</button>
                     </div>
 
-                    {/* Row 2: Bulk Controls */}
+                    {/* Row 2: Filters & Bulk Controls */}
                     <div className="flex flex-wrap gap-6 justify-center items-center">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowFlaggedOnly(!showFlaggedOnly)}
+                                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-md transition-colors ${showFlaggedOnly ? 'bg-red-600 text-white' : 'bg-base-300 text-gray-400 hover:bg-red-600/20 hover:text-red-500'}`}
+                                title={showFlaggedOnly ? "Show All Words" : "Show Only Flagged"}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={showFlaggedOnly ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                                <span>{showFlaggedOnly ? "Flagged Only" : "Show Flagged"}</span>
+                            </button>
+                        </div>
+
+                        <div className="h-4 w-px bg-base-300"></div>
+
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">{t('word.active')}:</span>
                             <div className="flex gap-1.5">

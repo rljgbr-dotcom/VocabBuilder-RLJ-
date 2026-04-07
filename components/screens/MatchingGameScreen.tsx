@@ -14,7 +14,7 @@ interface Card {
 }
 
 const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
-    const { words } = useWords();
+    const { words, toggleWordFlag } = useWords();
     const { currentSourceLanguage } = useSettings();
     const [cards, setCards] = useState<Card[]>([]);
     const [selected, setSelected] = useState<Card[]>([]);
@@ -91,8 +91,17 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
                     <div key={card.id} className="aspect-square" onClick={() => handleCardClick(card)}>
                        <div className={`w-full h-full rounded-lg transition-transform duration-300 ${isFlipped(card) ? '[transform:rotateY(180deg)]' : ''}`} style={{ transformStyle: 'preserve-3d' }}>
                             <div className="absolute w-full h-full bg-primary rounded-lg [backface-visibility:hidden]"></div>
-                            <div className={`absolute w-full h-full rounded-lg flex items-center justify-center p-2 text-center font-semibold [transform:rotateY(180deg)] [backface-visibility:hidden] ${matchedIds.includes(card.wordId) ? 'bg-accent text-accent-content' : 'bg-base-300'}`}>
+                            <div className={`absolute w-full h-full rounded-lg flex items-center justify-center p-2 text-center font-semibold [transform:rotateY(180deg)] [backface-visibility:hidden] ${matchedIds.includes(card.wordId) ? 'bg-accent text-accent-content' : 'bg-base-300'} relative`}>
                                 {card.text}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); toggleWordFlag(card.wordId); }}
+                                    className={`absolute top-1 right-1 p-1 rounded-full transition-colors ${words.find(w => w.id === card.wordId)?.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-200'}`}
+                                    title="Flag translation"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill={words.find(w => w.id === card.wordId)?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                    </svg>
+                                </button>
                             </div>
                        </div>
                     </div>

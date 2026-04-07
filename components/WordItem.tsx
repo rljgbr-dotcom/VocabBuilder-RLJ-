@@ -13,7 +13,7 @@ interface WordItemProps {
 
 const WordItem: React.FC<WordItemProps> = ({ word }) => {
     const { currentSourceLanguage } = useSettings();
-    const { toggleWordActive, toggleWordSrsActive, deleteWord } = useWords();
+    const { toggleWordActive, toggleWordSrsActive, toggleWordFlag, deleteWord } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
 
@@ -66,6 +66,16 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
                     <input type="checkbox" onChange={() => toggleWordSrsActive(word.id)} id={`srs-toggle-${word.id}`} className="srs-toggle-checkbox absolute left-0 block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={!!word.srs_active} />
                     <label htmlFor={`srs-toggle-${word.id}`} className="srs-toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer transition-colors duration-200"></label>
                 </div>
+                {/* Flag toggle */}
+                <button 
+                    onClick={() => toggleWordFlag(word.id)}
+                    className={`p-1.5 rounded-full transition-colors ${word.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
+                    title={word.flagged ? "Unflag" : "Flag"}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={word.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                    </svg>
+                </button>
                 <button onClick={handleEdit} className="p-1.5 hover:bg-base-300 rounded-full" title={t('word.edit')}>
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z" /></svg>
                 </button>

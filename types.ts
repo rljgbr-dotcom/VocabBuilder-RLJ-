@@ -34,6 +34,7 @@ export interface Word {
   srs_last_reviewed_at?: string; // ISO timestamp
   srs_last_quality?: number;     // 0, 3, 4, 5
   history?: string[];            // Last 3 actions (e.g., "+2", "Hide")
+  flagged?: boolean;             // Whether this word is flagged for correction
 }
 
 export interface FlashcardWord extends Word {

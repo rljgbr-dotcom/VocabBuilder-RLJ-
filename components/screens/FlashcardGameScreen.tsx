@@ -26,7 +26,7 @@ interface FlashcardGameScreenProps {
 }
 
 const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) => {
-    const { words, updateWord } = useWords();
+    const { words, updateWord, toggleWordFlag } = useWords();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
@@ -57,7 +57,13 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         stateRef.current = { deck, currentIndex };
     }, [deck, currentIndex]);
 
-    const currentWord = useMemo(() => deck[currentIndex], [deck, currentIndex]);
+    const currentWord = useMemo(() => {
+        const deckWord = deck[currentIndex];
+        if (!deckWord) return undefined;
+        // Always get the latest data from the global words state for things like flags
+        const globalWord = words.find(w => w.id === deckWord.id);
+        return { ...deckWord, ...globalWord };
+    }, [deck, currentIndex, words]);
 
     const showToast = useCallback((message: string) => {
         setToastMessage(message);
@@ -580,6 +586,15 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                 {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
                             </div>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
+                                className={`absolute top-2 left-9 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
+                                title="Flag translation"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </button>
                             <div className="absolute top-2 right-3 flex items-center gap-1.5">
                                 {currentWord.history && currentWord.history.length > 0 && (
                                     <div className="flex gap-1">
@@ -606,6 +621,15 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                 {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
                             </div>
                             <div className={`absolute top-3 left-3 h-4 w-4 rounded-full ${difficultyColors[currentDifficulty]}`} title={`Difficulty: ${currentDifficulty}`}></div>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
+                                className={`absolute top-2 left-9 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-100'}`}
+                                title="Flag translation"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </button>
                             <div className="absolute top-2 right-3 flex items-center gap-1.5">
                                 {currentWord.history && currentWord.history.length > 0 && (
                                     <div className="flex gap-1">

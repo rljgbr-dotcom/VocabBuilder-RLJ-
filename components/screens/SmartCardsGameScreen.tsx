@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Screen, Word } from '../../types';
@@ -11,7 +11,7 @@ interface SmartCardsGameScreenProps {
 }
 
 const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }) => {
-    const { words, updateWord } = useWords();
+    const { words, updateWord, toggleWordFlag } = useWords();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { t } = useTranslation();
 
@@ -43,7 +43,11 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // only on mount
 
-    const currentWord: Word | undefined = sessionQueue[0];
+    const currentWord: Word | undefined = useMemo(() => {
+        const sessionWord = sessionQueue[0];
+        if (!sessionWord) return undefined;
+        return words.find(w => w.id === sessionWord.id) || sessionWord;
+    }, [sessionQueue, words]);
 
     // ── Rate card ──────────────────────────────────────────────────────────────
     const handleRateCard = useCallback((q: number) => {
@@ -293,6 +297,15 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                     </>
                                 )}
                             </div>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
+                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
+                                title="Flag translation"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </button>
                         </div>
 
                         {/* Back */}
@@ -308,6 +321,15 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" />
+                                </svg>
+                            </button>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
+                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-100'}`}
+                                title="Flag translation"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                                 </svg>
                             </button>
                             {/* Breadcrumbs */}
