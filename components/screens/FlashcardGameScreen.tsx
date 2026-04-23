@@ -51,6 +51,14 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [toastMessage, setToastMessage] = useState('');
     
     const [difficultyFilters, setDifficultyFilters] = useState<Difficulty[]>(['unmarked', 'easy', 'medium', 'hard']);
+    const availableWordTypes = useMemo(() => Array.from(new Set(words.map(w => w.wordType || ''))).sort(), [words]);
+    const [wordTypeFilters, setWordTypeFilters] = useState<string[]>([]);
+    
+    useEffect(() => {
+        if (wordTypeFilters.length === 0 && availableWordTypes.length > 0) {
+            setWordTypeFilters(availableWordTypes);
+        }
+    }, [availableWordTypes, wordTypeFilters.length]);
 
     const stateRef = useRef({ deck, currentIndex });
     useEffect(() => {
@@ -99,6 +107,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
         const filteredWords = words
             .filter(w => w.active && w.translations[currentSourceLanguage]?.word && difficultyFilters.includes(w.difficulty || 'unmarked'))
+            .filter(w => wordTypeFilters.length === 0 || wordTypeFilters.includes(w.wordType || ''))
             .map((w): FlashcardWord => ({ ...w, face: startFace, isBlurredNext: w.isBlurredNext || false }));
 
         setTotalActiveWords(filteredWords.length);
@@ -116,14 +125,14 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setIsFlipped(false);
         setLastHiddenWord(null);
         setSessionCompleted(false);
-    }, [words, currentSourceLanguage, difficultyFilters]);
+    }, [words, currentSourceLanguage, difficultyFilters, wordTypeFilters]);
 
     const initializeGameRef = useRef(initializeGame);
     initializeGameRef.current = initializeGame;
 
     useEffect(() => {
         initializeGameRef.current();
-    }, [currentSourceLanguage, difficultyFilters]);
+    }, [currentSourceLanguage, difficultyFilters, wordTypeFilters]);
     
     useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -411,6 +420,24 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 }
             } else {
                 newFilters.push(difficulty);
+            }
+            return newFilters;
+        });
+    };
+
+    const handleToggleWordTypeFilter = (type: string) => {
+        setWordTypeFilters(prevFilters => {
+            const newFilters = prevFilters.length > 0 ? [...prevFilters] : [...availableWordTypes];
+            const index = newFilters.indexOf(type);
+            if (index > -1) {
+                if (newFilters.length > 1) {
+                    newFilters.splice(index, 1);
+                } else {
+                    showToast(t('game.flashcards.toast.filterError'));
+                    return prevFilters;
+                }
+            } else {
+                newFilters.push(type);
             }
             return newFilters;
         });
@@ -719,7 +746,10 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                         <button
                             onClick={() => showModal('flashcardFilter', {
                                 difficultyFilters,
-                                onToggleFilter: handleToggleFilter,
+                                wordTypeFilters: wordTypeFilters.length > 0 ? wordTypeFilters : availableWordTypes,
+                                availableWordTypes,
+                                onToggleDifficultyFilter: handleToggleFilter,
+                                onToggleWordTypeFilter: handleToggleWordTypeFilter,
                                 onShowToast: showToast,
                             })}
                             className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"

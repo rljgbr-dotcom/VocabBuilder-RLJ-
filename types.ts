@@ -23,6 +23,7 @@ export interface Word {
   translations: { [langCode: string]: Translation };
   backCount: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'unmarked';
+  wordType?: string;
   // FIX: Add optional 'isBlurredNext' property to allow persisting the blur state for a word.
   isBlurredNext?: boolean;
   // SRS (SM-2) fields

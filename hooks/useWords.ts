@@ -13,7 +13,7 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     }
 
     const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
-    const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
+    const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
     const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
 
     // Basic header validation (loose check to allow for minor whitespace diffs)
@@ -36,12 +36,12 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
             values.push((match[2] !== undefined ? match[2] : match[1]).trim());
         }
 
-        if (values.length < 5 || !values[0] || !values[1] || !values[2] || !values[3]) {
+        if (values.length < 6 || !values[0] || !values[1] || !values[2] || !values[4]) {
             invalidCount++;
             return;
         }
         
-        const [source, subtopic1, subtopic2, swedish, swedishExample = ''] = values;
+        const [source, subtopic1, subtopic2, wordType, swedish, swedishExample = ''] = values;
         const key = `${source}|${subtopic1}|${subtopic2}|${swedish}`.toLowerCase();
         
         // Check duplicates against existing words passed in AND words already processed in this batch
@@ -51,13 +51,13 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
         }
 
         const newWord: Omit<Word, 'id'> = {
-            source, subtopic1, subtopic2, swedish, swedishExample,
+            source, subtopic1, subtopic2, wordType: wordType || '', swedish, swedishExample,
             active: true, translations: {}, backCount: 0, difficulty: 'unmarked',
         };
 
         LANGUAGE_ORDER.forEach((lang, langIndex) => {
-            const wordIndex = 5 + (langIndex * 2);
-            const exampleIndex = 6 + (langIndex * 2);
+            const wordIndex = 6 + (langIndex * 2);
+            const exampleIndex = 7 + (langIndex * 2);
             const sourceWord = values[wordIndex] || '';
             const sourceWordExample = values[exampleIndex] || '';
             if (sourceWord) {
@@ -223,13 +223,14 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
             
             const rows = words.map(word => {
                 const rowData = [
                     word.source,
                     word.subtopic1,
                     word.subtopic2,
+                    word.wordType || '',
                     word.swedish,
                     word.swedishExample,
                 ];

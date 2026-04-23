@@ -34,12 +34,12 @@ export const flashcardHelpContent = `
 
 export const csvHelpContent = `
 <div class="space-y-3 text-sm">
-    <p>To add new words by uploading a file, you need a CSV (Comma-Separated Values) file with a specific format. It must contain **29 columns**.</p>
+    <p>To add new words by uploading a file, you need a CSV (Comma-Separated Values) file with a specific format. It must contain **30 columns**.</p>
     <p><strong>1. Header Row:</strong> The very first line of your file MUST be the header row, exactly like this (all one line):</p>
-    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Source,Subtopic1,Subtopic2,Swedish,SwedishExample,en_Word,en_Example,es_Word,es_Example,fa_Word,fa_Example,el_Word,el_Example,uk_Word,uk_Example,ru_Word,ru_Example,hi_Word,hi_Example,bn_Word,bn_Example,sq_Word,sq_Example,tr_Word,tr_Example,ms_Word,ms_Example,fil_Word,fil_Example</code></pre>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Source,Subtopic1,Subtopic2,WordType,Swedish,SwedishExample,en_Word,en_Example,es_Word,es_Example,fa_Word,fa_Example,el_Word,el_Example,uk_Word,uk_Example,ru_Word,ru_Example,hi_Word,hi_Example,bn_Word,bn_Example,sq_Word,sq_Example,tr_Word,tr_Example,ms_Word,ms_Example,fil_Word,fil_Example</code></pre>
     <p><strong>2. Data Rows:</strong> Each subsequent line represents one Swedish word and all its translations. Fields are separated by commas. Examples are optional.</p>
     <p><strong>Example Row:</strong></p>
-    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Rivstart A1,Kapitel 1,Verbs,att arbeta,"Jag arbetar...","to work","I work...","trabajar","Yo trabajo...",,,,,,,,,,,,,,,,,,,</code></pre>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Rivstart A1,Kapitel 1,Verbs,verb,att arbeta,"Jag arbetar...","to work","I work...","trabajar","Yo trabajo...",,,,,,,,,,,,,,,,,,,</code></pre>
      <p><strong>Important:</strong> If any field contains a comma, you MUST enclose that field in double quotes (\`"\`) as shown in the examples above. Leave fields blank if you don't have a translation for that language.</p>
 </div>
 `;
@@ -60,12 +60,12 @@ export const flashcardHelpContent_es = `
 
 export const csvHelpContent_es = `
 <div class="space-y-3 text-sm">
-    <p>Para añadir nuevas palabras subiendo un archivo, necesitas un archivo CSV (Valores Separados por Comas) con un formato específico. Debe contener **29 columnas**.</p>
+    <p>Para añadir nuevas palabras subiendo un archivo, necesitas un archivo CSV (Valores Separados por Comas) con un formato específico. Debe contener **30 columnas**.</p>
     <p><strong>1. Fila de encabezado:</strong> La primera línea de tu archivo DEBE ser la fila de encabezado, exactamente así (todo en una línea):</p>
-    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Source,Subtopic1,Subtopic2,Swedish,SwedishExample,en_Word,en_Example,es_Word,es_Example,fa_Word,fa_Example,el_Word,el_Example,uk_Word,uk_Example,ru_Word,ru_Example,hi_Word,hi_Example,bn_Word,bn_Example,sq_Word,sq_Example,tr_Word,tr_Example,ms_Word,ms_Example,fil_Word,fil_Example</code></pre>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Source,Subtopic1,Subtopic2,WordType,Swedish,SwedishExample,en_Word,en_Example,es_Word,es_Example,fa_Word,fa_Example,el_Word,el_Example,uk_Word,uk_Example,ru_Word,ru_Example,hi_Word,hi_Example,bn_Word,bn_Example,sq_Word,sq_Example,tr_Word,tr_Example,ms_Word,ms_Example,fil_Word,fil_Example</code></pre>
     <p><strong>2. Filas de datos:</strong> Cada línea siguiente representa una palabra en sueco y todas sus traducciones. Los campos están separados por comas. Los ejemplos son opcionales.</p>
     <p><strong>Fila de ejemplo:</strong></p>
-    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Rivstart A1,Kapitel 1,Verbs,att arbeta,"Jag arbetar...","to work","I work...","trabajar","Yo trabajo...",,,,,,,,,,,,,,,,,,,</code></pre>
+    <pre class="bg-base-300 p-2 rounded-md text-xs"><code>Rivstart A1,Kapitel 1,Verbs,verb,att arbeta,"Jag arbetar...","to work","I work...","trabajar","Yo trabajo...",,,,,,,,,,,,,,,,,,,</code></pre>
     <p><strong>Importante:</strong> Si algún campo contiene una coma, DEBES encerrar ese campo entre comillas dobles (\`"\`) como se muestra en los ejemplos anteriores. Deja los campos en blanco si no tienes una traducción para ese idioma.</p>
 </div>
 `;
