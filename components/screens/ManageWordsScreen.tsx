@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useModal } from '../../contexts/ModalContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,12 +16,19 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive, saveWordState, loadWordState, listWordStates, deleteWordState } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
+    const [saveStateName, setSaveStateName] = useState('');
+    const [savedStates, setSavedStates] = useState<{ name: string; savedAt: string }[]>([]);
+    const [showStatePanel, setShowStatePanel] = useState(false);
+
+    const refreshSavedStates = useCallback(() => {
+        setSavedStates(listWordStates());
+    }, [listWordStates]);
     
     // Statistics
     const stats = useMemo(() => {
@@ -187,6 +194,85 @@ const ManageWordsScreen: React.FC = () => {
                                 <button onClick={syncSrsToActive} className="px-3 py-1 text-xs bg-primary/10 text-primary border border-primary/30 rounded-md hover:bg-primary/20 transition-colors" title="Set Active state to match SRS state for all words">{t('manageWords.syncSrsToActive')}</button>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Row 3: Save / Load State */}
+                    <div className="pt-3 border-t border-base-300/50">
+                        <button
+                            onClick={() => { setShowStatePanel(p => !p); refreshSavedStates(); }}
+                            className="text-xs font-bold text-gray-400 hover:text-primary transition-colors flex items-center gap-1"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                            {showStatePanel ? 'Hide' : 'Save / Load Toggle State'}
+                        </button>
+
+                        {showStatePanel && (
+                            <div className="mt-3 space-y-3">
+                                {/* Save new state */}
+                                <div className="flex gap-2 items-center">
+                                    <input
+                                        type="text"
+                                        value={saveStateName}
+                                        onChange={e => setSaveStateName(e.target.value)}
+                                        placeholder="State name (e.g. Week 1)"
+                                        className="flex-1 bg-base-300 border border-base-100/20 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 ring-primary"
+                                    />
+                                    <button
+                                        disabled={!saveStateName.trim()}
+                                        onClick={() => {
+                                            const result = saveWordState(saveStateName.trim());
+                                            if (result.success) {
+                                                refreshSavedStates();
+                                                setSaveStateName('');
+                                                showModal('info', { title: 'Saved', content: `State "${saveStateName.trim()}" saved.` });
+                                            }
+                                        }}
+                                        className="px-3 py-1 text-xs font-bold bg-primary text-primary-content rounded-md hover:bg-primary-focus disabled:opacity-40 transition-colors"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+
+                                {/* Saved states list */}
+                                {savedStates.length === 0 ? (
+                                    <p className="text-xs text-gray-500 text-center py-1">No saved states yet.</p>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        {savedStates.map(s => (
+                                            <div key={s.name} className="flex items-center justify-between bg-base-300/50 rounded-md px-2 py-1.5">
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-300">{s.name}</p>
+                                                    <p className="text-[10px] text-gray-500">{new Date(s.savedAt).toLocaleString()}</p>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <button
+                                                        onClick={() => showModal('confirmation', {
+                                                            text: `Load state "${s.name}"? This will overwrite the current active and SRS toggles for all matching words.`,
+                                                            onConfirm: () => {
+                                                                const result = loadWordState(s.name);
+                                                                showModal('info', { title: result.success ? 'Loaded' : 'Error', content: result.message });
+                                                            }
+                                                        })}
+                                                        className="px-2 py-0.5 text-xs font-bold bg-primary/20 text-primary rounded hover:bg-primary/30 transition-colors"
+                                                    >
+                                                        Load
+                                                    </button>
+                                                    <button
+                                                        onClick={() => showModal('confirmation', {
+                                                            text: `Delete saved state "${s.name}"?`,
+                                                            onConfirm: () => { deleteWordState(s.name); refreshSavedStates(); }
+                                                        })}
+                                                        className="px-2 py-0.5 text-xs font-bold bg-red-600/20 text-red-400 rounded hover:bg-red-600/30 transition-colors"
+                                                    >
+                                                        Del
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

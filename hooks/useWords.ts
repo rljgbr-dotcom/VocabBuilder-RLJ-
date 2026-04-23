@@ -135,6 +135,56 @@ export const useWords = () => {
     const syncSrsToActive = useCallback(() => {
         setWords(prevWords => prevWords.map(w => ({ ...w, active: !!w.srs_active })));
     }, [setWords]);
+
+    // Save a named snapshot of active/srs_active state for all words to localStorage
+    const saveWordState = useCallback((name: string): { success: boolean } => {
+        try {
+            const snapshot = words.map(w => ({ id: w.id, active: w.active, srs_active: !!w.srs_active }));
+            const saves = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+            saves[name] = { savedAt: new Date().toISOString(), snapshot };
+            localStorage.setItem('vocabuilder_word_states', JSON.stringify(saves));
+            return { success: true };
+        } catch {
+            return { success: false };
+        }
+    }, [words]);
+
+    // Load a named snapshot — restores active/srs_active for words still present by id
+    const loadWordState = useCallback((name: string): { success: boolean; message: string } => {
+        try {
+            const saves = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+            const save = saves[name];
+            if (!save) return { success: false, message: `No saved state named "${name}" found.` };
+            const map = new Map<string, { active: boolean; srs_active: boolean }>(save.snapshot.map((s: { id: string; active: boolean; srs_active: boolean }) => [s.id, s]));
+            setWords(prev => prev.map(w => {
+                const s = map.get(w.id);
+                if (!s) return w;
+                return { ...w, active: s.active, srs_active: s.srs_active };
+            }));
+            return { success: true, message: `State "${name}" restored successfully.` };
+        } catch {
+            return { success: false, message: 'Failed to load saved state.' };
+        }
+    }, [setWords]);
+
+    // List saved state names with timestamps
+    const listWordStates = useCallback((): { name: string; savedAt: string }[] => {
+        try {
+            const saves = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+            return Object.entries(saves).map(([name, val]: [string, any]) => ({ name, savedAt: val.savedAt }));
+        } catch {
+            return [];
+        }
+    }, []);
+
+    // Delete a saved state
+    const deleteWordState = useCallback((name: string) => {
+        try {
+            const saves = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+            delete saves[name];
+            localStorage.setItem('vocabuilder_word_states', JSON.stringify(saves));
+        } catch { /* ignore */ }
+    }, []);
     
     const importFromCSV = useCallback((csvText: string): { success: boolean, message: string } => {
         try {
@@ -285,5 +335,9 @@ export const useWords = () => {
         importFromCSV,
         syncWithDataFolder,
         exportToCSV,
+        saveWordState,
+        loadWordState,
+        listWordStates,
+        deleteWordState,
     };
 };

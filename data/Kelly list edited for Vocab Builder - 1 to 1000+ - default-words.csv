@@ -585,7 +585,7 @@ Kelly List;A1;201 to 300;Verb;Att Svara;Kan du svara på min fråga?;answer, rep
 Kelly List;A1;201 to 300;Verb;Att Tala;Han kan tala svenska flytande.;speak, talk, converse;He can speak Swedish fluently.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;201 to 300;Verb;Att Välja;Du måste välja en bok att läsa härnäst.;choose, select, pick;You must choose a book to read next.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;201 to 300;Verb;Att Verka;Han verkar vara väldigt trött idag.;seem, look, appear;He seems to be very tired today.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;201 to 300;verb;Te;Jag dricker en kopp te.;tea, infusion, brew;I am drinking a cup of tea.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;201 to 300;Verb;Te;Jag dricker en kopp te.;tea, infusion, brew;I am drinking a cup of tea.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;301 to 400;Adjective;Bra;Det är en mycket bra idé.;well, fine, good;That is a very good idea.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;301 to 400;Adjective;Europeisk;Frankrike är ett europeiskt land.;European, continental, occidental;France is a European country.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;301 to 400;Adjective;Flest;De flesta röstade på det vinnande förslaget.;most, plurality, majority;Most people voted for the winning proposal.;;;;;;;;;;;;;;;;;;;;;;
@@ -685,7 +685,7 @@ Kelly List;A1;301 to 400;Verb;Att Sluta;Jag måste sluta röka för min hälsas 
 Kelly List;A1;301 to 400;Verb;Att Utveckla;Företaget arbetar för att utveckla nya produkter.;develop, grow, expand;The company is working to develop new products.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;301 to 400;Verb;Att Vänta;Kan du vänta ett ögonblick, tack?;wait, pause, stay;Can you wait a moment, please?;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;301 to 400;Verb;Att Vinna;Vi lyckades vinna matchen trots det dåliga vädret.;win, triumph, victory;We managed to win the match despite the bad weather.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;301 to 400;verb;Först;Jag borstade tänderna först och sedan gick jag och lade mig.;first, initially, originally;I brushed my teeth first and then I went to bed.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;301 to 400;Verb;Först;Jag borstade tänderna först och sedan gick jag och lade mig.;first, initially, originally;I brushed my teeth first and then I went to bed.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;401 to 500;Adjective;Allmän;Det är en allmän uppfattning att rökning är skadligt för hälsan.;general, common, universal;It is a general perception that smoking is harmful to your health.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;401 to 500;Adjective;Amerikansk;Han pratar med en amerikansk brytning.;American, US, Yankee;He speaks with an American accent.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;401 to 500;Adjective;Ensam;Jag vill vara ensam en stund.;alone, lonely, solitary;I want to be alone for a while.;;;;;;;;;;;;;;;;;;;;;;
@@ -782,10 +782,10 @@ Kelly List;A1;401 to 500;Verb;Att Titta;Kan du titta på den här bilden?;look, 
 Kelly List;A1;401 to 500;Verb;Att Träffa;Jag ska träffa mina vänner imorgon.;meet, encounter, see;I am going to meet my friends tomorrow.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;401 to 500;Verb;Att Tvinga;Man kan inte tvinga någon att älska en.;force, compel, coerce;You cannot force someone to love you.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;401 to 500;Verb;Att Tyda;Det är svårt att tyda hans handstil.;interpret, decipher, decode;It is difficult to decipher his handwriting.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;401 to 500;verb;Fin;Det är en fin dag idag.;fine, nice, good;It is a nice day today.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;401 to 500;verb;Klar;Är du klar med dina läxor?;clear, ready, finished;Are you finished with your homework?;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;401 to 500;verb;Rätt;Du har helt rätt i det du säger.;rightly, correctly, accurately;You are absolutely right in what you are saying.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;401 to 500;verb;Rätt;Det är helt rätt.;correct, accurate, right;That is completely right.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;401 to 500;Verb;Fin;Det är en fin dag idag.;fine, nice, good;It is a nice day today.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;401 to 500;Verb;Klar;Är du klar med dina läxor?;clear, ready, finished;Are you finished with your homework?;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;401 to 500;Verb;Rätt;Du har helt rätt i det du säger.;rightly, correctly, accurately;You are absolutely right in what you are saying.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;401 to 500;Verb;Rätt;Det är helt rätt.;correct, accurate, right;That is completely right.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;501 to 600;Adjective;Eget;Han har byggt sitt eget hus på landet.;own, personal, private;He has built his own house in the country.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;501 to 600;Adjective;Enkel;Det är en enkel fråga att besvara.;simple, easy, straightforward;It is a simple question to answer.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;501 to 600;Adjective;Enskild;Varje enskild individ har rätt att uttrycka sin åsikt.;individual, private, single;Every single individual has the right to express their opinion.;;;;;;;;;;;;;;;;;;;;;;
@@ -883,9 +883,9 @@ Kelly List;A1;501 to 600;Verb;Att Undra;Jag undrar om det kommer att regna idag.
 Kelly List;A1;501 to 600;Verb;Att Utgöra;Vatten utgör huvuddelen av kroppsvikten.;constitute, comprise, form;Water constitutes the main part of body weight.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;501 to 600;Verb;Att Våga;Man måste våga för att vinna.;dare, venture, hazard;One must dare in order to win.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;501 to 600;Verb;Att Växa;Barnen växer så fort nuförtiden.;grow, develop, expand;The children are growing so fast these days.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;501 to 600;verb;Få;Jag fick en present av min vän.;few, scarce, limited;I received a gift from my friend.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;501 to 600;verb;Håll;Bilen körde i hög fart åt mitt håll.;direction, way, side;The car drove at high speed in my direction.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;501 to 600;verb;Rätt;Det är rätt svar på frågan.;rightly, correctly, accurately;That is the correct answer to the question.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;501 to 600;Verb;Få;Jag fick en present av min vän.;few, scarce, limited;I received a gift from my friend.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;501 to 600;Verb;Håll;Bilen körde i hög fart åt mitt håll.;direction, way, side;The car drove at high speed in my direction.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;501 to 600;Verb;Rätt;Det är rätt svar på frågan.;rightly, correctly, accurately;That is the correct answer to the question.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;601 to 700;Adjective;Full;Bussen var helt full med folk.;full, complete, entire;The bus was completely full of people.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;601 to 700;Adjective;Lätt;Det är lätt att lära sig svenska.;easily, effortlessly, simply;It is easy to learn Swedish.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;601 to 700;Adjective;Liknande;Jag har aldrig sett något liknande.;similar, alike, comparable;I have never seen anything like it.;;;;;;;;;;;;;;;;;;;;;;
@@ -985,7 +985,7 @@ Kelly List;A1;601 to 700;Verb;Att Öppna;Kan du vara snäll och öppna fönstret
 Kelly List;A1;601 to 700;Verb;Att Passa;Det passar mig utmärkt att vi ses klockan tre.;fit, suit, match;It suits me perfectly that we meet at three o'clock.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;601 to 700;Verb;Att Rösta;Många människor gick för att rösta i valet.;vote, ballot, poll;Many people went to vote in the election.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;601 to 700;Verb;Att Släppa;Kan du släppa taget om min hand?;release, let go, drop;Can you let go of my hand?;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;601 to 700;verb;Hjälp;Kan du hjälpa mig med läxan?;help, assistance, aid;Can you help me with my homework?;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;601 to 700;Verb;Hjälp;Kan du hjälpa mig med läxan?;help, assistance, aid;Can you help me with my homework?;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;701 to 800;Adjective;Äldre;Min äldre bror bor i Stockholm.;older, senior, elderly;My older brother lives in Stockholm.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;701 to 800;Adjective;Glad;Jag är glad att se dig igen.;glad, happy, cheerful;I am happy to see you again.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;701 to 800;Adjective;Nuvarande;Jag är nöjd med min nuvarande arbetssituation.;current, present, existing;I am satisfied with my current work situation.;;;;;;;;;;;;;;;;;;;;;;
@@ -1085,7 +1085,7 @@ Kelly List;A1;701 to 800;Verb;Att Tjäna;Han tjänar mycket pengar på sitt nya 
 Kelly List;A1;701 to 800;Verb;Att Uppleva;Jag vill uppleva norrsken i vinter.;experience, undergo, feel;I want to experience the northern lights this winter.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;701 to 800;Verb;Att Uppstå;Problem kan uppstå om vi inte planerar noga.;arise, emerge, occur;Problems can arise if we do not plan carefully.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;701 to 800;Verb;Att Utföra;Hon utförde uppgiften med stor noggrannhet.;perform, execute, carry out;She performed the task with great accuracy.;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;701 to 800;verb;Ro;Efter en lång arbetsdag behöver jag lite lugn och ro.;peace, rest, quiet;After a long workday, I need some peace and quiet.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;701 to 800;Verb;Ro;Efter en lång arbetsdag behöver jag lite lugn och ro.;peace, rest, quiet;After a long workday, I need some peace and quiet.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A2;801 to 900;Adjective;Aktuell;Frågan är fortfarande aktuell för oss.;current, topical, timely;The question is still relevant to us.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A2;801 to 900;Adjective;Ens;Jag har inte ens hunnit äta frukost än.;even, still, yet;I haven't even had time to eat breakfast yet.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A2;801 to 900;Adjective;Hård;Sängen är ganska hård men jag sover gott ändå.;hard, firm, tough;The bed is quite hard but I sleep well anyway.;;;;;;;;;;;;;;;;;;;;;;
@@ -1285,4 +1285,4 @@ Kelly List;A1;901 to 1000;Verb;Att Upptäcka;Forskarna hoppas kunna upptäcka en
 Kelly List;A1;901 to 1000;Verb;Att Utnyttja;Vi måste utnyttja alla tillgängliga resurser för att lyckas.;utilize, use, exploit;We must utilize all available resources to succeed.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;901 to 1000;Verb;Att Uttrycka;Hon kan uttrycka sina känslor på ett tydligt sätt.;express, voice, state;She can express her feelings in a clear way.;;;;;;;;;;;;;;;;;;;;;;
 Kelly List;A1;901 to 1000;Verb;Att Vika;Kan du hjälpa mig att vika tvätten?;fold, bend, crease;Can you help me fold the laundry?;;;;;;;;;;;;;;;;;;;;;;
-Kelly List;A1;901 to 1000;verb;Var;Det var en mycket märklig händelse.;where, anywhere, everywhere;It was a very strange incident.;;;;;;;;;;;;;;;;;;;;;;
+Kelly List;A1;901 to 1000;Verb;Var;Det var en mycket märklig händelse.;where, anywhere, everywhere;It was a very strange incident.;;;;;;;;;;;;;;;;;;;;;;

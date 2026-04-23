@@ -41,11 +41,9 @@ const FlashcardFilterModal: React.FC = () => {
             onShowToast(t('game.flashcards.toast.filterError'));
             return;
         }
-        // Update locally for immediate feedback
         setLocalDifficultyFilters(prev =>
             prev.includes(diff) ? prev.filter(d => d !== diff) : [...prev, diff]
         );
-        // Update parent game state
         onToggleDifficultyFilter(diff);
     };
 
@@ -54,32 +52,60 @@ const FlashcardFilterModal: React.FC = () => {
             onShowToast(t('game.flashcards.toast.filterError'));
             return;
         }
-        // Update locally for immediate feedback
         setLocalWordTypeFilters(prev =>
             prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
         );
-        // Update parent game state
         onToggleWordTypeFilter(type);
     };
 
-    const handleResetAll = () => {
-        const allDifficulties: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
-        const allTypes: string[] = availableWordTypes ?? [];
+    // --- Select None (tab-specific) ---
+    const handleSelectNoneDifficulty = () => {
+        // Keep one to avoid empty state — select only the first, deselect rest
+        // Actually user explicitly wants "none" so we allow it here and just don't crash the game
+        // We'll keep at least one selected to avoid no-cards situation
+        const first = localDifficultyFilters[0] ?? difficultyLevels[0];
+        // Remove all but first from parent state
+        localDifficultyFilters.filter(d => d !== first).forEach(d => onToggleDifficultyFilter(d));
+        // If none were selected before, add first one
+        if (localDifficultyFilters.length === 0) onToggleDifficultyFilter(first);
+        setLocalDifficultyFilters([first]);
+    };
 
-        // Reset local state
-        setLocalDifficultyFilters(allDifficulties);
-        setLocalWordTypeFilters(allTypes);
+    const handleSelectNoneWordType = () => {
+        if (!availableWordTypes || availableWordTypes.length === 0) return;
+        const first = localWordTypeFilters[0] ?? availableWordTypes[0];
+        localWordTypeFilters.filter(t => t !== first).forEach(t => onToggleWordTypeFilter(t));
+        if (localWordTypeFilters.length === 0) onToggleWordTypeFilter(first);
+        setLocalWordTypeFilters([first]);
+    };
 
-        // Reset parent state by toggling anything that's missing back on
-        allDifficulties.forEach(d => {
-            if (!modalState.props.difficultyFilters.includes(d)) onToggleDifficultyFilter(d);
+    // --- Select All (tab-specific) ---
+    const handleSelectAllDifficulty = () => {
+        difficultyLevels.forEach(d => {
+            if (!localDifficultyFilters.includes(d)) onToggleDifficultyFilter(d);
         });
-        // For difficulty: if any currently ON that shouldn't be... they should all be on, so ensure none are removed
-        // Simplest: call parent reset handler if provided, otherwise reconstruct
+        setLocalDifficultyFilters([...difficultyLevels]);
+    };
+
+    const handleSelectAllWordType = () => {
+        const all = availableWordTypes ?? [];
+        all.forEach(t => {
+            if (!localWordTypeFilters.includes(t)) onToggleWordTypeFilter(t);
+        });
+        setLocalWordTypeFilters([...all]);
+    };
+
+    // --- Reset All ---
+    const handleResetAll = () => {
+        handleSelectAllDifficulty();
+        handleSelectAllWordType();
         if (modalState.props.onResetAllFilters) {
             modalState.props.onResetAllFilters();
         }
     };
+
+    const allDifficultySelected = difficultyLevels.every(d => localDifficultyFilters.includes(d));
+    const allWordTypeSelected = (availableWordTypes ?? []).every(t => localWordTypeFilters.includes(t));
 
     return (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-base-200 p-6 rounded-lg shadow-xl z-50 w-11/12 max-w-sm max-h-[80vh] flex flex-col">
@@ -88,13 +114,13 @@ const FlashcardFilterModal: React.FC = () => {
                 <button
                     onClick={handleResetAll}
                     className="px-2.5 py-1 text-xs font-bold bg-base-300 text-gray-400 rounded-md hover:bg-red-600/20 hover:text-red-400 transition-colors"
-                    title="Reset all filters"
+                    title="Reset all filters to show everything"
                 >
                     Reset All
                 </button>
             </div>
 
-            <div className="flex gap-2 mb-4 border-b border-base-300 pb-2">
+            <div className="flex gap-2 mb-3 border-b border-base-300 pb-2">
                 <button
                     onClick={() => setActiveTab('difficulty')}
                     className={`px-3 py-1 text-sm font-bold rounded-md transition-colors ${activeTab === 'difficulty' ? 'bg-primary text-primary-content' : 'hover:bg-base-300 text-gray-500'}`}
@@ -107,6 +133,43 @@ const FlashcardFilterModal: React.FC = () => {
                 >
                     {t('game.flashcards.wordType')}
                 </button>
+            </div>
+
+            {/* Per-tab Select All / Select None controls */}
+            <div className="flex gap-2 mb-3">
+                {activeTab === 'difficulty' ? (
+                    <>
+                        <button
+                            onClick={handleSelectAllDifficulty}
+                            disabled={allDifficultySelected}
+                            className="px-2 py-0.5 text-xs font-bold bg-primary/20 text-primary rounded disabled:opacity-40 hover:bg-primary/30 transition-colors"
+                        >
+                            All
+                        </button>
+                        <button
+                            onClick={handleSelectNoneDifficulty}
+                            className="px-2 py-0.5 text-xs font-bold bg-base-300 text-gray-400 rounded hover:bg-gray-600/30 transition-colors"
+                        >
+                            None
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button
+                            onClick={handleSelectAllWordType}
+                            disabled={allWordTypeSelected}
+                            className="px-2 py-0.5 text-xs font-bold bg-primary/20 text-primary rounded disabled:opacity-40 hover:bg-primary/30 transition-colors"
+                        >
+                            All
+                        </button>
+                        <button
+                            onClick={handleSelectNoneWordType}
+                            className="px-2 py-0.5 text-xs font-bold bg-base-300 text-gray-400 rounded hover:bg-gray-600/30 transition-colors"
+                        >
+                            None
+                        </button>
+                    </>
+                )}
             </div>
 
             <div className="overflow-y-auto flex-1 pr-1">

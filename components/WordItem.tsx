@@ -70,7 +70,22 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
 
                 {/* SRS toggle */}
                 <div className="relative inline-block w-10 mx-1 align-middle" title={word.srs_active ? t('word.srsActive') : t('word.srsInactive')}>
-                    <input type="checkbox" onChange={() => toggleWordSrsActive(word.id)} id={`srs-toggle-${word.id}`} className="srs-toggle-checkbox absolute left-0 block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={!!word.srs_active} />
+                    <input
+                        type="checkbox"
+                        onChange={() => {
+                            if (word.srs_active) {
+                                showModal('confirmation', {
+                                    text: 'Remove this word from the SRS group? Its SRS progress will be preserved but it will no longer appear in SRS sessions.',
+                                    onConfirm: () => toggleWordSrsActive(word.id),
+                                });
+                            } else {
+                                toggleWordSrsActive(word.id);
+                            }
+                        }}
+                        id={`srs-toggle-${word.id}`}
+                        className="srs-toggle-checkbox absolute left-0 block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                        checked={!!word.srs_active}
+                    />
                     <label htmlFor={`srs-toggle-${word.id}`} className="srs-toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer transition-colors duration-200"></label>
                 </div>
                 {/* Flag toggle */}
