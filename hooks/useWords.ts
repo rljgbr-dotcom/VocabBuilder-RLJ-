@@ -13,8 +13,10 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     }
 
     const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
+    // Auto-detect delimiter: semicolon or comma
+    const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
     const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
-    const header = cleanedHeaderLine.toLowerCase().split(',').map(h => h.trim().replace(/\s/g, ''));
+    const header = cleanedHeaderLine.toLowerCase().split(delimiter).map(h => h.trim().replace(/\s/g, ''));
 
     // Basic header validation (loose check to allow for minor whitespace diffs)
     if (JSON.stringify(header.sort()) !== JSON.stringify(expectedHeader.sort())) {
@@ -22,7 +24,9 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
     }
 
-    const csvRegex = /("([^"]*)"|[^,]*)(?:,|$)/g;
+    const csvRegex = delimiter === ";"
+        ? /("([^"]*)"|[^;]*)(?:;|$)/g
+        : /("([^"]*)"|[^,]*)(?:,|$)/g;
     let addedCount = 0;
     let duplicateCount = 0;
     let invalidCount = 0;
