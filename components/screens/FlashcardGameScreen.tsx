@@ -8,6 +8,7 @@ import { ttsService } from '../../services/ttsService';
 import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, nowISO } from '../../services/srsService';
+import { WORD_TYPES } from '../../constants';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -51,7 +52,18 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [toastMessage, setToastMessage] = useState('');
     
     const [difficultyFilters, setDifficultyFilters] = useState<Difficulty[]>(['unmarked', 'easy', 'medium', 'hard']);
-    const availableWordTypes = useMemo(() => Array.from(new Set(words.map(w => w.wordType || ''))).sort(), [words]);
+    const availableWordTypes = useMemo(() => {
+        const types = Array.from(new Set(words.map(w => w.wordType || '')));
+        // Sort by canonical WORD_TYPES order; unknown types go to the end alphabetically
+        return types.sort((a, b) => {
+            const aIdx = WORD_TYPES.findIndex(t => t.toLowerCase() === a.toLowerCase());
+            const bIdx = WORD_TYPES.findIndex(t => t.toLowerCase() === b.toLowerCase());
+            if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+            if (aIdx !== -1) return -1;
+            if (bIdx !== -1) return 1;
+            return a.localeCompare(b);
+        });
+    }, [words]);
     const [wordTypeFilters, setWordTypeFilters] = useState<string[]>([]);
     
     useEffect(() => {

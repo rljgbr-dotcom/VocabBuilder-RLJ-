@@ -18,6 +18,25 @@ export const LANGUAGES: { [key: string]: Language } = {
 
 export const LANGUAGE_ORDER: string[] = ['en', 'es', 'fa', 'el', 'uk', 'ru', 'hi', 'bn', 'sq', 'tr', 'ms', 'fil'];
 
+// Canonical word type list — defines display order in filter modal.
+// Any types found in the CSV that aren't listed here will appear at the end alphabetically.
+export const WORD_TYPES: string[] = [
+    'Adjective',
+    'Adverb',
+    'Aux verb',
+    'Conj',
+    'Det',
+    'Interj',
+    'Noun',
+    'Numeral',
+    'Particle',
+    'Prep',
+    'Pronoun',
+    'Proper name',
+    'Subj',
+    'Verb',
+];
+
 export const flashcardHelpContent = `
 <div class="space-y-3 text-sm">
     <p><strong class="text-primary">Click/Tap the card</strong> to flip it and reveal the answer.</p>
