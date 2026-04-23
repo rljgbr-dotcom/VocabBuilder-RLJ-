@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vocab-builder-v2';
+const CACHE_NAME = 'vocab-builder-v4.2.10';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
