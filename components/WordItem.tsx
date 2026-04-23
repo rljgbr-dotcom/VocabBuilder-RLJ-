@@ -44,7 +44,14 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
             <div className="flex items-center gap-3 flex-1 overflow-hidden">
                 <div className={`w-2 h-2 rounded-full shrink-0 ${difficultyColors[word.difficulty || 'unmarked']}`} title={`Difficulty: ${word.difficulty || 'unmarked'}`}></div>
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{word.swedish}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium truncate">{word.swedish}</p>
+                        {word.wordType && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 rounded uppercase tracking-wide shrink-0">
+                                {word.wordType}
+                            </span>
+                        )}
+                    </div>
                     <p className="text-sm text-gray-400 truncate">{sourceWord}</p>
                     {word.swedishExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300 line-clamp-2">{word.swedishExample}</p>}
                     {sourceWordExample && <p className="text-xs italic text-gray-500 mt-1 pl-2 border-l-2 border-base-300 line-clamp-2">{sourceWordExample}</p>}
