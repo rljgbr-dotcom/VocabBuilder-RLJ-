@@ -460,6 +460,22 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setWordTypeFilters([...availableWordTypes]);
     };
 
+    // Fisher-Yates shuffle of the entire current pool + deck, then re-slice to current deck size
+    const handleShuffleDeck = useCallback(() => {
+        const { deck: currentDeck } = stateRef.current;
+        setAllActiveWordsPool(prevPool => {
+            const all = [...currentDeck, ...prevPool];
+            for (let i = all.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [all[i], all[j]] = [all[j], all[i]];
+            }
+            setDeck(all.slice(0, currentDeck.length));
+            setCurrentIndex(0);
+            setIsFlipped(false);
+            return all.slice(currentDeck.length);
+        });
+    }, [stateRef, setDeck, setAllActiveWordsPool, setCurrentIndex, setIsFlipped]);
+
     const cardFace = currentWord?.face;
     const translation = currentWord?.translations[currentSourceLanguage] || { word: 'N/A', example: '' };
     const frontText = cardFace === 'swedish' ? currentWord?.swedish : translation.word;
@@ -741,7 +757,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                     <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">{t('game.flashcards.hide')}</button>
                 </div>
 
-                <div className={`w-full grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className={`w-full grid grid-cols-6 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     <div className="relative">
                         <button
                             onClick={() => showModal('flashcardBack', {
@@ -796,6 +812,17 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657l-5.657-5.657 5.657-5.657m-6.343 11.314l-5.657-5.657 5.657-5.657" />
                         </svg>
                         <span className="text-xs mt-1">{t('game.flashcards.swipes')}</span>
+                    </button>
+                    {/* Shuffle deck button */}
+                    <button
+                        onClick={handleShuffleDeck}
+                        className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                        title="Randomise deck order"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4h4l2 4-4 2 2 4h4m4-10h4v4m0 0l-4 4m4-4l-4-4M4 20h4l2-4-4-2 2-4h4" />
+                        </svg>
+                        <span className="text-xs mt-1">Shuffle</span>
                     </button>
                     <button onClick={() => showModal('setStackSize', { currentSize: deck.length, maxSize: totalActiveWords, onSet: handleSetStackSize })} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Set Deck Size">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

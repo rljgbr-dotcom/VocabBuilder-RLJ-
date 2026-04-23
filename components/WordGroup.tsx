@@ -65,12 +65,23 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
     };
 
     const handleToggleSrsActive = (isActive: boolean) => {
-        toggleGroupSrsActive(word => {
+        const doToggle = () => toggleGroupSrsActive(word => {
             if (level === 0) return word.source === title;
             if (level === 1) return word.source === path[0] && word.subtopic1 === title;
             if (level === 2) return word.source === path[0] && word.subtopic1 === path[1] && word.subtopic2 === title;
             return false;
         }, isActive);
+
+        if (!isActive) {
+            const removingCount = words.filter(w => !!w.srs_active).length;
+            if (removingCount === 0) { doToggle(); return; }
+            showModal('confirmation', {
+                text: `Remove ${removingCount} word${removingCount !== 1 ? 's' : ''} from the SRS group? Their SRS progress will be preserved but they will no longer appear in SRS sessions.`,
+                onConfirm: doToggle,
+            });
+        } else {
+            doToggle();
+        }
     };
 
     const handleDeleteGroup = () => {
