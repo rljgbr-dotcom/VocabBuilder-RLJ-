@@ -5,6 +5,7 @@ import {
     signOut as driveSignOut,
     uploadBackup,
     downloadBackup,
+    getBackupMetadata,
 } from '../services/googleDriveService';
 import { Word } from '../types';
 
@@ -12,11 +13,17 @@ import { Word } from '../types';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
+export interface DriveBackupInfo {
+    modifiedTime: string; // ISO
+    wordCount?: number;
+}
+
 interface GoogleDriveContextType {
     connected: boolean;
     syncStatus: SyncStatus;
-    lastSyncTime: string | null; // ISO string
+    lastSyncTime: string | null;
     syncError: string | null;
+    backupInfo: DriveBackupInfo | null; // info about what's on Drive after connecting
     connect: () => Promise<void>;
     disconnect: () => void;
     syncNow: (words: Word[]) => Promise<void>;
@@ -38,23 +45,33 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
         localStorage.getItem(LAST_SYNC_KEY)
     );
     const [syncError, setSyncError] = useState<string | null>(null);
+    const [backupInfo, setBackupInfo] = useState<DriveBackupInfo | null>(null);
 
-    // Auto-sync: debounced, triggers whenever words change and user is connected
+    // Auto-sync: debounced, ONLY fires when words change while already connected.
+    // Does NOT fire on initial connect — that would overwrite the Drive backup.
     const autoSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstMount = useRef(true);
+    const justConnected = useRef(false); // guard: skip first words-change after connect
 
     useEffect(() => {
-        // Skip the very first render to avoid syncing stale data on load
+        // Skip the very first render
         if (isFirstMount.current) {
             isFirstMount.current = false;
             return;
         }
         if (!connected) return;
 
+        // Skip exactly once right after the user connects — we don't want to
+        // overwrite a Drive backup with potentially stale local data.
+        if (justConnected.current) {
+            justConnected.current = false;
+            return;
+        }
+
         if (autoSyncTimer.current) clearTimeout(autoSyncTimer.current);
         autoSyncTimer.current = setTimeout(() => {
             performSync(words);
-        }, 5000); // 5-second debounce — won't spam Drive on rapid edits
+        }, 5000);
 
         return () => {
             if (autoSyncTimer.current) clearTimeout(autoSyncTimer.current);
@@ -88,8 +105,18 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
     const connect = useCallback(async () => {
         try {
             await getAccessToken(); // triggers Google sign-in popup if needed
+            justConnected.current = true; // prevent auto-upload on first words effect
             setConnected(true);
             setSyncError(null);
+            // Check if there's already a backup on Drive — without downloading it yet
+            try {
+                const meta = await getBackupMetadata();
+                if (meta) {
+                    setBackupInfo({ modifiedTime: meta.modifiedTime });
+                }
+            } catch {
+                // Non-fatal — just means we couldn't check metadata
+            }
         } catch (err: any) {
             setSyncError(err?.message || 'Connection failed');
         }
@@ -139,7 +166,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
 
     return (
         <GoogleDriveContext.Provider value={{
-            connected, syncStatus, lastSyncTime, syncError,
+            connected, syncStatus, lastSyncTime, syncError, backupInfo,
             connect, disconnect, syncNow, restoreFromBackup,
         }}>
             {children}

@@ -48,16 +48,16 @@ const ThemeOption: React.FC<{
 // ── Cloud Sync Panel ─────────────────────────────────────────────────────────
 
 const CloudSyncPanel: React.FC = () => {
-    const { connected, syncStatus, lastSyncTime, syncError, connect, disconnect, syncNow, restoreFromBackup } = useGoogleDrive();
+    const { connected, syncStatus, lastSyncTime, syncError, backupInfo, connect, disconnect, syncNow, restoreFromBackup } = useGoogleDrive();
     const { words, importSharedDeck } = useWords();
     const { showModal } = useModal();
 
     const isBusy = syncStatus === 'syncing';
 
-    const formatSyncTime = (iso: string | null) => {
+    const formatDate = (iso: string | null) => {
         if (!iso) return 'Never';
         const d = new Date(iso);
-        return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+        return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
             + ' at '
             + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
@@ -67,14 +67,11 @@ const CloudSyncPanel: React.FC = () => {
             text: 'Restore from your Google Drive backup? This will replace all current words and saved states with the backed-up version.',
             onConfirm: () => {
                 restoreFromBackup((restoredWords) => {
-                    // Replace words by importing them fresh (importSharedDeck skips dupes)
-                    // Instead, we use a direct setWords — we do that via a callback here
+                    importSharedDeck(restoredWords);
                     showModal('info', {
                         title: 'Backup Restored',
                         message: `✅ ${restoredWords.length} words restored from Google Drive.`,
                     });
-                    // Re-use importSharedDeck to add any missing words
-                    importSharedDeck(restoredWords);
                 });
             },
         });
@@ -123,6 +120,26 @@ const CloudSyncPanel: React.FC = () => {
                 </div>
             ) : (
                 <div className="space-y-3">
+                    {/* Backup detected banner — shown right after connecting when Drive has a backup */}
+                    {backupInfo && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-start gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-amber-300">Backup found on Drive</p>
+                                <p className="text-xs text-amber-400/80 mt-0.5">Saved {formatDate(backupInfo.modifiedTime)}</p>
+                                <button
+                                    onClick={handleRestore}
+                                    disabled={isBusy}
+                                    className="mt-2 px-3 py-1.5 bg-amber-500 text-black font-bold text-xs rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50"
+                                >
+                                    Restore this backup →
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Status row */}
                     <div className="bg-base-300 rounded-lg p-3 flex items-center justify-between text-sm">
                         <div>
@@ -137,7 +154,7 @@ const CloudSyncPanel: React.FC = () => {
                                         Syncing…
                                     </span>
                                 ) : syncStatus === 'error' ? syncError
-                                : formatSyncTime(lastSyncTime)}
+                                : formatDate(lastSyncTime)}
                             </div>
                         </div>
                         <div className="text-xs text-gray-500">{words.length} words</div>
