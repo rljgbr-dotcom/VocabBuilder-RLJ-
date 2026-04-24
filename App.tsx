@@ -5,6 +5,7 @@ import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { WordsProvider, useWords } from './contexts/WordsContext';
 import { ModalProvider, useModal } from './contexts/ModalContext';
 import { SwipeSettingsProvider } from './contexts/SwipeSettingsContext';
+import { GoogleDriveProvider, useGoogleDrive } from './contexts/GoogleDriveContext';
 
 import MainMenuScreen from './components/screens/MainMenuScreen';
 import LanguageSelectScreen from './components/screens/LanguageSelectScreen';
@@ -204,7 +205,9 @@ const AppContent: React.FC = () => {
             <header className="bg-base-200 shadow-md p-4 flex justify-between items-center sticky top-0 z-40">
                 <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{t('app.title')}</h1>
                 {disclaimerConfirmed && (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {/* Google Drive sync status pill */}
+                        <DriveStatusPill />
                         <span className="text-sm font-medium text-gray-400">
                             SV → {currentLanguageInfo.englishName.toUpperCase()}
                         </span>
@@ -224,7 +227,7 @@ const AppContent: React.FC = () => {
             </main>
 
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.18</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.19</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
@@ -254,13 +257,48 @@ const AppContent: React.FC = () => {
     );
 };
 
+/** Small pill in the header showing Drive sync state */
+const DriveStatusPill: React.FC = () => {
+    const { connected, syncStatus, lastSyncTime } = useGoogleDrive();
+    if (!connected) return null;
+
+    const label = syncStatus === 'syncing' ? 'Syncing…'
+        : syncStatus === 'success' ? 'Synced ✓'
+        : syncStatus === 'error' ? 'Sync failed'
+        : lastSyncTime ? `Synced ${new Date(lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        : 'Drive connected';
+
+    const color = syncStatus === 'error' ? 'text-red-400'
+        : syncStatus === 'success' ? 'text-green-400'
+        : 'text-gray-400';
+
+    return (
+        <span className={`text-[10px] font-bold flex items-center gap-1 ${color}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+            </svg>
+            {label}
+        </span>
+    );
+};
+
+/** Inner app wrapper — needs access to WordsContext for auto-sync */
+const AppWithDrive: React.FC = () => {
+    const { words } = useWords();
+    return (
+        <GoogleDriveProvider words={words}>
+            <AppContent />
+        </GoogleDriveProvider>
+    );
+};
+
 const App: React.FC = () => {
     return (
         <SettingsProvider>
             <WordsProvider>
                 <ModalProvider>
                     <SwipeSettingsProvider>
-                        <AppContent />
+                        <AppWithDrive />
                     </SwipeSettingsProvider>
                 </ModalProvider>
             </WordsProvider>
