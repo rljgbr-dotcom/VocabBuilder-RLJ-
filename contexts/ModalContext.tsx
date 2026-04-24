@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-export type ModalType = 'confirmation' | 'info' | 'addWord' | 'flashcardHelp' | 'csvHelp' | 'readMe' | 'startupDisclaimer' | 'setStackSize' | 'swipeSettings' | 'flashcardBack' | 'flashcardBulk' | 'flashcardFilter';
+export type ModalType = 'confirmation' | 'info' | 'addWord' | 'flashcardHelp' | 'csvHelp' | 'readMe' | 'startupDisclaimer' | 'setStackSize' | 'swipeSettings' | 'flashcardBack' | 'flashcardBulk' | 'flashcardFilter' | 'shareDeck';
+
 
 interface ModalState {
     type: ModalType | null;

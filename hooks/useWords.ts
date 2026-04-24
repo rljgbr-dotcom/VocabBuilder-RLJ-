@@ -319,6 +319,41 @@ export const useWords = () => {
         }
     }, [words]);
     
+    /**
+     * Imports words received from a shareable URL.
+     * - Skips exact duplicates (same source+subtopic+swedish).
+     * - Strips personal SRS/difficulty data — recipients start fresh.
+     */
+    const importSharedDeck = useCallback((sharedWords: Pick<Word, 'source' | 'subtopic1' | 'subtopic2' | 'wordType' | 'swedish' | 'swedishExample' | 'translations'>[]): { added: number; duplicates: number } => {
+        let added = 0;
+        let duplicates = 0;
+        setWords(prevWords => {
+            const existingKeys = new Set(prevWords.map(w =>
+                `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase()
+            ));
+            const newWords: Word[] = [];
+            sharedWords.forEach(sw => {
+                const key = `${sw.source}|${sw.subtopic1}|${sw.subtopic2}|${sw.swedish}`.toLowerCase();
+                if (existingKeys.has(key)) {
+                    duplicates++;
+                    return;
+                }
+                existingKeys.add(key);
+                newWords.push({
+                    ...sw,
+                    id: crypto.randomUUID(),
+                    active: true,
+                    backCount: 0,
+                    difficulty: 'unmarked',
+                    wordType: sw.wordType || '',
+                });
+                added++;
+            });
+            return [...prevWords, ...newWords];
+        });
+        return { added, duplicates };
+    }, [setWords]);
+
     return {
         words,
         addWord,
@@ -333,6 +368,7 @@ export const useWords = () => {
         syncActiveToSrs,
         syncSrsToActive,
         importFromCSV,
+        importSharedDeck,
         syncWithDataFolder,
         exportToCSV,
         saveWordState,

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from './hooks/useTranslation';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
-import { WordsProvider } from './contexts/WordsContext';
+import { WordsProvider, useWords } from './contexts/WordsContext';
 import { ModalProvider, useModal } from './contexts/ModalContext';
 import { SwipeSettingsProvider } from './contexts/SwipeSettingsContext';
 
@@ -29,8 +29,10 @@ import SwipeSettingsModal from './components/modals/SwipeSettingsModal';
 import FlashcardBackModal from './components/modals/FlashcardBackModal';
 import FlashcardBulkModal from './components/modals/FlashcardBulkModal';
 import FlashcardFilterModal from './components/modals/FlashcardFilterModal';
+import ShareDeckModal from './components/modals/ShareDeckModal';
 import { flashcardHelpContent, flashcardHelpContent_es, csvHelpContent, csvHelpContent_es } from './constants';
 import { Screen } from './types';
+import { unpackDeck } from './utils/shareUtils';
 
 const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
     const { t } = useTranslation();
@@ -52,6 +54,7 @@ const AppContent: React.FC = () => {
     const { t } = useTranslation();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
+    const { importSharedDeck } = useWords();
     const [disclaimerConfirmed, setDisclaimerConfirmed] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -132,6 +135,38 @@ const AppContent: React.FC = () => {
         showModal('startupDisclaimer');
     }, [showModal]);
 
+    // Check for a shared deck in the URL on first load
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const importData = params.get('import');
+        if (!importData) return;
+
+        // Clean the URL immediately so refreshing doesn't re-trigger the import
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        const sharedWords = unpackDeck(importData);
+        if (!sharedWords || sharedWords.length === 0) return;
+
+        // Wait for disclaimer before showing the import prompt
+        const showImportPrompt = () => {
+            showModal('confirmation', {
+                text: `You've been sent a shared vocabulary deck with ${sharedWords.length} word${sharedWords.length !== 1 ? 's' : ''}. Would you like to import them into your collection? Duplicates will be skipped.`,
+                onConfirm: () => {
+                    const { added, duplicates } = importSharedDeck(sharedWords);
+                    showModal('info', {
+                        title: 'Import Complete',
+                        message: `✅ ${added} word${added !== 1 ? 's' : ''} added${duplicates > 0 ? `\n⏭ ${duplicates} duplicate${duplicates !== 1 ? 's' : ''} skipped` : ''}.`,
+                    });
+                },
+            });
+        };
+
+        // Small delay to let the startup disclaimer appear first
+        const timer = setTimeout(showImportPrompt, 800);
+        return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only on mount
+
     const handleDisclaimerConfirm = useCallback(() => {
         setDisclaimerConfirmed(true);
     }, []);
@@ -189,7 +224,7 @@ const AppContent: React.FC = () => {
             </main>
 
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.17</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.18</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
@@ -201,6 +236,7 @@ const AppContent: React.FC = () => {
             <FlashcardBackModal />
             <FlashcardBulkModal />
             <FlashcardFilterModal />
+            <ShareDeckModal />
             <HelpModal modalId="flashcardHelp" title={t('help.flashcards.title')} content={flashcardHelp} />
             <HelpModal modalId="csvHelp" title={t('help.csv.title')} content={csvHelp} />
             <ReadMeModal />
