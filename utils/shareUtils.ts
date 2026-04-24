@@ -9,6 +9,28 @@ type ShareableWord = Pick<Word,
 const VERSION = 1;
 
 /**
+ * Encodes a unicode string to base64 safely (handles non-ASCII chars like Swedish å, ä, ö).
+ */
+function toBase64(str: string): string {
+    return btoa(
+        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+            String.fromCharCode(parseInt(p1, 16))
+        )
+    );
+}
+
+/**
+ * Decodes a base64 string that was encoded with toBase64().
+ */
+function fromBase64(b64: string): string {
+    return decodeURIComponent(
+        Array.from(atob(b64))
+            .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+            .join('')
+    );
+}
+
+/**
  * Packs an array of words into a URL-safe base64 string.
  * Format: base64(JSON({ v, words }))
  */
@@ -23,23 +45,43 @@ export function packDeck(words: Word[]): string {
         translations: w.translations,
     }));
     const json = JSON.stringify({ v: VERSION, words: payload });
-    // btoa handles ASCII — we need to handle Unicode chars in vocabulary safely
-    return btoa(encodeURIComponent(json));
+    return toBase64(json);
 }
 
 /**
  * Unpacks a URL-safe base64 string back into an array of Word-shaped objects.
  * Returns null if the data is invalid.
+ * Handles both the current base64 format AND the legacy btoa(encodeURIComponent(json)) format.
  */
 export function unpackDeck(encoded: string): ShareableWord[] | null {
+    // Try new format first (toBase64)
+    try {
+        const json = fromBase64(encoded);
+        const parsed = JSON.parse(json);
+        if (parsed && Array.isArray(parsed.words)) {
+            return parsed.words as ShareableWord[];
+        }
+    } catch { /* fall through to legacy format */ }
+
+    // Try legacy format: btoa(encodeURIComponent(json))
     try {
         const json = decodeURIComponent(atob(encoded));
         const parsed = JSON.parse(json);
-        if (!parsed || !Array.isArray(parsed.words)) return null;
-        return parsed.words as ShareableWord[];
-    } catch {
-        return null;
-    }
+        if (parsed && Array.isArray(parsed.words)) {
+            return parsed.words as ShareableWord[];
+        }
+    } catch { /* fall through */ }
+
+    // Try treating the encoded string as raw URL-encoded JSON (very old format)
+    try {
+        const json = decodeURIComponent(encoded);
+        const parsed = JSON.parse(json);
+        if (parsed && Array.isArray(parsed.words)) {
+            return parsed.words as ShareableWord[];
+        }
+    } catch { /* give up */ }
+
+    return null;
 }
 
 /**
