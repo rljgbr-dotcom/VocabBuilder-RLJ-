@@ -60,6 +60,8 @@ const AppContent: React.FC = () => {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
     const [infoToast, setInfoToast] = useState('');
+    // Stores words from a share link URL until after the disclaimer is confirmed
+    const pendingImportRef = React.useRef<any[] | null>(null);
 
     const flashcardHelp = currentSourceLanguage === 'es' ? flashcardHelpContent_es : flashcardHelpContent;
     const csvHelp = currentSourceLanguage === 'es' ? csvHelpContent_es : csvHelpContent;
@@ -136,37 +138,40 @@ const AppContent: React.FC = () => {
         showModal('startupDisclaimer');
     }, [showModal]);
 
-    // Check for a shared deck in the URL on first load
+    // Step 1: Detect a shared deck in the URL on first load and stash it.
+    // We don't show the prompt yet because the startup disclaimer may not have been confirmed.
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const importData = params.get('import');
         if (!importData) return;
-
-        // Clean the URL immediately so refreshing doesn't re-trigger the import
+        // Clean the URL immediately so a refresh doesn't re-trigger
         window.history.replaceState({}, document.title, window.location.pathname);
-
         const sharedWords = unpackDeck(importData);
-        if (!sharedWords || sharedWords.length === 0) return;
-
-        // Wait for disclaimer before showing the import prompt
-        const showImportPrompt = () => {
-            showModal('confirmation', {
-                text: `You've been sent a shared vocabulary deck with ${sharedWords.length} word${sharedWords.length !== 1 ? 's' : ''}. Would you like to import them into your collection? Duplicates will be skipped.`,
-                onConfirm: () => {
-                    const { added, duplicates } = importSharedDeck(sharedWords);
-                    showModal('info', {
-                        title: 'Import Complete',
-                        message: `✅ ${added} word${added !== 1 ? 's' : ''} added${duplicates > 0 ? `\n⏭ ${duplicates} duplicate${duplicates !== 1 ? 's' : ''} skipped` : ''}.`,
-                    });
-                },
-            });
-        };
-
-        // Small delay to let the startup disclaimer appear first
-        const timer = setTimeout(showImportPrompt, 800);
-        return () => clearTimeout(timer);
+        if (sharedWords && sharedWords.length > 0) {
+            pendingImportRef.current = sharedWords;
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only on mount
+
+    // Step 2: Once the disclaimer is confirmed, show the import prompt if one is pending.
+    useEffect(() => {
+        if (!disclaimerConfirmed) return;
+        const sharedWords = pendingImportRef.current;
+        if (!sharedWords) return;
+        pendingImportRef.current = null;
+
+        showModal('confirmation', {
+            text: `You've been sent a shared vocabulary deck with ${sharedWords.length} word${sharedWords.length !== 1 ? 's' : ''}. Would you like to import them into your collection? Duplicates will be skipped.`,
+            onConfirm: () => {
+                const { added, duplicates } = importSharedDeck(sharedWords);
+                showModal('info', {
+                    title: 'Import Complete',
+                    message: `✅ ${added} word${added !== 1 ? 's' : ''} added${duplicates > 0 ? `\n⏭ ${duplicates} duplicate${duplicates !== 1 ? 's' : ''} skipped` : ''}.`,
+                });
+            },
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [disclaimerConfirmed]);
 
     const handleDisclaimerConfirm = useCallback(() => {
         setDisclaimerConfirmed(true);
@@ -227,7 +232,7 @@ const AppContent: React.FC = () => {
             </main>
 
             {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.20</div>
+            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.21</div>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
