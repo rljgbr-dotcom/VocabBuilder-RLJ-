@@ -11,7 +11,7 @@ interface SmartCardsGameScreenProps {
 }
 
 const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }) => {
-    const { words, updateWord, toggleWordFlag } = useWords();
+    const { words, updateWord, toggleWordFlag, toggleWordSrsActive } = useWords();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { t } = useTranslation();
 
@@ -73,6 +73,19 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             return next;
         });
     }, [currentWord, updateWord]);
+
+    // ── Retire from SRS ────────────────────────────────────────────────────────
+    // Removes the word from the SRS group entirely and skips it for this session.
+    const handleRetireFromSrs = useCallback(() => {
+        if (!currentWord) return;
+        toggleWordSrsActive(currentWord.id); // turns off srs_active
+        setIsFlipped(false);
+        setSessionQueue(prev => {
+            const next = prev.slice(1);
+            if (next.length === 0) setSessionDone(true);
+            return next;
+        });
+    }, [currentWord, toggleWordSrsActive]);
 
     // ── Keyboard Support ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -387,6 +400,18 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                         </div>
                     </>
                 )}
+
+                {/* Retire button — always visible */}
+                <button
+                    onClick={handleRetireFromSrs}
+                    className="w-full py-2 bg-base-300 text-gray-400 hover:bg-red-900/40 hover:text-red-400 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-red-700/30"
+                    title="Remove this word from the SRS group entirely and skip it"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    Retire from SRS
+                </button>
             </div>
 
             {/* Remaining count + back link */}

@@ -72,6 +72,24 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         }
     }, [availableWordTypes, wordTypeFilters.length]);
 
+    // Group filter — in-game only, does NOT touch word.active in manage words
+    // Stored as Set of "source::subtopic1::subtopic2" path strings. Empty = all groups.
+    const [groupFilters, setGroupFilters] = useState<Set<string>>(new Set());
+
+    // Build a stable tree: { [source]: { [sub1]: Set<sub2> } }
+    const groupTree = useMemo(() => {
+        const tree: Record<string, Record<string, Set<string>>> = {};
+        words.filter(w => w.active && w.translations[currentSourceLanguage]?.word).forEach(w => {
+            const src = w.source || '';
+            const s1 = w.subtopic1 || '';
+            const s2 = w.subtopic2 || '';
+            if (!tree[src]) tree[src] = {};
+            if (!tree[src][s1]) tree[src][s1] = new Set();
+            tree[src][s1].add(s2);
+        });
+        return tree;
+    }, [words, currentSourceLanguage]);
+
     const stateRef = useRef({ deck, currentIndex });
     useEffect(() => {
         stateRef.current = { deck, currentIndex };
@@ -120,6 +138,15 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         const filteredWords = words
             .filter(w => w.active && w.translations[currentSourceLanguage]?.word && difficultyFilters.includes(w.difficulty || 'unmarked'))
             .filter(w => wordTypeFilters.length === 0 || wordTypeFilters.includes(w.wordType || ''))
+            // Group filter: if any group selected, word must match at least one
+            .filter(w => {
+                if (groupFilters.size === 0) return true;
+                const src = w.source || '';
+                const s1 = w.subtopic1 || '';
+                const s2 = w.subtopic2 || '';
+                // Check all three levels: source, source::s1, source::s1::s2
+                return groupFilters.has(src) || groupFilters.has(`${src}::${s1}`) || groupFilters.has(`${src}::${s1}::${s2}`);
+            })
             .map((w): FlashcardWord => ({ ...w, face: startFace, isBlurredNext: w.isBlurredNext || false }));
 
         setTotalActiveWords(filteredWords.length);
@@ -137,14 +164,14 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setIsFlipped(false);
         setLastHiddenWord(null);
         setSessionCompleted(false);
-    }, [words, currentSourceLanguage, difficultyFilters, wordTypeFilters]);
+    }, [words, currentSourceLanguage, difficultyFilters, wordTypeFilters, groupFilters]);
 
     const initializeGameRef = useRef(initializeGame);
     initializeGameRef.current = initializeGame;
 
     useEffect(() => {
         initializeGameRef.current();
-    }, [currentSourceLanguage, difficultyFilters, wordTypeFilters]);
+    }, [currentSourceLanguage, difficultyFilters, wordTypeFilters, groupFilters]);
     
     useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -458,6 +485,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const handleResetAllFilters = () => {
         setDifficultyFilters(['unmarked', 'easy', 'medium', 'hard']);
         setWordTypeFilters([...availableWordTypes]);
+        setGroupFilters(new Set());
     };
 
     // Fisher-Yates shuffle of the entire current pool + deck, then re-slice to current deck size
@@ -799,6 +827,10 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                                 onToggleWordTypeFilter: handleToggleWordTypeFilter,
                                 onResetAllFilters: handleResetAllFilters,
                                 onShowToast: showToast,
+                                // Group filter props
+                                groupFilters,
+                                groupTree,
+                                onSetGroupFilters: setGroupFilters,
                             })}
                             className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
                             title="Filter & Deck Options"
