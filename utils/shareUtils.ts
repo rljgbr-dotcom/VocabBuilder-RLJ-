@@ -9,22 +9,30 @@ type ShareableWord = Pick<Word,
 const VERSION = 1;
 
 /**
- * Encodes a unicode string to base64 safely (handles non-ASCII chars like Swedish å, ä, ö).
+ * Encodes a unicode string to URL-safe base64 (RFC 4648).
+ * Uses - instead of +, _ instead of /, and strips = padding.
+ * This avoids URLSearchParams treating + as a space and corrupting the data.
  */
 function toBase64(str: string): string {
     return btoa(
         encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
             String.fromCharCode(parseInt(p1, 16))
         )
-    );
+    )
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 }
 
 /**
- * Decodes a base64 string that was encoded with toBase64().
+ * Decodes a URL-safe base64 string produced by toBase64().
  */
 function fromBase64(b64: string): string {
+    // Restore standard base64 chars and add missing padding
+    const standard = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = standard + '=='.slice(0, (4 - standard.length % 4) % 4);
     return decodeURIComponent(
-        Array.from(atob(b64))
+        Array.from(atob(padded))
             .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
             .join('')
     );
@@ -64,8 +72,10 @@ export function unpackDeck(encoded: string): ShareableWord[] | null {
     } catch { /* fall through to legacy format */ }
 
     // Try legacy format: btoa(encodeURIComponent(json))
+    // URLSearchParams decodes + as space, so restore it first
     try {
-        const json = decodeURIComponent(atob(encoded));
+        const fixedEncoded = encoded.replace(/ /g, '+');
+        const json = decodeURIComponent(atob(fixedEncoded));
         const parsed = JSON.parse(json);
         if (parsed && Array.isArray(parsed.words)) {
             return parsed.words as ShareableWord[];
