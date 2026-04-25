@@ -200,11 +200,31 @@ const CloudSyncPanel: React.FC = () => {
 // ── Main Settings Screen ─────────────────────────────────────────────────────
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
-    const { theme, setTheme } = useSettings();
+    const { theme, setTheme, disableAnimations, setDisableAnimations } = useSettings();
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6 pb-12">
             <h2 className="text-3xl font-bold text-center mb-8">Settings</h2>
+
+            {/* General Settings */}
+            <div className="bg-base-200 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4">General</h3>
+                <div className="flex items-center justify-between p-4 bg-base-300 rounded-lg">
+                    <div>
+                        <span className="font-semibold text-lg block">Disable Animations</span>
+                        <span className="text-xs text-gray-500">Fast, immediate transitions without flipping</span>
+                    </div>
+                    <div className="relative inline-block w-12 h-6 transition duration-200 ease-in shrink-0">
+                        <input
+                            type="checkbox"
+                            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"
+                            checked={disableAnimations}
+                            onChange={(e) => setDisableAnimations(e.target.checked)}
+                        />
+                        <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
 
             {/* Cloud Sync */}
             <CloudSyncPanel />

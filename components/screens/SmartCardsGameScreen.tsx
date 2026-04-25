@@ -12,7 +12,7 @@ interface SmartCardsGameScreenProps {
 
 const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag, toggleWordSrsActive } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, disableAnimations } = useSettings();
     const { t } = useTranslation();
 
     // The session queue is a flat array; we work through index 0 each time,
@@ -24,6 +24,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const [reviewedCount, setReviewedCount] = useState(0);
     const totalDueRef = useRef(0);
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
     // ── Initialise ─────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -51,7 +52,8 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
     // ── Rate card ──────────────────────────────────────────────────────────────
     const handleRateCard = useCallback((q: number) => {
-        if (!currentWord) return;
+        if (!currentWord || isTransitioning) return;
+        setIsTransitioning(true);
 
         const srsResult = applySM2(currentWord, q);
         const updatedWord: Word = { ...currentWord, ...srsResult };
@@ -60,32 +62,43 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         setReviewedCount(c => c + 1);
         setIsFlipped(false);
 
-        setSessionQueue(prev => {
-            // Remove the card we just rated from the front
-            const remaining = prev.slice(1);
+        const delay = disableAnimations ? 0 : 300;
 
-            // If the user failed (q < 3), push it to the back so they see it again
-            const next = q < 3 ? [...remaining, updatedWord] : remaining;
-
-            if (next.length === 0) {
-                setSessionDone(true);
-            }
-            return next;
-        });
-    }, [currentWord, updateWord]);
+        // Wait for the card to be "edge-on" (halfway through the 0.6s animation) or update immediately
+        setTimeout(() => {
+            setSessionQueue(prev => {
+                const remaining = prev.slice(1);
+                const next = q < 3 ? [...remaining, updatedWord] : remaining;
+                if (next.length === 0) setSessionDone(true);
+                return next;
+            });
+            
+            // Wait for the animation to finish fully or unlock immediately
+            setTimeout(() => {
+                setIsTransitioning(false);
+            }, delay);
+        }, delay);
+    }, [currentWord, updateWord, isTransitioning, disableAnimations]);
 
     // ── Retire from SRS ────────────────────────────────────────────────────────
     // Removes the word from the SRS group entirely and skips it for this session.
     const handleRetireFromSrs = useCallback(() => {
-        if (!currentWord) return;
+        if (!currentWord || isTransitioning) return;
+        setIsTransitioning(true);
         toggleWordSrsActive(currentWord.id); // turns off srs_active
         setIsFlipped(false);
-        setSessionQueue(prev => {
-            const next = prev.slice(1);
-            if (next.length === 0) setSessionDone(true);
-            return next;
-        });
-    }, [currentWord, toggleWordSrsActive]);
+        
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            setSessionQueue(prev => {
+                const next = prev.slice(1);
+                if (next.length === 0) setSessionDone(true);
+                return next;
+            });
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
+    }, [currentWord, toggleWordSrsActive, isTransitioning, disableAnimations]);
 
     // ── Keyboard Support ──────────────────────────────────────────────────────
     useEffect(() => {

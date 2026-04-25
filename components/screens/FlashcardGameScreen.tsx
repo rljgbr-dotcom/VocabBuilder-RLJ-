@@ -28,7 +28,7 @@ interface FlashcardGameScreenProps {
 
 const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, disableAnimations } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
     const { t } = useTranslation();
@@ -48,6 +48,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const recognitionRef = useRef<any>(null);
 
     const [isActionDelayed, setIsActionDelayed] = useState(false);
+    const [isTransitioning, setIsTransitioning] = useState(false);
     const [sessionCompleted, setSessionCompleted] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     
@@ -256,21 +257,32 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
     const moveCard = (positions: number) => {
         const { deck, currentIndex } = stateRef.current;
-        if (deck.length < 2) return;
+        if (deck.length < 2 || isTransitioning) return;
+        setIsTransitioning(true);
+
         const cardToMove = recordAction(deck[currentIndex], `+${positions}`) as FlashcardWord;
-        const newDeck = deck.filter((_, i) => i !== currentIndex);
-        const newIndex = Math.min(currentIndex + positions, newDeck.length);
-        newDeck.splice(newIndex, 0, cardToMove);
         setIsFlipped(false);
-        setDeck(newDeck);
-        if (currentIndex >= newDeck.length) {
-            setCurrentIndex(0);
-        }
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            setDeck(prevDeck => {
+                const newDeck = prevDeck.filter((_, i) => i !== currentIndex);
+                const newIndex = Math.min(currentIndex + positions, newDeck.length);
+                newDeck.splice(newIndex, 0, cardToMove);
+                return newDeck;
+            });
+            if (currentIndex >= deck.length - 1) {
+                setCurrentIndex(0);
+            }
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
     };
     
     const sendToBack = (reverse: boolean = false, blur: boolean = false) => {
         const { deck, currentIndex } = stateRef.current;
-        if (deck.length < 2) return;
+        if (deck.length < 2 || isTransitioning) return;
+        setIsTransitioning(true);
+
         const baseAction = reverse ? t('game.flashcards.reverseBackAndBlur').split(' ')[0] : t('game.flashcards.back'); // 'Rev' or 'Back'
         const cardToMove = {
             ...(recordAction(deck[currentIndex], baseAction) as FlashcardWord),
@@ -278,35 +290,55 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             isBlurredNext: blur,
         };
         const wasLastCard = currentIndex === deck.length - 1;
-        const newDeck = deck.filter((_, i) => i !== currentIndex);
-        newDeck.push(cardToMove);
+        
         setIsFlipped(false);
-        setDeck(newDeck);
-        if (wasLastCard) setCurrentIndex(0);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            setDeck(prevDeck => {
+                const newDeck = prevDeck.filter((_, i) => i !== currentIndex);
+                newDeck.push(cardToMove);
+                return newDeck;
+            });
+            if (wasLastCard) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
     };
 
     const hideCard = () => {
-        if(!currentWord) return;
+        if(!currentWord || isTransitioning) return;
+        setIsTransitioning(true);
+
         const wordToHide = {...recordActionNoPersist(currentWord, t('game.flashcards.hide')), active: false};
         updateWord(wordToHide);
         setLastHiddenWord(currentWord);
         setTotalActiveWords(t => t - 1);
-        let newCard = removedStack.pop() || allActiveWordsPool.shift();
-        const newDeck = [...deck];
-        if (newCard) {
-            newDeck[currentIndex] = newCard;
-            setRemovedStack(rs => rs.slice(0, -1));
-            if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
-        } else {
-            newDeck.splice(currentIndex, 1);
-        }
+        
         setIsFlipped(false);
-        if (currentIndex >= newDeck.length && newDeck.length > 0) setCurrentIndex(0);
-        setDeck(newDeck);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            let newCard = removedStack.pop() || allActiveWordsPool.shift();
+            setDeck(prevDeck => {
+                const newDeck = [...prevDeck];
+                if (newCard) {
+                    newDeck[currentIndex] = newCard;
+                    setRemovedStack(rs => rs.slice(0, -1));
+                    if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
+                } else {
+                    newDeck.splice(currentIndex, 1);
+                }
+                return newDeck;
+            });
+            if (currentIndex >= deck.length - 1 && deck.length > 1) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
     };
     
     const moveToSrs = () => {
-        if(!currentWord) return;
+        if(!currentWord || isTransitioning) return;
+        setIsTransitioning(true);
+
         // Mark as SRS active and hide from regular active pool as requested
         const wordUpdate = {
             ...recordActionNoPersist(currentWord, 'SRS'),
@@ -323,21 +355,28 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         }
         updateWord(wordUpdate);
         
-        // Remove from current session (same logic as hideCard)
-        setTotalActiveWords(t => t - 1);
-        let newCard = removedStack.pop() || allActiveWordsPool.shift();
-        const newDeck = [...deck];
-        if (newCard) {
-            newDeck[currentIndex] = newCard;
-            setRemovedStack(rs => rs.slice(0, -1));
-            if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
-        } else {
-            newDeck.splice(currentIndex, 1);
-        }
         setIsFlipped(false);
-        if (currentIndex >= newDeck.length && newDeck.length > 0) setCurrentIndex(0);
-        setDeck(newDeck);
-        showToast(t('game.flashcards.toast.movedToSrs'));
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            // Remove from current session (same logic as hideCard)
+            setTotalActiveWords(t => t - 1);
+            let newCard = removedStack.pop() || allActiveWordsPool.shift();
+            setDeck(prevDeck => {
+                const newDeck = [...prevDeck];
+                if (newCard) {
+                    newDeck[currentIndex] = newCard;
+                    setRemovedStack(rs => rs.slice(0, -1));
+                    if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
+                } else {
+                    newDeck.splice(currentIndex, 1);
+                }
+                return newDeck;
+            });
+            if (currentIndex >= deck.length - 1 && deck.length > 1) setCurrentIndex(0);
+            showToast(t('game.flashcards.toast.movedToSrs'));
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
     };
 
     const handleSelfAssessment = (e: React.FormEvent) => {

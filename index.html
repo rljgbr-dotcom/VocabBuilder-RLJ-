@@ -268,6 +268,11 @@
         .card-inner { transition: transform 0.6s, filter 0.3s; transform-style: preserve-3d; }
         .card-inner.is-blurred { filter: blur(12px); }
         .card-inner.is-flipped { transform: rotateY(180deg); }
+        
+        /* Support disabling animations */
+        html.no-animations .card-inner { transition: none !important; }
+        html.no-animations .animate-fade-in-out { animation: none !important; opacity: 1 !important; }
+        html.no-animations .animate-slide-in-up { animation: none !important; transform: translateY(0) !important; opacity: 1 !important; }
         .card-face {
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;

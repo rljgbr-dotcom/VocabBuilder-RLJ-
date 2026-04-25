@@ -10,6 +10,8 @@ interface SettingsContextType {
     currentLanguageInfo: Language;
     theme: string;
     setTheme: (theme: string) => void;
+    disableAnimations: boolean;
+    setDisableAnimations: (disable: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [currentSourceLanguage, setCurrentSourceLanguage] = useLocalStorage<string>('vocabuilder_language', 'en');
     const [theme, setTheme] = useLocalStorage<string>('vocabuilder_theme', 'dark-default');
+    const [disableAnimations, setDisableAnimations] = useLocalStorage<boolean>('vocabuilder_disable_animations', false);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -27,6 +30,14 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     }, [theme]);
 
+    useEffect(() => {
+        if (disableAnimations) {
+            document.documentElement.classList.add('no-animations');
+        } else {
+            document.documentElement.classList.remove('no-animations');
+        }
+    }, [disableAnimations]);
+
     const currentLanguageInfo = useMemo(() => LANGUAGES[currentSourceLanguage] || LANGUAGES['en'], [currentSourceLanguage]);
 
     const value = {
@@ -35,6 +46,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         currentLanguageInfo,
         theme,
         setTheme,
+        disableAnimations,
+        setDisableAnimations,
     };
 
     return (
