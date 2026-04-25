@@ -17,6 +17,7 @@ import MatchingGameScreen from './components/screens/MatchingGameScreen';
 import TypingTestScreen from './components/screens/TypingTestScreen';
 import SettingsScreen from './components/screens/SettingsScreen';
 import SmartCardsGameScreen from './components/screens/SmartCardsGameScreen';
+import SrsStatsScreen from './components/screens/SrsStatsScreen';
 
 
 import ConfirmationModal from './components/modals/ConfirmationModal';
@@ -199,6 +200,8 @@ const AppContent: React.FC = () => {
                 return <SmartCardsGameScreen setScreen={setScreen} />;
             case 'settings':
                 return <SettingsScreen setScreen={setScreen} />;
+            case 'srs-stats':
+                return <SrsStatsScreen setScreen={setScreen} />;
             case 'main-menu':
             default:
                 return <MainMenuScreen setScreen={setScreen} handleCheckForUpdate={handleCheckForUpdate} />;
@@ -235,7 +238,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v4.2.29
+                    v4.2.30
                 </div>
             </footer>
 

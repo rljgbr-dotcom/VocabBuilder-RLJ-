@@ -1,5 +1,5 @@
 
-export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game';
+export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game' | 'srs-stats';
 
 export interface Language {
   nativeName: string;
@@ -34,6 +34,7 @@ export interface Word {
   srs_next_review?: string;   // ISO date string (YYYY-MM-DD)
   srs_last_reviewed_at?: string; // ISO timestamp
   srs_last_quality?: number;     // 0, 3, 4, 5
+  srs_added_at?: string;         // ISO timestamp when first added to SRS
   history?: string[];            // Last 3 actions (e.g., "+2", "Hide")
   flagged?: boolean;             // Whether this word is flagged for correction
 }

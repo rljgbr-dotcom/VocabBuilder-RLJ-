@@ -113,7 +113,17 @@ export const useWords = () => {
     }, [setWords]);
 
     const toggleWordSrsActive = useCallback((wordId: string) => {
-        setWords(prevWords => prevWords.map(w => w.id === wordId ? { ...w, srs_active: !w.srs_active } : w));
+        setWords(prevWords => prevWords.map(w => {
+            if (w.id === wordId) {
+                const newActive = !w.srs_active;
+                return {
+                    ...w,
+                    srs_active: newActive,
+                    srs_added_at: (newActive && !w.srs_added_at) ? new Date().toISOString() : w.srs_added_at
+                };
+            }
+            return w;
+        }));
     }, [setWords]);
 
     const toggleWordFlag = useCallback((wordId: string) => {
@@ -125,11 +135,25 @@ export const useWords = () => {
     }, [setWords]);
 
     const toggleGroupSrsActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
-        setWords(prevWords => prevWords.map(w => filter(w) ? { ...w, srs_active: isActive } : w));
+        setWords(prevWords => prevWords.map(w => {
+            if (filter(w)) {
+                return {
+                    ...w,
+                    srs_active: isActive,
+                    srs_added_at: (isActive && !w.srs_added_at) ? new Date().toISOString() : w.srs_added_at
+                };
+            }
+            return w;
+        }));
     }, [setWords]);
 
     const syncActiveToSrs = useCallback(() => {
-        setWords(prevWords => prevWords.map(w => ({ ...w, srs_active: w.active })));
+        const now = new Date().toISOString();
+        setWords(prevWords => prevWords.map(w => ({
+            ...w,
+            srs_active: w.active,
+            srs_added_at: (w.active && !w.srs_added_at) ? now : w.srs_added_at
+        })));
     }, [setWords]);
 
     const syncSrsToActive = useCallback(() => {
