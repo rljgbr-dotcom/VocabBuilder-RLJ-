@@ -212,7 +212,7 @@ const AppContent: React.FC = () => {
                 {disclaimerConfirmed && (
                     <div className="flex items-center gap-3">
                         <span className="text-xs md:text-sm font-medium text-gray-400">
-                            SV → {currentLanguageInfo.englishName.toUpperCase()}
+                            Svenska → {currentLanguageInfo.nativeName}
                         </span>
                         {screen !== 'main-menu' && (
                             <button onClick={() => setScreen('main-menu')} className="bg-primary text-primary-content font-bold py-2 px-4 rounded-lg hover:bg-primary-focus transition-colors">
@@ -235,7 +235,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v4.2.25
+                    v4.2.26
                 </div>
             </footer>
 
