@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vocab-builder-v4.2.26';
+const CACHE_NAME = 'vocab-builder-v4.2.28';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -30,16 +30,23 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('fetch', event => {
+  // Stale-While-Revalidate strategy
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.match(event.request).then(cachedResponse => {
+        const fetchedResponse = fetch(event.request).then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => {
+          // If network fails, we already have the cachedResponse
+          return null;
+        });
+
+        return cachedResponse || fetchedResponse;
+      });
+    })
   );
 });
 
