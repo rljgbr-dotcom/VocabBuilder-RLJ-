@@ -53,13 +53,24 @@ export const applySM2 = (word: Word, q: number): SRSResult => {
     } else {
         // SUCCESS
         repetition = repetition + 1;
+        
         if (repetition === 1) {
-            interval = 1;
+            // Better differentiation for the very first review
+            // Hard (3) -> 1d, Good (4) -> 3d, Easy (5) -> 5d
+            interval = q === 3 ? 1 : q === 4 ? 3 : 5;
         } else if (repetition === 2) {
-            interval = 6;
+            // Second review intervals
+            // Hard (3) -> 4d, Good (4) -> 7d, Easy (5) -> 10d
+            interval = q === 3 ? 4 : q === 4 ? 7 : 10;
         } else {
-            interval = Math.round(interval * efactor);
+            // Standard SM-2 for subsequent reviews, but scaled by quality
+            const qualityScale = q === 3 ? 0.8 : q === 4 ? 1.0 : 1.3;
+            interval = Math.round(interval * efactor * qualityScale);
         }
+        
+        // Ensure interval doesn't get stuck or go backwards for successful ratings
+        if (interval < 1) interval = 1;
+        
         nextReview = addDays(now, interval);
     }
 

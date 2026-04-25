@@ -211,9 +211,7 @@ const AppContent: React.FC = () => {
                 <h1 className="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">{t('app.title')}</h1>
                 {disclaimerConfirmed && (
                     <div className="flex items-center gap-3">
-                        {/* Google Drive sync status pill */}
-                        <DriveStatusPill />
-                        <span className="text-sm font-medium text-gray-400">
+                        <span className="text-xs md:text-sm font-medium text-gray-400">
                             SV → {currentLanguageInfo.englishName.toUpperCase()}
                         </span>
                         {screen !== 'main-menu' && (
@@ -231,8 +229,15 @@ const AppContent: React.FC = () => {
                 </div>
             </main>
 
-            {/* Version Number */}
-            <div className="fixed bottom-2 right-3 text-xs text-gray-500">v4.2.22</div>
+            {/* Bottom Footer for Status Info */}
+            <footer className="bg-base-300/50 backdrop-blur-sm px-4 py-1.5 flex justify-between items-center sticky bottom-0 z-40 border-t border-white/5">
+                <div className="flex items-center gap-4">
+                    {disclaimerConfirmed && <DriveStatusPill />}
+                </div>
+                <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
+                    v4.2.23
+                </div>
+            </footer>
 
             {/* Modals */}
             <StartupDisclaimerModal onConfirm={handleDisclaimerConfirm} />
