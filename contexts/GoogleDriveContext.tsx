@@ -22,6 +22,7 @@ interface GoogleDriveContextType {
     connected: boolean;
     syncStatus: SyncStatus;
     lastSyncTime: string | null;
+    newerBackupAvailable: boolean;
     syncError: string | null;
     backupInfo: DriveBackupInfo | null; // info about what's on Drive after connecting
     connect: () => Promise<void>;
@@ -44,6 +45,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
     const [lastSyncTime, setLastSyncTime] = useState<string | null>(
         localStorage.getItem(LAST_SYNC_KEY)
     );
+    const [newerBackupAvailable, setNewerBackupAvailable] = useState(false);
     const [syncError, setSyncError] = useState<string | null>(null);
     const [backupInfo, setBackupInfo] = useState<DriveBackupInfo | null>(null);
 
@@ -79,6 +81,21 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [words, connected]);
 
+    // On mount, if connected, check for newer backup
+    useEffect(() => {
+        const checkNewer = async () => {
+            if (connected && lastSyncTime) {
+                try {
+                    const meta = await getBackupMetadata();
+                    if (meta && new Date(meta.modifiedTime) > new Date(lastSyncTime)) {
+                        setNewerBackupAvailable(true);
+                    }
+                } catch { /* ignore */ }
+            }
+        };
+        checkNewer();
+    }, [connected, lastSyncTime]);
+
     const performSync = useCallback(async (wordsToSync: Word[]) => {
         setSyncStatus('syncing');
         setSyncError(null);
@@ -92,6 +109,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
             const now = new Date().toISOString();
             setLastSyncTime(now);
             localStorage.setItem(LAST_SYNC_KEY, now);
+            setNewerBackupAvailable(false);
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 3000);
         } catch (err: any) {
@@ -113,6 +131,10 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
                 const meta = await getBackupMetadata();
                 if (meta) {
                     setBackupInfo({ modifiedTime: meta.modifiedTime });
+                    // Check if Drive is newer than our last sync
+                    if (lastSyncTime && new Date(meta.modifiedTime) > new Date(lastSyncTime)) {
+                        setNewerBackupAvailable(true);
+                    }
                 }
             } catch {
                 // Non-fatal — just means we couldn't check metadata
@@ -156,6 +178,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
             const now = new Date().toISOString();
             setLastSyncTime(now);
             localStorage.setItem(LAST_SYNC_KEY, now);
+            setNewerBackupAvailable(false);
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 3000);
         } catch (err: any) {
@@ -166,7 +189,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
 
     return (
         <GoogleDriveContext.Provider value={{
-            connected, syncStatus, lastSyncTime, syncError, backupInfo,
+            connected, syncStatus, lastSyncTime, newerBackupAvailable, syncError, backupInfo,
             connect, disconnect, syncNow, restoreFromBackup,
         }}>
             {children}

@@ -238,7 +238,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v4.2.31
+                    v4.2.32
                 </div>
             </footer>
 
@@ -266,23 +266,57 @@ const AppContent: React.FC = () => {
             )}
 
             {updateAvailable && <UpdateToast onUpdate={handleUpdate} />}
+            <SyncCloudModal />
+        </div>
+    );
+};
+
+/** Notification toast when a newer backup is detected on Drive */
+const SyncCloudModal: React.FC = () => {
+    const { newerBackupAvailable, restoreFromBackup } = useGoogleDrive();
+    const { words, setWords } = useWords();
+    const { t } = useTranslation();
+
+    if (!newerBackupAvailable) return null;
+
+    return (
+        <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:w-80 bg-purple-900 text-white p-4 rounded-xl shadow-2xl z-[60] border border-purple-400 animate-bounce-subtle">
+            <h4 className="font-bold mb-1 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                Newer Cloud Backup
+            </h4>
+            <p className="text-xs text-purple-100 mb-4">
+                A newer backup with your latest SRS progress was found on Google Drive. Sync now to stay up to date?
+            </p>
+            <div className="flex gap-2">
+                <button 
+                    onClick={() => restoreFromBackup(setWords)}
+                    className="flex-1 py-2 bg-white text-purple-900 text-xs font-bold rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                    Sync to this Device
+                </button>
+            </div>
         </div>
     );
 };
 
 /** Small pill in the header showing Drive sync state */
 const DriveStatusPill: React.FC = () => {
-    const { connected, syncStatus, lastSyncTime } = useGoogleDrive();
+    const { connected, syncStatus, lastSyncTime, newerBackupAvailable } = useGoogleDrive();
     if (!connected) return null;
 
     const label = syncStatus === 'syncing' ? 'Syncing…'
         : syncStatus === 'success' ? 'Synced ✓'
         : syncStatus === 'error' ? 'Sync failed'
+        : newerBackupAvailable ? 'Newer data on cloud'
         : lastSyncTime ? `Synced ${new Date(lastSyncTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
         : 'Drive connected';
 
     const color = syncStatus === 'error' ? 'text-red-400'
         : syncStatus === 'success' ? 'text-green-400'
+        : newerBackupAvailable ? 'text-yellow-400'
         : 'text-gray-400';
 
     return (
