@@ -9,6 +9,7 @@ import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, nowISO } from '../../services/srsService';
 import { WORD_TYPES } from '../../constants';
+import MatchingGameScreen from './MatchingGameScreen';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -28,7 +29,7 @@ interface FlashcardGameScreenProps {
 
 const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage, disableAnimations } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, disableAnimations, autoMatchGame } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
     const { t } = useTranslation();
@@ -52,6 +53,10 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [sessionCompleted, setSessionCompleted] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     
+    // Auto-match break state
+    const [recentWords, setRecentWords] = useState<Word[]>([]);
+    const [showAutoMatch, setShowAutoMatch] = useState(false);
+
     const [difficultyFilters, setDifficultyFilters] = useState<Difficulty[]>(['unmarked', 'easy', 'medium', 'hard']);
     const availableWordTypes = useMemo(() => {
         const types = Array.from(new Set(words.map(w => w.wordType || '')));
@@ -175,6 +180,12 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     }, [currentSourceLanguage, difficultyFilters, wordTypeFilters, groupFilters]);
     
     useEffect(() => {
+        if (autoMatchGame && recentWords.length >= 5 && !showAutoMatch) {
+            setShowAutoMatch(true);
+        }
+    }, [recentWords, autoMatchGame, showAutoMatch]);
+
+    useEffect(() => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
@@ -261,6 +272,9 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         setIsTransitioning(true);
 
         const cardToMove = recordAction(deck[currentIndex], `+${positions}`) as FlashcardWord;
+        
+        setRecentWords(prev => prev.some(w => w.id === cardToMove.id) ? prev : [...prev, cardToMove]);
+
         setIsFlipped(false);
         const delay = disableAnimations ? 0 : 300;
 
@@ -656,6 +670,22 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         }
     };
 
+    if (showAutoMatch) {
+        return (
+            <div className="absolute inset-0 z-50 bg-base-100 flex items-center justify-center p-4">
+                <div className="w-full max-w-4xl max-h-full overflow-y-auto">
+                    <MatchingGameScreen 
+                        setScreen={setScreen} 
+                        overrideWords={recentWords} 
+                        onComplete={() => {
+                            setShowAutoMatch(false);
+                            setRecentWords([]);
+                        }} 
+                    />
+                </div>
+            </div>
+        );
+    }
 
     if (totalActiveWords === 0) {
         return (

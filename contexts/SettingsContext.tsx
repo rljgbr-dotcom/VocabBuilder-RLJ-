@@ -12,6 +12,8 @@ interface SettingsContextType {
     setTheme: (theme: string) => void;
     disableAnimations: boolean;
     setDisableAnimations: (disable: boolean) => void;
+    autoMatchGame: boolean;
+    setAutoMatchGame: (auto: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [currentSourceLanguage, setCurrentSourceLanguage] = useLocalStorage<string>('vocabuilder_language', 'en');
     const [theme, setTheme] = useLocalStorage<string>('vocabuilder_theme', 'dark-default');
     const [disableAnimations, setDisableAnimations] = useLocalStorage<boolean>('vocabuilder_disable_animations', false);
+    const [autoMatchGame, setAutoMatchGame] = useLocalStorage<boolean>('vocabuilder_auto_match_game', true);
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -48,6 +51,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setTheme,
         disableAnimations,
         setDisableAnimations,
+        autoMatchGame,
+        setAutoMatchGame,
     };
 
     return (

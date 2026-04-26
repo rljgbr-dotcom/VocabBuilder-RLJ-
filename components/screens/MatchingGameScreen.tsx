@@ -13,7 +13,13 @@ interface Card {
   type: 'swedish' | 'source';
 }
 
-const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({ setScreen }) => {
+interface MatchingGameScreenProps {
+    setScreen: (screen: Screen) => void;
+    overrideWords?: Word[];
+    onComplete?: () => void;
+}
+
+const MatchingGameScreen: React.FC<MatchingGameScreenProps> = ({ setScreen, overrideWords, onComplete }) => {
     const { words, toggleWordFlag } = useWords();
     const { currentSourceLanguage } = useSettings();
     const [cards, setCards] = useState<Card[]>([]);
@@ -27,8 +33,11 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
     }, [words, currentSourceLanguage]);
 
     useEffect(() => {
-        if (activeWords.length >= 6) {
-            const gameWords = shuffleArray(activeWords).slice(0, 6);
+        const pool = overrideWords && overrideWords.length > 0 ? overrideWords : activeWords;
+        const targetCount = overrideWords ? overrideWords.length : 6;
+        
+        if (pool.length >= targetCount && targetCount > 0) {
+            const gameWords = overrideWords ? pool : shuffleArray(pool).slice(0, 6);
             const gameCards: Card[] = [];
             // FIX: Explicitly type 'word' to 'Word' to resolve 'unknown' type error.
             gameWords.forEach((word: Word) => {
@@ -66,7 +75,8 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
 
     const isFlipped = (card: Card) => selected.includes(card) || matchedIds.includes(card.wordId);
     
-    const allMatched = matchedIds.length === 6;
+    const targetMatchCount = overrideWords ? overrideWords.length : 6;
+    const allMatched = matchedIds.length === targetMatchCount && targetMatchCount > 0;
 
     if (cards.length === 0) return <div className="text-center">{t('game.loading')}</div>;
 
@@ -75,9 +85,15 @@ const MatchingGameScreen: React.FC<{ setScreen: (screen: Screen) => void }> = ({
             <div className="text-center space-y-4">
                 <h2 className="text-2xl font-bold">{t('game.matching.youWin')}</h2>
                 <p className="text-xl">{t('game.matching.matchedAll')}</p>
-                <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
-                    {t('game.playAgain')}
-                </button>
+                {onComplete ? (
+                    <button onClick={onComplete} className="bg-primary text-primary-content py-2 px-6 font-bold rounded-lg hover:bg-primary-focus transition-all shadow-md mt-4 animate-bounce-subtle">
+                        Continue Flashcards →
+                    </button>
+                ) : (
+                    <button onClick={() => setScreen('game-selection')} className="bg-primary text-primary-content py-2 px-4 rounded-md hover:bg-primary-focus">
+                        {t('game.playAgain')}
+                    </button>
+                )}
             </div>
         );
     }

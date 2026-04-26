@@ -200,7 +200,7 @@ const CloudSyncPanel: React.FC = () => {
 // ── Main Settings Screen ─────────────────────────────────────────────────────
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
-    const { theme, setTheme, disableAnimations, setDisableAnimations } = useSettings();
+    const { theme, setTheme, disableAnimations, setDisableAnimations, autoMatchGame, setAutoMatchGame } = useSettings();
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 pb-12">
@@ -220,6 +220,21 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
                             className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"
                             checked={disableAnimations}
                             onChange={(e) => setDisableAnimations(e.target.checked)}
+                        />
+                        <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-base-300 rounded-lg mt-3">
+                    <div>
+                        <span className="font-semibold text-lg block">Auto-Match Break</span>
+                        <span className="text-xs text-gray-500">Play a quick matching game every 5 reviewed cards</span>
+                    </div>
+                    <div className="relative inline-block w-12 h-6 transition duration-200 ease-in shrink-0">
+                        <input
+                            type="checkbox"
+                            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10"
+                            checked={autoMatchGame}
+                            onChange={(e) => setAutoMatchGame(e.target.checked)}
                         />
                         <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
                     </div>
