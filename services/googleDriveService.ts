@@ -27,20 +27,20 @@ let _rejectToken: ((err: any) => void) | null = null;
 
 function saveToken(token: string, expiresInSeconds: number) {
     const expiry = Date.now() + expiresInSeconds * 1000 - 60_000; // 1 min buffer
-    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
-    sessionStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry));
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    localStorage.setItem(TOKEN_EXPIRY_KEY, String(expiry));
 }
 
 function getStoredToken(): string | null {
-    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-    const expiry = Number(sessionStorage.getItem(TOKEN_EXPIRY_KEY) || 0);
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const expiry = Number(localStorage.getItem(TOKEN_EXPIRY_KEY) || 0);
     if (!token || Date.now() > expiry) return null;
     return token;
 }
 
 function clearToken() {
-    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-    sessionStorage.removeItem(TOKEN_EXPIRY_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_KEY);
 }
 
 /**
