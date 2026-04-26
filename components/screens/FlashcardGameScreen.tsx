@@ -10,6 +10,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, nowISO } from '../../services/srsService';
 import { WORD_TYPES } from '../../constants';
 import MatchingGameScreen from './MatchingGameScreen';
+import { gradeInput } from '../../utils/stringUtils';
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -29,7 +30,7 @@ interface FlashcardGameScreenProps {
 
 const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage, disableAnimations, autoMatchGame } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, disableAnimations, autoMatchGame, gradingSystem, typingTarget } = useSettings();
     const { showModal, isModalOpen } = useModal();
     const { swipeSettings } = useSwipeSettings();
     const { t } = useTranslation();
@@ -45,6 +46,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [isBlurred, setIsBlurred] = useState(false);
     const [lastHiddenWord, setLastHiddenWord] = useState<FlashcardWord | null>(null);
     const [selfAssessment, setSelfAssessment] = useState('');
+    const [gradingResult, setGradingResult] = useState<'correct' | 'incorrect' | 'almost' | null>(null);
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
 
@@ -226,6 +228,19 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         } else {
             setIsBlurred(false);
         }
+        
+        // Clear self assessment and grading when moving to a new card
+        setSelfAssessment('');
+        setGradingResult(null);
+    }, [currentWord?.id]); // Only run when the ID changes (new card)
+    
+    // Existing currentWord dependency logic for non-id changes is handled by the above 
+    // Wait, the original dependency was [currentWord, deck.length, totalActiveWords].
+    // Let's split them.
+    useEffect(() => {
+        if (!currentWord && deck.length === 0 && totalActiveWords > 0) {
+            setSessionCompleted(true);
+        }
     }, [currentWord, deck.length, totalActiveWords]);
 
     const handleFlip = () => {
@@ -396,9 +411,26 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const handleSelfAssessment = (e: React.FormEvent) => {
         e.preventDefault();
         if (isListening) recognitionRef.current?.stop();
-        if (selfAssessment === '..') delayedAction(() => sendToBack());
-        else handleFlip();
-        setSelfAssessment('');
+        if (selfAssessment === '..') {
+            delayedAction(() => sendToBack());
+            return;
+        }
+
+        if (gradingSystem !== 'none' && selfAssessment.trim() && currentWord) {
+            const translation = currentWord.translations[currentSourceLanguage] || { word: '', example: '' };
+            let targetText = '';
+            
+            if (currentWord.face === 'swedish') {
+                targetText = typingTarget === 'word' ? translation.word : translation.example;
+            } else {
+                targetText = typingTarget === 'word' ? currentWord.swedish : currentWord.swedishExample;
+            }
+
+            const result = gradeInput(selfAssessment, targetText || '', gradingSystem);
+            setGradingResult(result);
+        }
+
+        if (!isFlipped) handleFlip();
     };
     
     const handleToggleListening = () => {
@@ -822,7 +854,21 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
             <div className="max-w-xl mx-auto space-y-3 mt-2 w-full shrink-0">
                 <form onSubmit={handleSelfAssessment} className="relative">
-                    <input value={selfAssessment} onChange={e => setSelfAssessment(e.target.value)} type="text" placeholder={t('game.flashcards.typeAnswer')} className="w-full bg-base-200 border border-base-300 rounded-lg p-3 text-center focus:ring-2 ring-primary focus:outline-none pr-12" disabled={isListening}/>
+                    <input 
+                        value={selfAssessment} 
+                        onChange={e => {
+                            setSelfAssessment(e.target.value);
+                            setGradingResult(null); // Clear grading when typing
+                        }} 
+                        type="text" 
+                        placeholder={t('game.flashcards.typeAnswer')} 
+                        className={`w-full border-2 rounded-lg p-3 text-center focus:outline-none pr-12 transition-all duration-300
+                            ${gradingResult === 'correct' ? 'border-green-500 bg-green-500/10 text-green-500 font-bold' :
+                              gradingResult === 'incorrect' ? 'border-red-500 bg-red-500/10 text-red-500' :
+                              gradingResult === 'almost' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600 font-medium' :
+                              'bg-base-200 border-base-300 focus:ring-2 ring-primary'}`} 
+                        disabled={isListening}
+                    />
                     {recognitionRef.current && (
                         <button type="button" onClick={handleToggleListening} className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'hover:bg-base-300'}`} title="Use Voice Input">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>

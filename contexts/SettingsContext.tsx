@@ -3,6 +3,7 @@ import React, { createContext, useContext, useMemo, ReactNode, useEffect } from 
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Language } from '../types';
 import { LANGUAGES } from '../constants';
+import { GradingSystem, TypingTarget } from '../utils/stringUtils';
 
 interface SettingsContextType {
     currentSourceLanguage: string;
@@ -14,6 +15,10 @@ interface SettingsContextType {
     setDisableAnimations: (disable: boolean) => void;
     autoMatchGame: boolean;
     setAutoMatchGame: (auto: boolean) => void;
+    gradingSystem: GradingSystem;
+    setGradingSystem: (system: GradingSystem) => void;
+    typingTarget: TypingTarget;
+    setTypingTarget: (target: TypingTarget) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -23,6 +28,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [theme, setTheme] = useLocalStorage<string>('vocabuilder_theme', 'dark-default');
     const [disableAnimations, setDisableAnimations] = useLocalStorage<boolean>('vocabuilder_disable_animations', false);
     const [autoMatchGame, setAutoMatchGame] = useLocalStorage<boolean>('vocabuilder_auto_match_game', true);
+    const [gradingSystem, setGradingSystem] = useLocalStorage<GradingSystem>('vocabuilder_grading_system', 'none');
+    const [typingTarget, setTypingTarget] = useLocalStorage<TypingTarget>('vocabuilder_typing_target', 'word');
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -53,6 +60,10 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setDisableAnimations,
         autoMatchGame,
         setAutoMatchGame,
+        gradingSystem,
+        setGradingSystem,
+        typingTarget,
+        setTypingTarget,
     };
 
     return (

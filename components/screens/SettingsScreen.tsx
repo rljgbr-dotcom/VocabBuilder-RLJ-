@@ -200,7 +200,13 @@ const CloudSyncPanel: React.FC = () => {
 // ── Main Settings Screen ─────────────────────────────────────────────────────
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
-    const { theme, setTheme, disableAnimations, setDisableAnimations, autoMatchGame, setAutoMatchGame } = useSettings();
+    const { 
+        theme, setTheme, 
+        disableAnimations, setDisableAnimations, 
+        autoMatchGame, setAutoMatchGame,
+        gradingSystem, setGradingSystem,
+        typingTarget, setTypingTarget
+    } = useSettings();
 
     return (
         <div className="max-w-2xl mx-auto space-y-6 pb-12">
@@ -237,6 +243,45 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
                             onChange={(e) => setAutoMatchGame(e.target.checked)}
                         />
                         <label className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Flashcard Input */}
+            <div className="bg-base-200 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4">Flashcard Input</h3>
+                <div className="space-y-3">
+                    <div className="p-4 bg-base-300 rounded-lg">
+                        <div className="mb-2">
+                            <span className="font-semibold text-lg block">Grading System</span>
+                            <span className="text-xs text-gray-500">How strict should the app be when checking your typed answers?</span>
+                        </div>
+                        <select 
+                            value={gradingSystem}
+                            onChange={(e) => setGradingSystem(e.target.value as any)}
+                            className="w-full bg-base-100 border border-base-300 rounded-lg p-3 text-sm focus:ring-2 ring-primary focus:outline-none"
+                        >
+                            <option value="none">None (Type anything, press enter to flip)</option>
+                            <option value="absolute">Absolute (Exact match required)</option>
+                            <option value="strict">Strict (Case insensitive, ignores spaces at ends)</option>
+                            <option value="lenient">Lenient (Ignores punctuation and capitalization)</option>
+                            <option value="typo-forgiving">Typo-Forgiving (Allows minor spelling mistakes)</option>
+                        </select>
+                    </div>
+
+                    <div className="p-4 bg-base-300 rounded-lg">
+                        <div className="mb-2">
+                            <span className="font-semibold text-lg block">Typing Target</span>
+                            <span className="text-xs text-gray-500">What are you practicing typing?</span>
+                        </div>
+                        <select 
+                            value={typingTarget}
+                            onChange={(e) => setTypingTarget(e.target.value as any)}
+                            className="w-full bg-base-100 border border-base-300 rounded-lg p-3 text-sm focus:ring-2 ring-primary focus:outline-none"
+                        >
+                            <option value="word">The Word</option>
+                            <option value="example">The Example Sentence</option>
+                        </select>
                     </div>
                 </div>
             </div>
