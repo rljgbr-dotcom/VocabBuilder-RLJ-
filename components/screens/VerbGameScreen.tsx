@@ -28,6 +28,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const [hasStarted, setHasStarted] = useState(false);
     const [intensityLimit, setIntensityLimit] = useState(20);
     const [initialVerbs, setInitialVerbs] = useState(1);
+    const [startFace, setStartFace] = useState<'swedish' | 'english'>('swedish');
     
     const [activeStack, setActiveStack] = useState<VirtualCard[]>([]);
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -211,6 +212,26 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <p className="text-xs text-gray-500 mt-1">Maximum allowed sum of unfamiliarity ratings. New tenses are injected when the stack's total sum falls below this limit.</p>
                     </div>
 
+                    <div>
+                        <label className="block text-sm font-bold text-gray-400 mb-2">Starting Card Face</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button 
+                                type="button"
+                                onClick={() => setStartFace('swedish')} 
+                                className={`py-2 text-sm font-bold rounded-lg border-2 transition-all ${startFace === 'swedish' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-base-300 border-transparent text-gray-300 hover:bg-base-100'}`}
+                            >
+                                Swedish
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setStartFace('english')} 
+                                className={`py-2 text-sm font-bold rounded-lg border-2 transition-all ${startFace === 'english' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-base-300 border-transparent text-gray-300 hover:bg-base-100'}`}
+                            >
+                                English
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="bg-base-300 p-4 rounded-lg">
                         <p className="text-sm text-center mb-2">Available unpromoted tenses: <strong className="text-blue-400">{availablePool.length}</strong></p>
                         {availablePool.length === 0 && (
@@ -290,9 +311,20 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                             Rating: {currentCard.rating}
                         </span>
                         
-                        <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4 text-indigo-100">{currentCard.swedish}</h2>
-                        {currentCard.exampleSv && (
-                            <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
+                        {startFace === 'swedish' ? (
+                            <>
+                                <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4 text-indigo-100">{currentCard.swedish}</h2>
+                                {currentCard.exampleSv && (
+                                    <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="text-4xl md:text-5xl font-bold text-center drop-shadow-md mb-4 text-indigo-100 leading-tight">{currentCard.english || '---'}</h2>
+                                {currentCard.exampleEn && (
+                                    <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleEn}</p>
+                                )}
+                            </>
                         )}
                         <p className="absolute bottom-4 left-0 right-0 text-sm text-gray-500 animate-pulse text-center">Click to flip</p>
                     </div>

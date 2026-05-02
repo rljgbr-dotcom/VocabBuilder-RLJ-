@@ -21,7 +21,7 @@ interface WordGroupProps {
 
 const BulkToggleCheckbox: React.FC<{ 
     words: Word[], 
-    field: 'active' | 'srs_active', 
+    field: 'active' | 'srs_active' | 'verb_game_active', 
     onToggle: (isActive: boolean) => void 
 }> = ({ words, field, onToggle }) => {
     const activeCount = words.filter(w => !!w[field]).length;
@@ -29,8 +29,11 @@ const BulkToggleCheckbox: React.FC<{
     const isIndeterminate = activeCount > 0 && activeCount < words.length;
 
     const checkboxId = `toggle-${field}-${words[0]?.id || Math.random()}`;
-    const baseColorClass = field === 'srs_active' ? 'srs-toggle-label' : 'toggle-label';
-    const checkboxColorClass = field === 'srs_active' ? 'srs-toggle-checkbox' : 'toggle-checkbox';
+    const bgClass = isChecked 
+        ? (field === 'srs_active' ? 'bg-purple-600' : field === 'verb_game_active' ? 'bg-blue-500' : 'bg-primary') 
+        : isIndeterminate 
+        ? 'bg-accent' 
+        : 'bg-gray-500';
 
     return (
         <div className="relative inline-block w-10 align-middle">
@@ -41,16 +44,16 @@ const BulkToggleCheckbox: React.FC<{
                 onChange={(e) => onToggle(e.target.checked)}
                 onClick={e => e.stopPropagation()}
                 id={checkboxId}
-                className={`${checkboxColorClass} absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer`}
+                className="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
             />
-            <label htmlFor={checkboxId} className={`${baseColorClass} block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer`}></label>
+            <label htmlFor={checkboxId} className={`${bgClass} block overflow-hidden h-6 rounded-full cursor-pointer transition-colors`}></label>
         </div>
     );
 };
 
 const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords, path = [] }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const { toggleGroupActive, toggleGroupSrsActive, deleteWords } = useWords();
+    const { toggleGroupActive, toggleGroupSrsActive, toggleGroupVerbGameActive, deleteWords } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
 
@@ -58,6 +61,15 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
 
     const handleToggleActive = (isActive: boolean) => {
         toggleGroupActive(word => {
+            if (level === 0) return word.source === title;
+            if (level === 1) return word.source === path[0] && word.subtopic1 === title;
+            if (level === 2) return word.source === path[0] && word.subtopic1 === path[1] && word.subtopic2 === title;
+            return false;
+        }, isActive);
+    };
+
+    const handleToggleVerbGameActive = (isActive: boolean) => {
+        toggleGroupVerbGameActive(word => {
             if (level === 0) return word.source === title;
             if (level === 1) return word.source === path[0] && word.subtopic1 === title;
             if (level === 2) return word.source === path[0] && word.subtopic1 === path[1] && word.subtopic2 === title;
@@ -144,6 +156,7 @@ const WordGroup: React.FC<WordGroupProps> = ({ level, title, words, groupedWords
                     </button>
                     <div className="flex gap-4">
                         <BulkToggleCheckbox words={words} field="active" onToggle={handleToggleActive} />
+                        <BulkToggleCheckbox words={words} field="verb_game_active" onToggle={handleToggleVerbGameActive} />
                         <BulkToggleCheckbox words={words} field="srs_active" onToggle={handleToggleSrsActive} />
                     </div>
                     <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
