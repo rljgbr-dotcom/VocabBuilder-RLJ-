@@ -148,6 +148,18 @@ const ManageWordsScreen: React.FC = () => {
                             {isSyncing ? t('manageWords.syncing') : t('manageWords.updateDataFolder')}
                         </button>
                         <button onClick={handleExport} className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors shadow-sm">{t('manageWords.exportCsv')}</button>
+                        <button 
+                            onClick={() => showModal('confirmation', {
+                                text: 'Are you sure you want to completely clear the application cache, stored words, and custom study progress? This will reset the app back to its initial installation state.',
+                                onConfirm: () => {
+                                    localStorage.clear();
+                                    window.location.reload();
+                                }
+                            })}
+                            className="px-3 py-1.5 text-xs font-bold bg-red-600/20 text-red-400 border border-red-500/30 rounded-md hover:bg-red-600/30 transition-colors shadow-sm"
+                        >
+                            Reset App
+                        </button>
                     </div>
 
                     {/* Row 2: Filters & Bulk Controls */}

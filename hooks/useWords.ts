@@ -251,46 +251,68 @@ export const useWords = () => {
             localStorage.setItem('vocabuilder_word_states', JSON.stringify(saves));
         } catch { /* ignore */ }
     }, []);
-    
-    const importFromCSV = useCallback((csvText: string): { success: boolean, message: string } => {
+        const importFromCSV = useCallback((csvText: string): { success: boolean, message: string } => {
         try {
-            const existingWordKeys = new Set(words.map(w =>
-                `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase()
-            ));
+            let addedCount = 0;
+            let updatedCount = 0;
 
-            const { newWords, duplicateCount, invalidCount, addedCount } = parseCSVContent(csvText, existingWordKeys);
-            
-            if (newWords.length > 0) {
-                const wordsWithIds = newWords.map(w => ({ ...w, id: crypto.randomUUID() }));
-                setWords(prev => [...prev, ...wordsWithIds]);
-            }
+            setWords(prevWords => {
+                const existingWordsMap = new Map<string, Word>();
+                prevWords.forEach(w => {
+                    const key = `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase();
+                    existingWordsMap.set(key, w);
+                });
 
-            return { success: true, message: `Import Complete:\n- New words added: ${addedCount}\n- Duplicates skipped: ${duplicateCount}\n- Invalid rows: ${invalidCount}` };
+                const { newWords } = parseCSVContent(csvText, new Set());
+                const updatedWords: Word[] = [...prevWords];
+
+                newWords.forEach(nw => {
+                    const key = `${nw.source}|${nw.subtopic1}|${nw.subtopic2}|${nw.swedish}`.toLowerCase();
+                    if (existingWordsMap.has(key)) {
+                        const existingWord = existingWordsMap.get(key)!;
+                        Object.assign(existingWord, {
+                            wordType: nw.wordType || existingWord.wordType,
+                            swedishExample: nw.swedishExample || existingWord.swedishExample,
+                            translations: { ...existingWord.translations, ...nw.translations },
+                            present: nw.present || existingWord.present,
+                            presentTranslation: nw.presentTranslation || existingWord.presentTranslation,
+                            presentExample: nw.presentExample || existingWord.presentExample,
+                            presentExampleTranslation: nw.presentExampleTranslation || existingWord.presentExampleTranslation,
+                            preteritum: nw.preteritum || existingWord.preteritum,
+                            preteritumTranslation: nw.preteritumTranslation || existingWord.preteritumTranslation,
+                            preteritumExample: nw.preteritumExample || existingWord.preteritumExample,
+                            preteritumExampleTranslation: nw.preteritumExampleTranslation || existingWord.preteritumExampleTranslation,
+                            supinium: nw.supinium || existingWord.supinium,
+                            supiniumTranslation: nw.supiniumTranslation || existingWord.supiniumTranslation,
+                            supiniumExample: nw.supiniumExample || existingWord.supiniumExample,
+                            supiniumExampleTranslation: nw.supiniumExampleTranslation || existingWord.supiniumExampleTranslation,
+                            original_csv_id: nw.original_csv_id || existingWord.original_csv_id,
+                        });
+                        updatedCount++;
+                    } else {
+                        const freshWord: Word = { ...nw, id: crypto.randomUUID() };
+                        updatedWords.push(freshWord);
+                        existingWordsMap.set(key, freshWord);
+                        addedCount++;
+                    }
+                });
+
+                return updatedWords;
+            });
+
+            return { success: true, message: `Import Complete:\n- New words added: ${addedCount}\n- Existing words updated: ${updatedCount}` };
         } catch (error) {
             console.error("Error loading CSV:", error);
             return { success: false, message: "An error occurred during import. Check console for details." };
         }
-    }, [words, setWords]);
+    }, [setWords]);
 
     const syncWithDataFolder = useCallback(async (): Promise<{ success: boolean, message: string }> => {
         try {
             // Glob import all CSV files from the ../data directory
             const modules = import.meta.glob('../data/*.csv', { query: '?raw', import: 'default' });
             
-            let totalAdded = 0;
-            let totalDuplicates = 0;
-            let totalInvalid = 0;
             let filesProcessed = 0;
-            const allNewWords: Word[] = [];
-
-            // We need to get the current state of keys inside the setWords updater to ensure we don't overwrite recent changes,
-            // but for the parsing logic we need a Set to track duplicates *across* the files we are processing.
-            // We will fetch the current words first to initialize our "known" set.
-            // Note: In a high-concurrency environment this might be stale, but for a user button click it is fine.
-            
-            // However, to be safe, we will parse everything into a candidate list, 
-            // and then filter them inside the setWords updater.
-            
             const fileContents: string[] = [];
             for (const path in modules) {
                 try {
@@ -302,33 +324,59 @@ export const useWords = () => {
                 }
             }
 
+            let totalAdded = 0;
+            let totalUpdated = 0;
+
             setWords(prevWords => {
-                const existingWordKeys = new Set(prevWords.map(w =>
-                    `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase()
-                ));
-
-                const wordsToAdd: Word[] = [];
-
-                fileContents.forEach(content => {
-                     const { newWords, duplicateCount, invalidCount, addedCount } = parseCSVContent(content, existingWordKeys);
-                     // Note: parseCSVContent updates existingWordKeys in place as it finds new valid words
-                     // so subsequent files (or rows) won't add duplicates.
-                     
-                     totalAdded += addedCount;
-                     totalDuplicates += duplicateCount;
-                     totalInvalid += invalidCount;
-
-                     newWords.forEach(nw => {
-                         wordsToAdd.push({ ...nw, id: crypto.randomUUID() });
-                     });
+                const existingWordsMap = new Map<string, Word>();
+                prevWords.forEach(w => {
+                    const key = `${w.source}|${w.subtopic1}|${w.subtopic2}|${w.swedish}`.toLowerCase();
+                    existingWordsMap.set(key, w);
                 });
 
-                return [...prevWords, ...wordsToAdd];
+                const updatedWords: Word[] = [...prevWords];
+
+                fileContents.forEach(content => {
+                    const { newWords } = parseCSVContent(content, new Set());
+                    
+                    newWords.forEach(nw => {
+                        const key = `${nw.source}|${nw.subtopic1}|${nw.subtopic2}|${nw.swedish}`.toLowerCase();
+                        if (existingWordsMap.has(key)) {
+                            const existingWord = existingWordsMap.get(key)!;
+                            Object.assign(existingWord, {
+                                wordType: nw.wordType || existingWord.wordType,
+                                swedishExample: nw.swedishExample || existingWord.swedishExample,
+                                translations: { ...existingWord.translations, ...nw.translations },
+                                present: nw.present || existingWord.present,
+                                presentTranslation: nw.presentTranslation || existingWord.presentTranslation,
+                                presentExample: nw.presentExample || existingWord.presentExample,
+                                presentExampleTranslation: nw.presentExampleTranslation || existingWord.presentExampleTranslation,
+                                preteritum: nw.preteritum || existingWord.preteritum,
+                                preteritumTranslation: nw.preteritumTranslation || existingWord.preteritumTranslation,
+                                preteritumExample: nw.preteritumExample || existingWord.preteritumExample,
+                                preteritumExampleTranslation: nw.preteritumExampleTranslation || existingWord.preteritumExampleTranslation,
+                                supinium: nw.supinium || existingWord.supinium,
+                                supiniumTranslation: nw.supiniumTranslation || existingWord.supiniumTranslation,
+                                supiniumExample: nw.supiniumExample || existingWord.supiniumExample,
+                                supiniumExampleTranslation: nw.supiniumExampleTranslation || existingWord.supiniumExampleTranslation,
+                                original_csv_id: nw.original_csv_id || existingWord.original_csv_id,
+                            });
+                            totalUpdated++;
+                        } else {
+                            const freshWord: Word = { ...nw, id: crypto.randomUUID() };
+                            updatedWords.push(freshWord);
+                            existingWordsMap.set(key, freshWord);
+                            totalAdded++;
+                        }
+                    });
+                });
+
+                return updatedWords;
             });
 
             return { 
                 success: true, 
-                message: `Folder Sync Complete:\n- Files processed: ${filesProcessed}\n- New words added: ${totalAdded}\n- Duplicates skipped: ${totalDuplicates}`
+                message: `Folder Sync Complete:\n- Files processed: ${filesProcessed}\n- New words added: ${totalAdded}\n- Existing words updated/merged: ${totalUpdated}`
             };
 
         } catch (error) {
