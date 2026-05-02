@@ -294,7 +294,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         {currentCard.exampleSv && (
                             <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
                         )}
-                        <p className="text-sm text-gray-500 animate-pulse mt-auto">Click to flip</p>
+                        <p className="absolute bottom-4 left-0 right-0 text-sm text-gray-500 animate-pulse text-center">Click to flip</p>
                     </div>
 
                     {/* BACK — Complete Information */}
