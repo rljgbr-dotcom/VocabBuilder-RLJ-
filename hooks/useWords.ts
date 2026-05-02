@@ -16,14 +16,19 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     // Auto-detect delimiter: semicolon or comma
     const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
     const expectedHeader39 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presentexample', 'presenttranslation', 'preteritum', 'preteritumexample', 'preteritumtranslation', 'supinium', 'supiniumexample', 'supiniumtranslation'];
+    const expectedHeader40 = [...expectedHeader39, 'id'];
     const expectedHeader30 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
     
     let isLegacy = false;
     let expectedColCount = 39;
 
+    const header = cleanedHeaderLine.split(delimiter).map(c => c.trim().toLowerCase());
+
     if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader30].sort())) {
         isLegacy = true;
         expectedColCount = 30;
+    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader40].sort())) {
+        expectedColCount = 40;
     } else if (JSON.stringify([...header].sort()) !== JSON.stringify([...expectedHeader39].sort())) {
         console.error("Header mismatch. Expected:", expectedHeader39, "Got:", header);
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
@@ -90,6 +95,9 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
             newWord.supinium = values[verbIndex + 6] || '';
             newWord.supiniumExample = values[verbIndex + 7] || '';
             newWord.supiniumTranslation = values[verbIndex + 8] || '';
+            if (expectedColCount === 40) {
+                newWord.original_csv_id = values[verbIndex + 9] || '';
+            }
         }
         
         if (Object.keys(newWord.translations).length === 0) {
@@ -332,7 +340,7 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentExample', 'PresentTranslation', 'Preteritum', 'PreteritumExample', 'PreteritumTranslation', 'Supinium', 'SupiniumExample', 'SupiniumTranslation'];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentExample', 'PresentTranslation', 'Preteritum', 'PreteritumExample', 'PreteritumTranslation', 'Supinium', 'SupiniumExample', 'SupiniumTranslation', 'ID'];
             
             const rows = words.map(word => {
                 const rowData = [
@@ -358,6 +366,7 @@ export const useWords = () => {
                 rowData.push(word.supinium || '');
                 rowData.push(word.supiniumExample || '');
                 rowData.push(word.supiniumTranslation || '');
+                rowData.push(word.original_csv_id || '');
                 
                 return rowData.map(field => {
                     const str = String(field || '');

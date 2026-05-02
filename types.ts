@@ -59,6 +59,7 @@ export interface Word {
   supinium?: string;
   supiniumExample?: string;
   supiniumTranslation?: string;
+  original_csv_id?: string;
 
   // Verb Game Ratings (1-5, 5 is unknown)
   verb_rating_infinitiv?: number;
