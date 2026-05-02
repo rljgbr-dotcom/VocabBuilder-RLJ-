@@ -70,6 +70,16 @@ export interface Word {
   verb_rating_preteritum?: number;
   verb_rating_supinium?: number;
 
+  // Verb Game Score History and shownCount
+  verb_history_infinitiv?: number[];
+  verb_shown_infinitiv?: number;
+  verb_history_present?: number[];
+  verb_shown_present?: number;
+  verb_history_preteritum?: number[];
+  verb_shown_preteritum?: number;
+  verb_history_supinium?: number[];
+  verb_shown_supinium?: number;
+
   // SRS data for secondary tenses (infinitiv uses the root srs_* fields)
   srs_present?: TenseSrsData;
   srs_preteritum?: TenseSrsData;

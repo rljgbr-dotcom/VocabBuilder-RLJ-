@@ -4,6 +4,8 @@ import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
+import { ttsService } from '../../services/ttsService';
+
 interface VerbGameScreenProps {
     setScreen: (screen: Screen) => void;
 }
@@ -18,6 +20,8 @@ interface VirtualCard {
     exampleSv: string;
     exampleEn: string;
     rating: number;
+    scoreHistory: number[];
+    shownCount: number;
 }
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
@@ -42,6 +46,9 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             
             const addIfUnpromoted = (tense: TenseType, sv: string, en: string, exSv: string, exEn: string, rating: number) => {
                 if (rating > 1 && sv) {
+                    const scoreHistory = w[`verb_history_${tense}` as keyof Word] as number[] || [];
+                    const shownCount = w[`verb_shown_${tense}` as keyof Word] as number || 0;
+                    
                     pool.push({
                         wordId: w.id,
                         tense,
@@ -49,7 +56,9 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         english: en,
                         exampleSv: exSv,
                         exampleEn: exEn,
-                        rating: rating
+                        rating: rating,
+                        scoreHistory,
+                        shownCount
                     });
                 }
             };
@@ -83,6 +92,15 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         
         // Shuffle the initial stack
         initialStack.sort(() => 0.5 - Math.random());
+        if (initialStack.length > 0) {
+            initialStack[0].shownCount++;
+            const first = initialStack[0];
+            const w = words.find(x => x.id === first.wordId);
+            if (w) {
+                const shownField = `verb_shown_${first.tense}` as keyof Word;
+                updateWord({ ...w, [shownField]: first.shownCount });
+            }
+        }
         setActiveStack(initialStack);
         setHasStarted(true);
         setIsFlipped(false);
@@ -96,7 +114,18 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
 
         // 1. Update the rating on the Word object in context
         const ratingField = `verb_rating_${currentCard.tense}` as keyof Word;
-        const updatedWord: Word = { ...word, [ratingField]: rating };
+        const historyField = `verb_history_${currentCard.tense}` as keyof Word;
+        const shownField = `verb_shown_${currentCard.tense}` as keyof Word;
+
+        const currentHistory = currentCard.scoreHistory || [];
+        const updatedHistory = [...currentHistory, rating].slice(-3);
+
+        const updatedWord: Word = { 
+            ...word, 
+            [ratingField]: rating,
+            [historyField]: updatedHistory,
+            [shownField]: currentCard.shownCount
+        };
         
         let promoted = false;
         if (rating === 1) {
@@ -119,8 +148,12 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             // Remove from stack
             newStack.splice(currentCardIndex, 1);
         } else {
-            // Update rating in the stack
-            newStack[currentCardIndex] = { ...currentCard, rating };
+            // Update rating and history in the stack
+            newStack[currentCardIndex] = { 
+                ...currentCard, 
+                rating,
+                scoreHistory: updatedHistory
+            };
         }
 
         // 3. Dynamic Injection: check if sum < intensityLimit
@@ -128,13 +161,15 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         if (currentSum < intensityLimit) {
             // Find a tense from the pool that isn't in the stack
             const availableToInject = availablePool.filter(poolCard => 
-                !newStack.some(stackCard => stackCard.wordId === poolCard.wordId && stackCard.tense === poolCard.tense)
+                !newStack.some(stackCard => stackCard.wordId === poolCard.wordId && stackCard.tense === poolCard.tense) &&
+                // Prevent injecting the card we just promoted (since availablePool might be stale)
+                !(promoted && poolCard.wordId === currentCard.wordId && poolCard.tense === currentCard.tense)
             );
             
             if (availableToInject.length > 0) {
                 // Pick a random tense
                 const injectedCard = availableToInject[Math.floor(Math.random() * availableToInject.length)];
-                newStack.push(injectedCard);
+                newStack.push({ ...injectedCard });
             }
         }
 
@@ -146,7 +181,8 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
 
         // 4. Determine next card (strict highest unfamiliarity / confidence first, but prioritize same verb stem)
         let candidates = newStack.map((c, i) => ({ card: c, idx: i }));
-        if (candidates.length > 1) {
+        // Only filter out the current card index if we didn't splice it out (if we spliced it, the card at currentCardIndex is already a different card!)
+        if (!promoted && candidates.length > 1) {
             candidates = candidates.filter(c => c.idx !== currentCardIndex);
         }
         
@@ -167,6 +203,14 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         }
         
         const nextIdx = chosen.idx;
+        const nxt = { ...newStack[nextIdx], shownCount: newStack[nextIdx].shownCount + 1 };
+        newStack[nextIdx] = nxt;
+        
+        const wNxt = words.find(x => x.id === nxt.wordId);
+        if (wNxt) {
+            const nxtShownField = `verb_shown_${nxt.tense}` as keyof Word;
+            updateWord({ ...wNxt, [nxtShownField]: nxt.shownCount });
+        }
 
         setActiveStack(newStack);
         setCurrentCardIndex(nextIdx);
@@ -317,8 +361,12 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
-                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full">
-                            Rating: {currentCard.rating}
+                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2">
+                            <span>Rating: {currentCard.rating}</span>
+                            {currentCard.scoreHistory.length > 0 && (
+                                <span className="text-gray-500">• Scores: {currentCard.scoreHistory.join(', ')}</span>
+                            )}
+                            <span className="text-gray-500">• Views: {currentCard.shownCount}</span>
                         </span>
                         
                         {startFace === 'swedish' ? (
@@ -344,15 +392,46 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
+                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2">
+                            <span>Rating: {currentCard.rating}</span>
+                            {currentCard.scoreHistory.length > 0 && (
+                                <span className="text-gray-500">• Scores: {currentCard.scoreHistory.join(', ')}</span>
+                            )}
+                            <span className="text-gray-500">• Views: {currentCard.shownCount}</span>
+                        </span>
                         
-                        <h2 className="text-3xl md:text-4xl font-bold mb-1 text-indigo-100 leading-tight">{currentCard.swedish}</h2>
+                        <h2 
+                            onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.swedish, 'sv-SE'); }}
+                            className="text-3xl md:text-4xl font-bold mb-1 text-indigo-100 leading-tight cursor-pointer hover:text-indigo-300 transition-colors"
+                        >
+                            {currentCard.swedish}
+                        </h2>
                         <div className="w-16 h-0.5 bg-indigo-500/30 mb-2"></div>
-                        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-indigo-200 leading-tight">{currentCard.english || '---'}</h2>
+                        <h2 
+                            onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.english || '', 'en-GB'); }}
+                            className="text-3xl md:text-4xl font-bold mb-4 text-indigo-200 leading-tight cursor-pointer hover:text-indigo-300 transition-colors"
+                        >
+                            {currentCard.english || '---'}
+                        </h2>
                         
                         {(currentCard.exampleSv || currentCard.exampleEn) && (
-                            <div className="bg-base-100/40 p-4 rounded-xl w-full max-w-md border border-white/5">
-                                <p className="text-lg italic text-gray-300 mb-2">{currentCard.exampleSv}</p>
-                                <p className="text-sm text-gray-500">{currentCard.exampleEn}</p>
+                            <div className="bg-base-100/40 p-4 rounded-xl w-full max-w-md border border-white/5 space-y-2">
+                                {currentCard.exampleSv && (
+                                    <p 
+                                        onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.exampleSv || '', 'sv-SE'); }}
+                                        className="text-lg italic text-gray-300 cursor-pointer hover:text-indigo-300 transition-colors"
+                                    >
+                                        {currentCard.exampleSv}
+                                    </p>
+                                )}
+                                {currentCard.exampleEn && (
+                                    <p 
+                                        onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.exampleEn || '', 'en-GB'); }}
+                                        className="text-sm text-gray-500 cursor-pointer hover:text-indigo-300 transition-colors"
+                                    >
+                                        {currentCard.exampleEn}
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>
