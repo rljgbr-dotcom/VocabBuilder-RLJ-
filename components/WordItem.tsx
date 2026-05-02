@@ -68,19 +68,17 @@ const WordItem: React.FC<WordItemProps> = ({ word }) => {
                     <label htmlFor={`toggle-${word.id}`} className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-500 cursor-pointer"></label>
                 </div>
                 
-                {/* Verb Game toggle (only for verbs) */}
-                {word.wordType?.toLowerCase() === 'verb' && (
-                    <div className="relative inline-block w-10 mx-1 align-middle" title={word.verb_game_active ? "Verb Game Active" : "Verb Game Inactive"}>
-                        <input
-                            type="checkbox"
-                            onChange={() => toggleVerbGameActive(word.id)}
-                            id={`verb-toggle-${word.id}`}
-                            className="toggle-checkbox absolute left-0 block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                            checked={!!word.verb_game_active}
-                        />
-                        <label htmlFor={`verb-toggle-${word.id}`} className="toggle-label block overflow-hidden h-6 rounded-full bg-blue-500 cursor-pointer"></label>
-                    </div>
-                )}
+                {/* Verb Game toggle */}
+                <div className="relative inline-block w-10 mx-1 align-middle" title={word.verb_game_active ? "Verb Game Active" : "Verb Game Inactive"}>
+                    <input
+                        type="checkbox"
+                        onChange={() => toggleVerbGameActive(word.id)}
+                        id={`verb-toggle-${word.id}`}
+                        className="toggle-checkbox absolute left-0 block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                        checked={!!word.verb_game_active}
+                    />
+                    <label htmlFor={`verb-toggle-${word.id}`} className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors ${word.verb_game_active ? 'bg-blue-500' : 'bg-gray-500'}`}></label>
+                </div>
 
                 {/* SRS toggle */}
                 <div className="relative inline-block w-10 mx-1 align-middle" title={word.srs_active ? t('word.srsActive') : t('word.srsInactive')}>
