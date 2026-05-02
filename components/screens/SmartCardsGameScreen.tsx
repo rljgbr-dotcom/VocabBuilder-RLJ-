@@ -5,6 +5,7 @@ import { Screen, Word, SrsVirtualCard, TenseSrsData } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, isDueToday, nowISO } from '../../services/srsService';
+import NoteTooltip from '../NoteTooltip';
 
 interface SmartCardsGameScreenProps {
     setScreen: (screen: Screen) => void;
@@ -39,6 +40,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                     english: w.translations[currentSourceLanguage]?.word || '',
                     exampleSv: w.swedishExample || '',
                     exampleEn: w.translations[currentSourceLanguage]?.example || '',
+                    note: w.swedishExampleNote,
                     srs_interval: w.srs_interval || 0,
                     srs_repetition: w.srs_repetition || 0,
                     srs_efactor: w.srs_efactor || 2.5,
@@ -48,7 +50,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                 });
             }
 
-            const addTense = (tense: 'present'|'preteritum'|'supinium', sv: string, en: string, exSv: string, exEn: string, srs: any) => {
+            const addTense = (tense: 'present'|'preteritum'|'supinium', sv: string, en: string, exSv: string, exEn: string, srs: any, note?: string) => {
                 if (srs?.active && sv) {
                     srsVirtualCards.push({
                         id: `${w.id}|${tense}`,
@@ -58,6 +60,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                         english: en,
                         exampleSv: exSv,
                         exampleEn: exEn,
+                        note,
                         srs_interval: srs.interval || 0,
                         srs_repetition: srs.repetition || 0,
                         srs_efactor: srs.efactor || 2.5,
@@ -69,9 +72,9 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             };
 
             if (w.wordType?.toLowerCase() === 'verb') {
-                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present);
-                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum);
-                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium);
+                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present, w.presentExampleNote);
+                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum, w.preteritumExampleNote);
+                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium, w.supiniumExampleNote);
             }
         });
 
@@ -411,7 +414,12 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                 {startFace === 'swedish' ? currentLanguageInfo.englishName : 'Svenska'}
                             </div>
                             <span className="text-2xl md:text-4xl font-bold">{backText}</span>
-                            {backExample && <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">{backExample}</p>}
+                            {backExample && (
+                                <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">
+                                    {backExample}
+                                    <NoteTooltip note={currentCard.note} />
+                                </p>
+                            )}
                             <button
                                 onClick={e => { e.stopPropagation(); ttsService.speak(`${backText} ${backExample ?? ''}`, backLang); }}
                                 className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50 transition-colors"

@@ -80,6 +80,12 @@ export interface Word {
   verb_history_supinium?: number[];
   verb_shown_supinium?: number;
 
+  // Per-example usage notes (shown via ⓘ icon in games)
+  swedishExampleNote?: string;
+  presentExampleNote?: string;
+  preteritumExampleNote?: string;
+  supiniumExampleNote?: string;
+
   // SRS data for secondary tenses (infinitiv uses the root srs_* fields)
   srs_present?: TenseSrsData;
   srs_preteritum?: TenseSrsData;
@@ -99,6 +105,7 @@ export interface SrsVirtualCard {
   english: string;
   exampleSv: string;
   exampleEn: string;
+  note?: string;     // Usage note for this tense's example sentence
   // current SRS state
   srs_interval: number;
   srs_repetition: number;

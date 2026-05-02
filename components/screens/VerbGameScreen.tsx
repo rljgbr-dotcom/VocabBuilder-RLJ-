@@ -5,6 +5,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
 import { ttsService } from '../../services/ttsService';
+import NoteTooltip from '../NoteTooltip';
 
 interface VerbGameScreenProps {
     setScreen: (screen: Screen) => void;
@@ -22,6 +23,7 @@ interface VirtualCard {
     rating: number;
     scoreHistory: number[];
     shownCount: number;
+    note?: string;
 }
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
@@ -44,7 +46,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         words.forEach(w => {
             if (w.wordType?.toLowerCase() !== 'verb' || !w.verb_game_active) return;
             
-            const addIfUnpromoted = (tense: TenseType, sv: string, en: string, exSv: string, exEn: string, rating: number) => {
+            const addIfUnpromoted = (tense: TenseType, sv: string, en: string, exSv: string, exEn: string, rating: number, note?: string) => {
                 if (rating > 1 && sv) {
                     const scoreHistory = w[`verb_history_${tense}` as keyof Word] as number[] || [];
                     const shownCount = w[`verb_shown_${tense}` as keyof Word] as number || 0;
@@ -58,15 +60,16 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         exampleEn: exEn,
                         rating: rating,
                         scoreHistory,
-                        shownCount
+                        shownCount,
+                        note
                     });
                 }
             };
 
-            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5);
-            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5);
-            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5);
-            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5);
+            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5, w.swedishExampleNote);
+            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5, w.presentExampleNote);
+            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5, w.preteritumExampleNote);
+            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumExampleNote);
         });
         return pool;
     }, [words]);
@@ -422,6 +425,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                                         className="text-lg italic text-gray-300 cursor-pointer hover:text-indigo-300 transition-colors"
                                     >
                                         {currentCard.exampleSv}
+                                        <NoteTooltip note={currentCard.note} />
                                     </p>
                                 )}
                                 {currentCard.exampleEn && (
