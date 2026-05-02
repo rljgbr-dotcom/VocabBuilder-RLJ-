@@ -54,9 +54,9 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             };
 
             addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5);
-            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.verb_rating_present ?? 5);
-            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.verb_rating_preteritum ?? 5);
-            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.verb_rating_supinium ?? 5);
+            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5);
+            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5);
+            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5);
         });
         return pool;
     }, [words]);
@@ -260,15 +260,14 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 </div>
             </div>
 
-            {/* Flashcard */}
-            <div 
-                className="w-full aspect-video min-h-[300px] perspective-1000 cursor-pointer mb-8"
+            {/* Flashcard — uses the same CSS classes as FlashcardGameScreen */}
+            <div className="w-full aspect-video min-h-[300px] perspective-[1000px] cursor-pointer mb-8"
                 onClick={() => setIsFlipped(!isFlipped)}
             >
-                <div className={`w-full h-full transition-transform duration-500 transform-style-3d relative shadow-xl rounded-2xl ${isFlipped ? 'rotate-y-180' : ''}`}>
+                <div className={`card-inner w-full h-full relative shadow-xl rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     
-                    {/* FRONT */}
-                    <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-base-200 to-base-300 border border-base-100/10 rounded-2xl flex flex-col items-center justify-center p-8">
+                    {/* FRONT — Swedish only */}
+                    <div className="card-face absolute inset-0 bg-gradient-to-br from-base-200 to-base-300 border border-base-100/10 rounded-2xl flex flex-col items-center justify-center p-8">
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
@@ -276,12 +275,18 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                             Rating: {currentCard.rating}
                         </span>
                         
-                        <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-6">{currentCard.swedish}</h2>
+                        <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4">{currentCard.swedish}</h2>
+                        {currentCard.exampleSv && (
+                            <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
+                        )}
                         <p className="text-sm text-gray-500 animate-pulse mt-auto">Click to flip</p>
                     </div>
 
-                    {/* BACK */}
-                    <div className="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
+                    {/* BACK — English answer */}
+                    <div className="card-face card-back absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
+                        <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
+                            {currentCard.tense}
+                        </span>
                         <h2 className="text-4xl md:text-5xl font-bold mb-6 text-indigo-200">{currentCard.english || '---'}</h2>
                         
                         {(currentCard.exampleSv || currentCard.exampleEn) && (
@@ -294,7 +299,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 </div>
             </div>
 
-            {/* Rating Controls */}
+            {/* Rating Controls — only visible after flip */}
             <div className={`w-full transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <h3 className="text-center text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">Rate your confidence</h3>
                 <div className="flex gap-3 justify-center w-full">

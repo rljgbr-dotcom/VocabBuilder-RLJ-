@@ -51,14 +51,17 @@ export interface Word {
   // --- Verb Game & Expanded Tense Fields ---
   verb_game_active?: boolean;
   present?: string;
-  presentExample?: string;
   presentTranslation?: string;
+  presentExample?: string;
+  presentExampleTranslation?: string;
   preteritum?: string;
-  preteritumExample?: string;
   preteritumTranslation?: string;
+  preteritumExample?: string;
+  preteritumExampleTranslation?: string;
   supinium?: string;
-  supiniumExample?: string;
   supiniumTranslation?: string;
+  supiniumExample?: string;
+  supiniumExampleTranslation?: string;
   original_csv_id?: string;
 
   // Verb Game Ratings (1-5, 5 is unknown)

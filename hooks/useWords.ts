@@ -15,22 +15,22 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
     // Auto-detect delimiter: semicolon or comma
     const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
-    const expectedHeader39 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presentexample', 'presenttranslation', 'preteritum', 'preteritumexample', 'preteritumtranslation', 'supinium', 'supiniumexample', 'supiniumtranslation'];
-    const expectedHeader40 = [...expectedHeader39, 'id'];
+    const expectedHeader42 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presenttranslation', 'presentexample', 'presentexampletranslation', 'preteritum', 'preteritumtranslation', 'preteritumexample', 'preteritumexampletranslation', 'supinium', 'supiniumtranslation', 'supiniumexample', 'supiniumexampletranslation'];
+    const expectedHeader43 = [...expectedHeader42, 'id'];
     const expectedHeader30 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
     
     let isLegacy = false;
-    let expectedColCount = 39;
+    let expectedColCount = 42;
 
     const header = cleanedHeaderLine.split(delimiter).map(c => c.trim().toLowerCase());
 
     if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader30].sort())) {
         isLegacy = true;
         expectedColCount = 30;
-    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader40].sort())) {
-        expectedColCount = 40;
-    } else if (JSON.stringify([...header].sort()) !== JSON.stringify([...expectedHeader39].sort())) {
-        console.error("Header mismatch. Expected:", expectedHeader39, "Got:", header);
+    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader43].sort())) {
+        expectedColCount = 43;
+    } else if (JSON.stringify([...header].sort()) !== JSON.stringify([...expectedHeader42].sort())) {
+        console.error("Header mismatch. Expected:", expectedHeader42, "Got:", header);
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
     }
 
@@ -87,16 +87,19 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
         if (!isLegacy) {
             const verbIndex = 6 + (LANGUAGE_ORDER.length * 2);
             newWord.present = values[verbIndex] || '';
-            newWord.presentExample = values[verbIndex + 1] || '';
-            newWord.presentTranslation = values[verbIndex + 2] || '';
-            newWord.preteritum = values[verbIndex + 3] || '';
-            newWord.preteritumExample = values[verbIndex + 4] || '';
+            newWord.presentTranslation = values[verbIndex + 1] || '';
+            newWord.presentExample = values[verbIndex + 2] || '';
+            newWord.presentExampleTranslation = values[verbIndex + 3] || '';
+            newWord.preteritum = values[verbIndex + 4] || '';
             newWord.preteritumTranslation = values[verbIndex + 5] || '';
-            newWord.supinium = values[verbIndex + 6] || '';
-            newWord.supiniumExample = values[verbIndex + 7] || '';
-            newWord.supiniumTranslation = values[verbIndex + 8] || '';
-            if (expectedColCount === 40) {
-                newWord.original_csv_id = values[verbIndex + 9] || '';
+            newWord.preteritumExample = values[verbIndex + 6] || '';
+            newWord.preteritumExampleTranslation = values[verbIndex + 7] || '';
+            newWord.supinium = values[verbIndex + 8] || '';
+            newWord.supiniumTranslation = values[verbIndex + 9] || '';
+            newWord.supiniumExample = values[verbIndex + 10] || '';
+            newWord.supiniumExampleTranslation = values[verbIndex + 11] || '';
+            if (expectedColCount === 43) {
+                newWord.original_csv_id = values[verbIndex + 12] || '';
             }
         }
         
@@ -340,7 +343,7 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentExample', 'PresentTranslation', 'Preteritum', 'PreteritumExample', 'PreteritumTranslation', 'Supinium', 'SupiniumExample', 'SupiniumTranslation', 'ID'];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID'];
             
             const rows = words.map(word => {
                 const rowData = [
@@ -358,14 +361,17 @@ export const useWords = () => {
                 });
                 
                 rowData.push(word.present || '');
-                rowData.push(word.presentExample || '');
                 rowData.push(word.presentTranslation || '');
+                rowData.push(word.presentExample || '');
+                rowData.push(word.presentExampleTranslation || '');
                 rowData.push(word.preteritum || '');
-                rowData.push(word.preteritumExample || '');
                 rowData.push(word.preteritumTranslation || '');
+                rowData.push(word.preteritumExample || '');
+                rowData.push(word.preteritumExampleTranslation || '');
                 rowData.push(word.supinium || '');
-                rowData.push(word.supiniumExample || '');
                 rowData.push(word.supiniumTranslation || '');
+                rowData.push(word.supiniumExample || '');
+                rowData.push(word.supiniumExampleTranslation || '');
                 rowData.push(word.original_csv_id || '');
                 
                 return rowData.map(field => {
