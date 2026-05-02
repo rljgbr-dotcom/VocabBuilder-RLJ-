@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { Screen, Word } from '../../types';
+import { Screen, Word, SrsVirtualCard, TenseSrsData } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, isDueToday, nowISO } from '../../services/srsService';
@@ -17,7 +17,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
     // The session queue is a flat array; we work through index 0 each time,
     // and push "Again" cards to the back.
-    const [sessionQueue, setSessionQueue] = useState<Word[]>([]);
+    const [sessionQueue, setSessionQueue] = useState<SrsVirtualCard[]>([]);
     const [isFlipped, setIsFlipped]       = useState(false);
     const [sessionDone, setSessionDone]   = useState(false);
     const [noSrsWords, setNoSrsWords]     = useState(false);
@@ -28,13 +28,59 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
     // ── Initialise ─────────────────────────────────────────────────────────────
     useEffect(() => {
-        const srsWords = words.filter(w => w.srs_active && w.translations[currentSourceLanguage]?.word);
-        if (srsWords.length === 0) {
+        const srsVirtualCards: SrsVirtualCard[] = [];
+        words.forEach(w => {
+            if (w.srs_active && w.translations[currentSourceLanguage]?.word) {
+                srsVirtualCards.push({
+                    id: `${w.id}|infinitiv`,
+                    wordId: w.id,
+                    tense: 'infinitiv',
+                    swedish: w.swedish,
+                    english: w.translations[currentSourceLanguage]?.word || '',
+                    exampleSv: w.swedishExample || '',
+                    exampleEn: w.translations[currentSourceLanguage]?.example || '',
+                    srs_interval: w.srs_interval || 0,
+                    srs_repetition: w.srs_repetition || 0,
+                    srs_efactor: w.srs_efactor || 2.5,
+                    srs_next_review: w.srs_next_review,
+                    srs_last_reviewed_at: w.srs_last_reviewed_at,
+                    srs_last_quality: w.srs_last_quality
+                });
+            }
+
+            const addTense = (tense: 'present'|'preteritum'|'supinium', sv: string, en: string, exSv: string, exEn: string, srs: any) => {
+                if (srs?.active && sv) {
+                    srsVirtualCards.push({
+                        id: `${w.id}|${tense}`,
+                        wordId: w.id,
+                        tense,
+                        swedish: sv,
+                        english: en,
+                        exampleSv: exSv,
+                        exampleEn: exEn,
+                        srs_interval: srs.interval || 0,
+                        srs_repetition: srs.repetition || 0,
+                        srs_efactor: srs.efactor || 2.5,
+                        srs_next_review: srs.next_review,
+                        srs_last_reviewed_at: srs.last_reviewed_at,
+                        srs_last_quality: srs.last_quality
+                    });
+                }
+            };
+
+            if (w.wordType?.toLowerCase() === 'verb') {
+                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present);
+                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum);
+                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium);
+            }
+        });
+
+        if (srsVirtualCards.length === 0) {
             setNoSrsWords(true);
             setSessionDone(true);
             return;
         }
-        const due = srsWords.filter(isDueToday);
+        const due = srsVirtualCards.filter(c => isDueToday(c.srs_next_review));
         totalDueRef.current = due.length;
         if (due.length === 0) {
             setSessionDone(true);
@@ -44,48 +90,72 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // only on mount
 
-    const currentWord: Word | undefined = useMemo(() => {
-        const sessionWord = sessionQueue[0];
-        if (!sessionWord) return undefined;
-        return words.find(w => w.id === sessionWord.id) || sessionWord;
-    }, [sessionQueue, words]);
+    const currentCard: SrsVirtualCard | undefined = sessionQueue[0];
 
     // ── Rate card ──────────────────────────────────────────────────────────────
     const handleRateCard = useCallback((q: number) => {
-        if (!currentWord || isTransitioning) return;
+        if (!currentCard || isTransitioning) return;
         setIsTransitioning(true);
 
-        const srsResult = applySM2(currentWord, q);
-        const updatedWord: Word = { ...currentWord, ...srsResult };
-        updateWord(updatedWord);
+        const srsResult = applySM2(currentCard, q);
+        const updatedCard: SrsVirtualCard = { ...currentCard, ...srsResult };
+        
+        const word = words.find(w => w.id === currentCard.wordId);
+        if (word) {
+            let updatedWord = { ...word };
+            if (currentCard.tense === 'infinitiv') {
+                updatedWord = { ...updatedWord, ...srsResult };
+            } else {
+                const tenseField = `srs_${currentCard.tense}` as keyof Word;
+                const currentTenseData = (updatedWord[tenseField] as TenseSrsData) || { active: true };
+                updatedWord[tenseField] = {
+                    ...currentTenseData,
+                    interval: srsResult.srs_interval,
+                    repetition: srsResult.srs_repetition,
+                    efactor: srsResult.srs_efactor,
+                    next_review: srsResult.srs_next_review,
+                    last_reviewed_at: srsResult.srs_last_reviewed_at,
+                    last_quality: srsResult.srs_last_quality
+                } as TenseSrsData;
+            }
+            updateWord(updatedWord);
+        }
 
         setReviewedCount(c => c + 1);
         setIsFlipped(false);
 
         const delay = disableAnimations ? 0 : 300;
 
-        // Wait for the card to be "edge-on" (halfway through the 0.6s animation) or update immediately
         setTimeout(() => {
             setSessionQueue(prev => {
                 const remaining = prev.slice(1);
-                const next = q < 3 ? [...remaining, updatedWord] : remaining;
+                const next = q < 3 ? [...remaining, updatedCard] : remaining;
                 if (next.length === 0) setSessionDone(true);
                 return next;
             });
-            
-            // Wait for the animation to finish fully or unlock immediately
-            setTimeout(() => {
-                setIsTransitioning(false);
-            }, delay);
+            setTimeout(() => setIsTransitioning(false), delay);
         }, delay);
-    }, [currentWord, updateWord, isTransitioning, disableAnimations]);
+    }, [currentCard, words, updateWord, isTransitioning, disableAnimations]);
 
     // ── Retire from SRS ────────────────────────────────────────────────────────
     // Removes the word from the SRS group entirely and skips it for this session.
     const handleRetireFromSrs = useCallback(() => {
-        if (!currentWord || isTransitioning) return;
+        if (!currentCard || isTransitioning) return;
         setIsTransitioning(true);
-        toggleWordSrsActive(currentWord.id); // turns off srs_active
+        
+        const word = words.find(w => w.id === currentCard.wordId);
+        if (word) {
+            let updatedWord = { ...word };
+            if (currentCard.tense === 'infinitiv') {
+                updatedWord.srs_active = false;
+            } else {
+                const tenseField = `srs_${currentCard.tense}` as keyof Word;
+                const currentTenseData = (updatedWord[tenseField] as TenseSrsData) || {};
+                updatedWord[tenseField] = { ...currentTenseData, active: false };
+            }
+            updateWord(updatedWord);
+        }
+
         setIsFlipped(false);
         
         const delay = disableAnimations ? 0 : 300;
@@ -98,7 +168,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             });
             setTimeout(() => setIsTransitioning(false), delay);
         }, delay);
-    }, [currentWord, toggleWordSrsActive, isTransitioning, disableAnimations]);
+    }, [currentCard, words, updateWord, isTransitioning, disableAnimations]);
 
     // ── Keyboard Support ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -152,12 +222,12 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     };
 
     // ── Text/audio helpers ──────────────────────────────────────────────────────
+    const sourceWord = words.find(w => w.id === currentCard?.wordId);
     const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
-    const translation  = currentWord?.translations[currentSourceLanguage] ?? { word: '—', example: '' };
-    const frontText    = startFace === 'swedish' ? currentWord?.swedish        : translation.word;
-    const backText     = startFace === 'swedish' ? translation.word            : currentWord?.swedish;
-    const frontExample = startFace === 'swedish' ? currentWord?.swedishExample : translation.example;
-    const backExample  = startFace === 'swedish' ? translation.example         : currentWord?.swedishExample;
+    const frontText    = startFace === 'swedish' ? currentCard?.swedish        : currentCard?.english;
+    const backText     = startFace === 'swedish' ? currentCard?.english            : currentCard?.swedish;
+    const frontExample = startFace === 'swedish' ? currentCard?.exampleSv : currentCard?.exampleEn;
+    const backExample  = startFace === 'swedish' ? currentCard?.exampleEn         : currentCard?.exampleSv;
     const frontLang    = startFace === 'swedish' ? 'sv-SE'                     : currentLanguageInfo.ttsCode;
     const backLang     = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
 
@@ -201,8 +271,8 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
     // Estimated next interval preview for button subtitles
     const previewInterval = (q: number): string => {
-        if (!currentWord) return '';
-        const { srs_interval: i } = applySM2(currentWord, q);
+        if (!currentCard) return '';
+        const { srs_interval: i } = applySM2(currentCard, q);
         if (i === 0) return '<1d';
         if (i === 1) return '1d';
         return `~${i}d`;
@@ -246,7 +316,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         );
     }
 
-    if (!currentWord) {
+    if (!currentCard) {
         return <div className="text-center py-12"><p className="text-xl">{t('game.flashcards.loading')}</p></div>;
     }
 
@@ -254,8 +324,8 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         ? Math.min((reviewedCount / totalDueRef.current) * 100, 100)
         : 0;
 
-    const isNewCard = !currentWord.srs_next_review;
-    const intervalBadge = isNewCard ? t('game.smartCards.newCard') : `${currentWord.srs_interval ?? 0}d`;
+    const isNewCard = !currentCard.srs_next_review;
+    const intervalBadge = isNewCard ? t('game.smartCards.newCard') : `${currentCard.srs_interval ?? 0}d`;
 
     return (
         <div className="max-w-4xl mx-auto flex flex-col h-full">
@@ -300,23 +370,24 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                 </svg>
                             </button>
                             {/* Breadcrumbs */}
-                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
-                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${sourceWord?.source} > ${sourceWord?.subtopic1} > ${sourceWord?.subtopic2}`}>
+                                {[sourceWord?.source, sourceWord?.subtopic1, sourceWord?.subtopic2].filter(Boolean).join(' > ')}
+                                {currentCard.tense !== 'infinitiv' && ` > ${currentCard.tense}`}
                             </div>
                             {/* SRS badge */}
                             <div className="absolute top-3 left-3 text-xs text-gray-500 bg-base-300 px-2 py-0.5 rounded-full flex gap-2 items-center">
                                 <span className="font-bold">{intervalBadge}</span>
-                                {currentWord.srs_last_reviewed_at && (
+                                {currentCard.srs_last_reviewed_at && (
                                     <>
                                         <span className="opacity-30">|</span>
                                         <span className="opacity-80">
-                                            {formatRelativeTime(currentWord.srs_last_reviewed_at)}
+                                            {formatRelativeTime(currentCard.srs_last_reviewed_at)}
                                         </span>
-                                        {currentWord.srs_last_quality !== undefined && (
+                                        {currentCard.srs_last_quality !== undefined && (
                                             <>
                                                 <span className="opacity-30">•</span>
                                                 <span className="opacity-80">
-                                                    {getLastQualityLabel(currentWord.srs_last_quality)}
+                                                    {getLastQualityLabel(currentCard.srs_last_quality)}
                                                 </span>
                                             </>
                                         )}
@@ -324,11 +395,11 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                 )}
                             </div>
                             <button 
-                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
-                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(sourceWord?.id || ''); }}
+                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${sourceWord?.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
                                 title="Flag translation"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                                 </svg>
                             </button>
@@ -350,17 +421,18 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                                 </svg>
                             </button>
                             <button 
-                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentWord.id); }}
-                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${currentWord.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-100'}`}
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(sourceWord?.id || ''); }}
+                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${sourceWord?.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-100'}`}
                                 title="Flag translation"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={currentWord.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                                 </svg>
                             </button>
                             {/* Breadcrumbs */}
-                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
-                                {[currentWord.source, currentWord.subtopic1, currentWord.subtopic2].filter(Boolean).join(' > ')}
+                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${sourceWord?.source} > ${sourceWord?.subtopic1} > ${sourceWord?.subtopic2}`}>
+                                {[sourceWord?.source, sourceWord?.subtopic1, sourceWord?.subtopic2].filter(Boolean).join(' > ')}
+                                {currentCard.tense !== 'infinitiv' && ` > ${currentCard.tense}`}
                             </div>
                         </div>
                     </div>

@@ -1,5 +1,4 @@
-
-export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game' | 'srs-stats';
+export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game' | 'srs-stats' | 'verb-game';
 
 export interface Language {
   nativeName: string;
@@ -10,6 +9,17 @@ export interface Language {
 export interface Translation {
   word: string;
   example: string;
+}
+
+export interface TenseSrsData {
+  active?: boolean;
+  interval?: number;
+  repetition?: number;
+  efactor?: number;
+  next_review?: string;
+  last_reviewed_at?: string;
+  last_quality?: number;
+  added_at?: string;
 }
 
 export interface Word {
@@ -37,11 +47,51 @@ export interface Word {
   srs_added_at?: string;         // ISO timestamp when first added to SRS
   history?: string[];            // Last 3 actions (e.g., "+2", "Hide")
   flagged?: boolean;             // Whether this word is flagged for correction
+
+  // --- Verb Game & Expanded Tense Fields ---
+  verb_game_active?: boolean;
+  present?: string;
+  presentExample?: string;
+  presentTranslation?: string;
+  preteritum?: string;
+  preteritumExample?: string;
+  preteritumTranslation?: string;
+  supinium?: string;
+  supiniumExample?: string;
+  supiniumTranslation?: string;
+
+  // Verb Game Ratings (1-5, 5 is unknown)
+  verb_rating_infinitiv?: number;
+  verb_rating_present?: number;
+  verb_rating_preteritum?: number;
+  verb_rating_supinium?: number;
+
+  // SRS data for secondary tenses (infinitiv uses the root srs_* fields)
+  srs_present?: TenseSrsData;
+  srs_preteritum?: TenseSrsData;
+  srs_supinium?: TenseSrsData;
 }
 
 export interface FlashcardWord extends Word {
     face: 'swedish' | 'source';
     isBlurredNext: boolean;
+}
+
+export interface SrsVirtualCard {
+  id: string; // wordId + '|' + tense (e.g. "123-abc|present")
+  wordId: string;
+  tense: 'infinitiv' | 'present' | 'preteritum' | 'supinium';
+  swedish: string; // The tense string
+  english: string;
+  exampleSv: string;
+  exampleEn: string;
+  // current SRS state
+  srs_interval: number;
+  srs_repetition: number;
+  srs_efactor: number;
+  srs_next_review?: string;
+  srs_last_reviewed_at?: string;
+  srs_last_quality?: number;
 }
 
 export type SwipeDirection = 'up' | 'down' | 'left' | 'right';

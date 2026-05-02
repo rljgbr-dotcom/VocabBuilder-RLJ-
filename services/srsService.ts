@@ -27,15 +27,15 @@ const addDays = (isoDate: string, days: number): string => {
 };
 
 /**
- * Applies the SM-2 algorithm to a word given a quality score (0–5).
- * Returns the updated SRS fields without mutating the word.
+ * Applies the SM-2 algorithm to a given set of SRS metrics and a quality score (0–5).
+ * Returns the updated SRS fields.
  */
-export const applySM2 = (word: Word, q: number): SRSResult => {
+export const applySM2 = (currentSrs: Partial<SRSResult>, q: number): SRSResult => {
     const now = nowISO();
 
-    let interval   = word.srs_interval   ?? 0;
-    let repetition = word.srs_repetition ?? 0;
-    let efactor    = word.srs_efactor    ?? 2.5;
+    let interval   = currentSrs.srs_interval   ?? 0;
+    let repetition = currentSrs.srs_repetition ?? 0;
+    let efactor    = currentSrs.srs_efactor    ?? 2.5;
 
     // A. Update Easiness Factor
     efactor = efactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
@@ -85,9 +85,9 @@ export const applySM2 = (word: Word, q: number): SRSResult => {
 };
 
 /**
- * Returns true if a card is due for review now.
+ * Returns true if an item is due for review now based on its next_review date.
  */
-export const isDueToday = (word: Word): boolean => {
-    if (!word.srs_next_review) return true; // new card → always due
-    return new Date(word.srs_next_review) <= new Date();
+export const isDueToday = (nextReview?: string): boolean => {
+    if (!nextReview) return true; // new card → always due
+    return new Date(nextReview) <= new Date();
 };

@@ -18,7 +18,19 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
     const { t } = useTranslation();
 
     const handleStartGame = (gameScreen: Screen, minWords: number) => {
-        const activeWords = words.filter(w => w.active && w.translations[currentSourceLanguage]?.word);
+        if (gameScreen === 'verb-game' && currentSourceLanguage !== 'en') {
+            showModal('info', {
+                title: 'Unsupported Language',
+                content: 'The Verb Game is currently only supported in English. Please switch your active language in the Settings menu.',
+            });
+            return;
+        }
+
+        const isVerbGame = gameScreen === 'verb-game';
+        const activeWords = words.filter(w => 
+            (isVerbGame ? w.verb_game_active && w.wordType?.toLowerCase() === 'verb' : w.active) && 
+            w.translations[currentSourceLanguage]?.word
+        );
         if (activeWords.length < minWords) {
             showModal('info', {
                 title: t('gameSelection.notEnoughWords'),
@@ -78,6 +90,13 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
                     className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.typingTest')}</span>
+                </button>
+                <button
+                    onClick={() => handleStartGame('verb-game', 1)}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-blue-500/30"
+                >
+                    <span className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">NEW</span>
+                    <span className="text-xl font-bold">Verb Game</span>
                 </button>
             </div>
             <div className="game-options-container mt-6 max-w-md mx-auto space-y-4">

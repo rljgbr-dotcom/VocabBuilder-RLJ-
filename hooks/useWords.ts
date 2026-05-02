@@ -15,12 +15,17 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     const cleanedHeaderLine = headerLine.replace(/^\uFEFF/, '');
     // Auto-detect delimiter: semicolon or comma
     const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
-    const expectedHeader = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
-    const header = cleanedHeaderLine.toLowerCase().split(delimiter).map(h => h.trim().replace(/\s/g, ''));
+    const expectedHeader39 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presentexample', 'presenttranslation', 'preteritum', 'preteritumexample', 'preteritumtranslation', 'supinium', 'supiniumexample', 'supiniumtranslation'];
+    const expectedHeader30 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
+    
+    let isLegacy = false;
+    let expectedColCount = 39;
 
-    // Basic header validation (loose check to allow for minor whitespace diffs)
-    if (JSON.stringify(header.sort()) !== JSON.stringify(expectedHeader.sort())) {
-        console.error("Header mismatch. Expected:", expectedHeader, "Got:", header);
+    if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader30].sort())) {
+        isLegacy = true;
+        expectedColCount = 30;
+    } else if (JSON.stringify([...header].sort()) !== JSON.stringify([...expectedHeader39].sort())) {
+        console.error("Header mismatch. Expected:", expectedHeader39, "Got:", header);
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
     }
 
@@ -36,7 +41,7 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
         let values: string[] = [];
         let match;
         csvRegex.lastIndex = 0;
-        while ((match = csvRegex.exec(line)) !== null && values.length < expectedHeader.length) {
+        while ((match = csvRegex.exec(line)) !== null && values.length < expectedColCount) {
             values.push((match[2] !== undefined ? match[2] : match[1]).trim());
         }
 
@@ -57,6 +62,11 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
         const newWord: Omit<Word, 'id'> = {
             source, subtopic1, subtopic2, wordType: wordType || '', swedish, swedishExample,
             active: true, translations: {}, backCount: 0, difficulty: 'unmarked',
+            verb_game_active: false,
+            verb_rating_infinitiv: 5,
+            verb_rating_present: 5,
+            verb_rating_preteritum: 5,
+            verb_rating_supinium: 5
         };
 
         LANGUAGE_ORDER.forEach((lang, langIndex) => {
@@ -68,6 +78,19 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
                 newWord.translations[lang] = { word: sourceWord, example: sourceWordExample };
             }
         });
+        
+        if (!isLegacy) {
+            const verbIndex = 6 + (LANGUAGE_ORDER.length * 2);
+            newWord.present = values[verbIndex] || '';
+            newWord.presentExample = values[verbIndex + 1] || '';
+            newWord.presentTranslation = values[verbIndex + 2] || '';
+            newWord.preteritum = values[verbIndex + 3] || '';
+            newWord.preteritumExample = values[verbIndex + 4] || '';
+            newWord.preteritumTranslation = values[verbIndex + 5] || '';
+            newWord.supinium = values[verbIndex + 6] || '';
+            newWord.supiniumExample = values[verbIndex + 7] || '';
+            newWord.supiniumTranslation = values[verbIndex + 8] || '';
+        }
         
         if (Object.keys(newWord.translations).length === 0) {
             invalidCount++;
@@ -112,6 +135,10 @@ export const useWords = () => {
         setWords(prevWords => prevWords.map(w => w.id === wordId ? { ...w, active: !w.active } : w));
     }, [setWords]);
 
+    const toggleVerbGameActive = useCallback((wordId: string) => {
+        setWords(prevWords => prevWords.map(w => w.id === wordId ? { ...w, verb_game_active: !w.verb_game_active } : w));
+    }, [setWords]);
+
     const toggleWordSrsActive = useCallback((wordId: string) => {
         setWords(prevWords => prevWords.map(w => {
             if (w.id === wordId) {
@@ -132,6 +159,10 @@ export const useWords = () => {
 
     const toggleGroupActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
         setWords(prevWords => prevWords.map(w => filter(w) ? { ...w, active: isActive } : w));
+    }, [setWords]);
+
+    const toggleGroupVerbGameActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
+        setWords(prevWords => prevWords.map(w => filter(w) ? { ...w, verb_game_active: isActive } : w));
     }, [setWords]);
 
     const toggleGroupSrsActive = useCallback((filter: (word: Word) => boolean, isActive: boolean) => {
@@ -301,7 +332,7 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentExample', 'PresentTranslation', 'Preteritum', 'PreteritumExample', 'PreteritumTranslation', 'Supinium', 'SupiniumExample', 'SupiniumTranslation'];
             
             const rows = words.map(word => {
                 const rowData = [
@@ -317,6 +348,17 @@ export const useWords = () => {
                     rowData.push(translation?.word || '');
                     rowData.push(translation?.example || '');
                 });
+                
+                rowData.push(word.present || '');
+                rowData.push(word.presentExample || '');
+                rowData.push(word.presentTranslation || '');
+                rowData.push(word.preteritum || '');
+                rowData.push(word.preteritumExample || '');
+                rowData.push(word.preteritumTranslation || '');
+                rowData.push(word.supinium || '');
+                rowData.push(word.supiniumExample || '');
+                rowData.push(word.supiniumTranslation || '');
+                
                 return rowData.map(field => {
                     const str = String(field || '');
                     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -385,9 +427,11 @@ export const useWords = () => {
         deleteWord,
         deleteWords,
         toggleWordActive,
+        toggleVerbGameActive,
         toggleWordSrsActive,
         toggleWordFlag,
         toggleGroupActive,
+        toggleGroupVerbGameActive,
         toggleGroupSrsActive,
         syncActiveToSrs,
         syncSrsToActive,

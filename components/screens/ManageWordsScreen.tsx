@@ -16,7 +16,7 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive, saveWordState, loadWordState, listWordStates, deleteWordState } = useWords();
+    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, toggleGroupVerbGameActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive, saveWordState, loadWordState, listWordStates, deleteWordState } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +98,7 @@ const ManageWordsScreen: React.FC = () => {
     };
 
     const handleDownloadTemplate = () => {
-        const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`])];
+        const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentExample', 'PresentTranslation', 'Preteritum', 'PreteritumExample', 'PreteritumTranslation', 'Supinium', 'SupiniumExample', 'SupiniumTranslation'];
         const csvContent = header.join(',');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -192,6 +192,16 @@ const ManageWordsScreen: React.FC = () => {
                                     }}
                                     className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-purple-600 hover:text-white transition-colors"
                                 >{t('manageWords.srsRemoveAll')}</button>
+                            </div>
+                        </div>
+
+                        <div className="h-4 w-px bg-base-300"></div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase tracking-wider text-blue-400 font-bold">Verb Game:</span>
+                            <div className="flex gap-1.5">
+                                <button onClick={() => toggleGroupVerbGameActive((w) => w.wordType?.toLowerCase() === 'verb', true)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-blue-500 hover:text-white transition-colors">Add All Verbs</button>
+                                <button onClick={() => toggleGroupVerbGameActive(() => true, false)} className="px-3 py-1 text-xs bg-base-300 rounded-md hover:bg-blue-500 hover:text-white transition-colors">Remove All</button>
                             </div>
                         </div>
 
@@ -304,6 +314,7 @@ const ManageWordsScreen: React.FC = () => {
                 {/* Column header labels for the toggles */}
                 <div className="flex justify-end pr-1 gap-4 text-xs text-gray-500 font-medium mb-1">
                     <span className="w-10 text-center">{t('word.active')}</span>
+                    <span className="w-10 text-center text-blue-400">Verb</span>
                     <span className="w-10 text-center text-purple-400">SRS</span>
                     <span className="w-6"></span>
                     <span className="w-6"></span>
