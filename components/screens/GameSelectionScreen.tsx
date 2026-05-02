@@ -62,7 +62,7 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 <button
                     onClick={() => handleStartGame('flashcard-game', 1)}
-                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-indigo-500/30"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.flashcards')}</span>
                 </button>
@@ -82,19 +82,19 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
                 </button>
                 <button
                     onClick={() => handleStartGame('multiple-choice-game', 4)}
-                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-amber-500/30"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.multipleChoice')}</span>
                 </button>
                 <button
                     onClick={() => handleStartGame('matching-game', 6)}
-                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-green-500/30"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.matchingGame')}</span>
                 </button>
                 <button
                     onClick={() => handleStartGame('typing-test-game', 1)}
-                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors"
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-pink-500/30"
                 >
                     <span className="text-xl font-bold">{t('gameSelection.typingTest')}</span>
                 </button>

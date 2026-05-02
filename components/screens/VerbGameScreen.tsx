@@ -144,18 +144,28 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             return;
         }
 
-        // 4. Determine next card (strict highest unfamiliarity / confidence first, but not the same one immediately)
+        // 4. Determine next card (strict highest unfamiliarity / confidence first, but prioritize same verb stem)
         let candidates = newStack.map((c, i) => ({ card: c, idx: i }));
         if (candidates.length > 1) {
             candidates = candidates.filter(c => c.idx !== currentCardIndex);
         }
         
-        // Find max rating in filtered candidates
-        const maxRating = Math.max(...candidates.map(c => c.card.rating));
-        // Find all candidates with that max rating
-        const topCandidates = candidates.filter(c => c.card.rating === maxRating);
-        // Pick randomly among topCandidates with the max rating
-        const chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+        // Find if there are any remaining tenses for the same verb stem
+        const sameWordCandidates = candidates.filter(c => c.card.wordId === currentCard.wordId);
+        
+        let chosen;
+        if (sameWordCandidates.length > 0) {
+            // Pick max rating among the same word candidates
+            const maxRating = Math.max(...sameWordCandidates.map(c => c.card.rating));
+            const topSameWordCandidates = sameWordCandidates.filter(c => c.card.rating === maxRating);
+            chosen = topSameWordCandidates[Math.floor(Math.random() * topSameWordCandidates.length)];
+        } else {
+            // No more forms for the same verb stem, fallback to max rating in all candidates
+            const maxRating = Math.max(...candidates.map(c => c.card.rating));
+            const topCandidates = candidates.filter(c => c.card.rating === maxRating);
+            chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+        }
+        
         const nextIdx = chosen.idx;
 
         setActiveStack(newStack);
