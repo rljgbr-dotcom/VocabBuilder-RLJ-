@@ -143,22 +143,19 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             return;
         }
 
-        // 4. Determine next card (frequency based on rating)
-        const totalWeight = newStack.reduce((sum, c) => sum + c.rating, 0);
-        let randomVal = Math.random() * totalWeight;
-        let nextIdx = 0;
-        for (let i = 0; i < newStack.length; i++) {
-            randomVal -= newStack[i].rating;
-            if (randomVal <= 0) {
-                nextIdx = i;
-                break;
-            }
+        // 4. Determine next card (strict highest unfamiliarity / confidence first, but not the same one immediately)
+        let candidates = newStack.map((c, i) => ({ card: c, idx: i }));
+        if (candidates.length > 1) {
+            candidates = candidates.filter(c => c.idx !== currentCardIndex);
         }
         
-        // Prevent showing the exact same card twice in a row if possible
-        if (nextIdx === currentCardIndex && newStack.length > 1) {
-            nextIdx = (nextIdx + 1) % newStack.length;
-        }
+        // Find max rating in filtered candidates
+        const maxRating = Math.max(...candidates.map(c => c.card.rating));
+        // Find all candidates with that max rating
+        const topCandidates = candidates.filter(c => c.card.rating === maxRating);
+        // Pick randomly among topCandidates with the max rating
+        const chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+        const nextIdx = chosen.idx;
 
         setActiveStack(newStack);
         setCurrentCardIndex(nextIdx);
@@ -245,19 +242,37 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
 
     const currentCard = activeStack[currentCardIndex];
     const currentSum = activeStack.reduce((sum, c) => sum + c.rating, 0);
+    const uniqueVerbsCount = new Set(activeStack.map(c => c.wordId)).size;
 
     return (
         <div className="max-w-2xl mx-auto flex flex-col items-center">
             {/* Header Stats */}
-            <div className="w-full flex justify-between items-center mb-6 px-4 py-2 bg-base-200 rounded-lg shadow-sm border border-base-300">
+            <div className="w-full flex justify-between items-center mb-4 px-4 py-2 bg-base-200 rounded-lg shadow-sm border border-base-300">
                 <div className="flex flex-col">
-                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Stack Size</span>
-                    <span className="text-lg font-bold">{activeStack.length} tenses</span>
+                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Stack stats</span>
+                    <span className="text-base font-bold">{activeStack.length} cards from {uniqueVerbsCount} {uniqueVerbsCount === 1 ? 'verb' : 'verbs'}</span>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Unfamiliarity Sum</span>
-                    <span className="text-lg font-bold text-blue-400">{currentSum} / {intensityLimit}</span>
+                    <span className="text-base font-bold text-blue-400">{currentSum} / {intensityLimit}</span>
                 </div>
+            </div>
+
+            {/* In-Game intensityLimit modifier slider */}
+            <div className="w-full mb-6 px-4 py-2 bg-base-200 rounded-lg shadow-sm border border-base-300 flex flex-col gap-1">
+                <div className="flex justify-between items-center text-xs font-bold text-gray-400">
+                    <span>Intensity Limit (Limit: {intensityLimit})</span>
+                    <span>Adjust limit while playing</span>
+                </div>
+                <input 
+                    type="range" 
+                    min="10" 
+                    max="100" 
+                    step="5"
+                    value={intensityLimit} 
+                    onChange={(e) => setIntensityLimit(parseInt(e.target.value))}
+                    className="range range-xs range-secondary" 
+                />
             </div>
 
             {/* Flashcard — uses the same CSS classes as FlashcardGameScreen */}
@@ -266,8 +281,8 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             >
                 <div className={`card-inner w-full h-full relative shadow-xl rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     
-                    {/* FRONT — Swedish only */}
-                    <div className="card-face absolute inset-0 bg-gradient-to-br from-base-200 to-base-300 border border-base-100/10 rounded-2xl flex flex-col items-center justify-center p-8">
+                    {/* FRONT — Swedish only, updated premium styling */}
+                    <div className="card-face absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8">
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
@@ -275,19 +290,22 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                             Rating: {currentCard.rating}
                         </span>
                         
-                        <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4">{currentCard.swedish}</h2>
+                        <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4 text-indigo-100">{currentCard.swedish}</h2>
                         {currentCard.exampleSv && (
                             <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
                         )}
                         <p className="text-sm text-gray-500 animate-pulse mt-auto">Click to flip</p>
                     </div>
 
-                    {/* BACK — English answer */}
+                    {/* BACK — Complete Information */}
                     <div className="card-face card-back absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
-                        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-indigo-200">{currentCard.english || '---'}</h2>
+                        
+                        <h2 className="text-3xl md:text-4xl font-bold mb-1 text-indigo-100 leading-tight">{currentCard.swedish}</h2>
+                        <div className="w-16 h-0.5 bg-indigo-500/30 mb-2"></div>
+                        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-indigo-200 leading-tight">{currentCard.english || '---'}</h2>
                         
                         {(currentCard.exampleSv || currentCard.exampleEn) && (
                             <div className="bg-base-100/40 p-4 rounded-xl w-full max-w-md border border-white/5">
