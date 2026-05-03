@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Screen, Word, SrsVirtualCard, TenseSrsData } from '../../types';
 import { ttsService } from '../../services/ttsService';
 import { useTranslation } from '../../hooks/useTranslation';
-import { applySM2, isDueToday, nowISO } from '../../services/srsService';
+import { applySM2, isDueToday } from '../../services/srsService';
 import NoteTooltip from '../NoteTooltip';
 
 interface SmartCardsGameScreenProps {
@@ -12,12 +12,15 @@ interface SmartCardsGameScreenProps {
 }
 
 const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }) => {
-    const { words, updateWord, toggleWordFlag, toggleWordSrsActive } = useWords();
+    const { words, updateWord, toggleWordFlag } = useWords();
     const { currentLanguageInfo, currentSourceLanguage, disableAnimations } = useSettings();
     const { t } = useTranslation();
 
-    // The session queue is a flat array; we work through index 0 each time,
-    // and push "Again" cards to the back.
+    const [gameStarted, setGameStarted] = useState(false);
+    const [startFace, setStartFace] = useState<'swedish' | 'source'>(() => {
+        return (localStorage.getItem('smartcards_start_face') as 'swedish' | 'source') || 'swedish';
+    });
+
     const [sessionQueue, setSessionQueue] = useState<SrsVirtualCard[]>([]);
     const [isFlipped, setIsFlipped]       = useState(false);
     const [sessionDone, setSessionDone]   = useState(false);
@@ -27,7 +30,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
-    // ── Initialise ─────────────────────────────────────────────────────────────
+    // Initial load logic
     useEffect(() => {
         const srsVirtualCards: SrsVirtualCard[] = [];
         words.forEach(w => {
@@ -80,7 +83,6 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
         if (srsVirtualCards.length === 0) {
             setNoSrsWords(true);
-            setSessionDone(true);
             return;
         }
         const due = srsVirtualCards.filter(c => isDueToday(c.srs_next_review));
@@ -91,11 +93,15 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             setSessionQueue(due);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // only on mount
+    }, []);
+
+    const handleStartGame = () => {
+        localStorage.setItem('smartcards_start_face', startFace);
+        setGameStarted(true);
+    };
 
     const currentCard: SrsVirtualCard | undefined = sessionQueue[0];
 
-    // ── Rate card ──────────────────────────────────────────────────────────────
     const handleRateCard = useCallback((q: number) => {
         if (!currentCard || isTransitioning) return;
         setIsTransitioning(true);
@@ -140,8 +146,6 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         }, delay);
     }, [currentCard, words, updateWord, isTransitioning, disableAnimations]);
 
-    // ── Retire from SRS ────────────────────────────────────────────────────────
-    // Removes the word from the SRS group entirely and skips it for this session.
     const handleRetireFromSrs = useCallback(() => {
         if (!currentCard || isTransitioning) return;
         setIsTransitioning(true);
@@ -160,7 +164,6 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         }
 
         setIsFlipped(false);
-        
         const delay = disableAnimations ? 0 : 300;
 
         setTimeout(() => {
@@ -173,35 +176,48 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         }, delay);
     }, [currentCard, words, updateWord, isTransitioning, disableAnimations]);
 
-    // ── Keyboard Support ──────────────────────────────────────────────────────
+    // Keyboard bindings
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (!gameStarted) return;
             if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
             const systemKeys = ['Tab', 'Control', 'Alt', 'Meta', 'Shift', 'CapsLock', 'Escape'];
             if (systemKeys.includes(e.key)) return;
 
+            if (e.key === '5' || e.key.toLowerCase() === 'p') {
+                handleRetireFromSrs();
+                return;
+            }
+
+            if (e.key === ' ') {
+                e.preventDefault();
+            }
+
             if (!isFlipped) {
-                setIsFlipped(true);
+                if (e.key === ' ' || e.key === 'Enter') {
+                    setIsFlipped(true);
+                }
             } else {
                 switch (e.key) {
                     case '1': handleRateCard(0); break;
                     case '2': handleRateCard(3); break;
                     case '3': handleRateCard(4); break;
                     case '4': handleRateCard(5); break;
+                    case ' ': handleRateCard(4); break;
                 }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isFlipped, handleRateCard]);
+    }, [isFlipped, handleRateCard, gameStarted, handleRetireFromSrs]);
 
-    // ── Touch Gestures ────────────────────────────────────────────────────────
+    // Touch Gestures
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     };
 
     const handleTouchEnd = (e: React.TouchEvent) => {
-        if (!touchStartRef.current) return;
+        if (!touchStartRef.current || !gameStarted) return;
         const touchEnd = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
         const dx = touchEnd.x - touchStartRef.current.x;
         const dy = touchEnd.y - touchStartRef.current.y;
@@ -212,11 +228,11 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         if (Math.max(absDx, absDy) > minSwipeDistance) {
             if (!isFlipped) return;
             if (absDx > absDy) {
-                if (dx > 0) handleRateCard(4);
-                else handleRateCard(0);
+                if (dx > 0) handleRateCard(4); // Right swipe -> Good
+                else handleRateCard(0); // Left swipe -> Again
             } else {
-                if (dy > 0) handleRateCard(3);
-                else handleRateCard(5);
+                if (dy > 0) handleRateCard(3); // Down swipe -> Hard
+                else handleRateCard(5); // Up swipe -> Easy
             }
         } else {
             if (!isFlipped) setIsFlipped(true);
@@ -224,9 +240,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         touchStartRef.current = null;
     };
 
-    // ── Text/audio helpers ──────────────────────────────────────────────────────
     const sourceWord = words.find(w => w.id === currentCard?.wordId);
-    const startFace = (localStorage.getItem('flashcard_start_face') as 'swedish' | 'source') || 'swedish';
     const frontText    = startFace === 'swedish' ? currentCard?.swedish        : currentCard?.english;
     const backText     = startFace === 'swedish' ? currentCard?.english            : currentCard?.swedish;
     const frontExample = startFace === 'swedish' ? currentCard?.exampleSv : currentCard?.exampleEn;
@@ -234,15 +248,12 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const frontLang    = startFace === 'swedish' ? 'sv-SE'                     : currentLanguageInfo.ttsCode;
     const backLang     = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
 
-    // ── Metadata helpers ──────────────────────────────────────────────────────
     const formatRelativeTime = (isoString: string | undefined): string => {
         if (!isoString) return '';
         const past = new Date(isoString).getTime();
         const now = new Date().getTime();
         const diffInSeconds = Math.floor((now - past) / 1000);
-
         if (diffInSeconds < 60) return t('game.smartCards.justNow');
-
         const units = [
             { name: 'years',   seconds: 31536000 },
             { name: 'months',  seconds: 2592000 },
@@ -251,28 +262,19 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             { name: 'hours',   seconds: 3600 },
             { name: 'minutes', seconds: 60 }
         ];
-
         for (const unit of units) {
             const count = Math.floor(diffInSeconds / unit.seconds);
-            if (count >= 1) {
-                return t(`game.smartCards.${unit.name}Ago`, { count: String(count) });
-            }
+            if (count >= 1) return t(`game.smartCards.${unit.name}Ago`, { count: String(count) });
         }
         return t('game.smartCards.justNow');
     };
 
     const getLastQualityLabel = (q: number | undefined): string => {
         if (q === undefined) return '';
-        const map: Record<number, string> = {
-            0: t('game.smartCards.again'),
-            3: t('game.smartCards.hard'),
-            4: t('game.smartCards.good'),
-            5: t('game.smartCards.easy')
-        };
+        const map: Record<number, string> = { 0: t('game.smartCards.again'), 3: t('game.smartCards.hard'), 4: t('game.smartCards.good'), 5: t('game.smartCards.easy') };
         return map[q] || '';
     };
 
-    // Estimated next interval preview for button subtitles
     const previewInterval = (q: number): string => {
         if (!currentCard) return '';
         const { srs_interval: i } = applySM2(currentCard, q);
@@ -281,18 +283,15 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         return `~${i}d`;
     };
 
-    // ── Deck mastered / No SRS words ───────────────────────────────────────────
-    if (sessionDone) {
+    // Pre-Game Setup Screen
+    if (!gameStarted) {
         if (noSrsWords) {
             return (
                 <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
                     <div className="text-6xl">🧠</div>
                     <h2 className="text-3xl font-bold">{t('game.smartCards.noSrsWords')}</h2>
                     <p className="text-gray-400 max-w-sm">{t('game.smartCards.noSrsWordsSub')}</p>
-                    <button
-                        onClick={() => setScreen('manage-words')}
-                        className="bg-purple-600 text-white py-2 px-8 rounded-lg font-bold hover:bg-purple-700 transition-colors"
-                    >
+                    <button onClick={() => setScreen('manage-words')} className="bg-purple-600 text-white py-2 px-8 rounded-lg font-bold hover:bg-purple-700 transition-colors">
                         {t('game.smartCards.goToManageWords')}
                     </button>
                     <button onClick={() => setScreen('game-selection')} className="text-sm text-gray-400 hover:underline">
@@ -301,18 +300,65 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                 </div>
             );
         }
+
+        return (
+            <div className="max-w-md mx-auto flex flex-col h-full justify-center p-4 pt-12 md:pt-20 fade-in">
+                <div className="bg-base-200/50 backdrop-blur-md rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden text-center">
+                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+                    
+                    <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-2xl flex items-center justify-center mb-6 border border-purple-500/30">
+                        <span className="text-4xl">🧠</span>
+                    </div>
+
+                    <h2 className="text-2xl font-bold mb-2">Smart Cards Setup</h2>
+                    <p className="text-gray-400 text-sm mb-8">
+                        You have <strong className="text-white">{totalDueRef.current}</strong> cards due for review today.
+                    </p>
+
+                    <div className="space-y-4 mb-8 text-left">
+                        <label className="block text-sm font-semibold text-gray-300 uppercase tracking-wider mb-2">Show first</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setStartFace('swedish')}
+                                className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${startFace === 'swedish' ? 'bg-purple-600 border-purple-500 text-white shadow-[0_0_15px_rgba(147,51,234,0.3)]' : 'bg-base-300 border-white/5 text-gray-400 hover:bg-base-300/80'}`}
+                            >
+                                Svenska
+                            </button>
+                            <button
+                                onClick={() => setStartFace('source')}
+                                className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all ${startFace === 'source' ? 'bg-purple-600 border-purple-500 text-white shadow-[0_0_15px_rgba(147,51,234,0.3)]' : 'bg-base-300 border-white/5 text-gray-400 hover:bg-base-300/80'}`}
+                            >
+                                {currentLanguageInfo.englishName}
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleStartGame}
+                        disabled={totalDueRef.current === 0}
+                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-500 hover:to-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    >
+                        {totalDueRef.current === 0 ? "All caught up!" : "Start Review Session"}
+                    </button>
+
+                    <button onClick={() => setScreen('game-selection')} className="mt-6 text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                        {t('game.backToGames')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (sessionDone) {
         return (
             <div className="flex flex-col items-center justify-center text-center space-y-6 py-12">
                 <div className="text-6xl">🎉</div>
                 <h2 className="text-3xl font-bold">{t('game.smartCards.deckMastered')}</h2>
                 <p className="text-gray-400 max-w-sm">{t('game.smartCards.deckMasteredSub')}</p>
-                <div className="bg-base-200 rounded-xl p-5 text-sm text-gray-400">
+                <div className="bg-base-200/50 backdrop-blur rounded-xl p-5 text-sm text-gray-400 border border-white/5">
                     {t('game.smartCards.reviewed', { count: String(reviewedCount) })}
                 </div>
-                <button
-                    onClick={() => setScreen('game-selection')}
-                    className="bg-primary text-primary-content py-2 px-8 rounded-lg font-bold hover:bg-primary-focus transition-colors"
-                >
+                <button onClick={() => setScreen('game-selection')} className="bg-purple-600 text-white py-2 px-8 rounded-xl font-bold hover:bg-purple-500 transition-colors shadow-lg">
                     {t('game.backToGames')}
                 </button>
             </div>
@@ -323,191 +369,134 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         return <div className="text-center py-12"><p className="text-xl">{t('game.flashcards.loading')}</p></div>;
     }
 
-    const progressPct = totalDueRef.current > 0
-        ? Math.min((reviewedCount / totalDueRef.current) * 100, 100)
-        : 0;
-
+    const progressPct = totalDueRef.current > 0 ? Math.min((reviewedCount / totalDueRef.current) * 100, 100) : 0;
     const isNewCard = !currentCard.srs_next_review;
     const intervalBadge = isNewCard ? t('game.smartCards.newCard') : `${currentCard.srs_interval ?? 0}d`;
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-full">
-            {/* Progress bar */}
-            <div className="w-full max-w-xl mx-auto mb-4 shrink-0">
-                <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-                    <span>{t('game.smartCards.reviewed', { count: String(reviewedCount) })}</span>
-                    <span>{t('game.smartCards.dueToday', { count: String(totalDueRef.current) })}</span>
+        <div className="max-w-4xl mx-auto flex flex-col h-full pt-4 pb-20">
+            {/* Progress */}
+            <div className="w-full max-w-xl mx-auto mb-6 shrink-0 px-4">
+                <div className="flex justify-between text-xs text-gray-500 font-medium mb-2">
+                    <span>{reviewedCount} reviewed</span>
+                    <span>{totalDueRef.current} total due</span>
                 </div>
-                <div className="w-full h-1.5 bg-base-300 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${progressPct}%` }}
-                    />
+                <div className="w-full h-2 bg-base-300/50 rounded-full overflow-hidden border border-white/5">
+                    <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]" style={{ width: `${progressPct}%` }} />
                 </div>
             </div>
 
-            {/* Card */}
-            <div 
-                className="w-full max-w-xl mx-auto mb-5 shrink-0 swipe-area touch-none"
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-            >
-                <div className="aspect-[16/9] perspective-[1000px]">
-                    <div
-                        className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''}`}
-                        onClick={() => !isFlipped && setIsFlipped(true)}
-                    >
-                        {/* Front */}
-                        <div className="card-face absolute w-full h-full bg-base-200 rounded-xl flex flex-col items-center justify-center p-6 text-center">
-                            <div className="text-xs text-gray-500 mb-3 uppercase tracking-wider font-medium">
+            {/* Main Card Area */}
+            <div className="w-full max-w-xl mx-auto mb-8 shrink-0 swipe-area touch-none px-4" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+                <div className="aspect-[4/3] md:aspect-[16/10] perspective-[1200px]">
+                    <div className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''}`} onClick={() => !isFlipped && setIsFlipped(true)}>
+                        
+                        {/* Front Face */}
+                        <div className="card-face absolute w-full h-full rounded-3xl p-8 text-center bg-gradient-to-b from-base-200 to-base-300 border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center">
+                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-3xl opacity-50"></div>
+                            
+                            <div className="text-xs text-blue-400/80 mb-4 uppercase tracking-widest font-bold">
                                 {startFace === 'swedish' ? 'Svenska' : currentLanguageInfo.englishName}
                             </div>
-                            <span className="text-2xl md:text-4xl font-bold">{frontText}</span>
-                            {frontExample && <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">{frontExample}</p>}
-                            <button
-                                onClick={e => { e.stopPropagation(); ttsService.speak(`${frontText} ${frontExample ?? ''}`, frontLang); }}
-                                className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-300/50 transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" />
-                                </svg>
-                            </button>
-                            {/* Breadcrumbs */}
-                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${sourceWord?.source} > ${sourceWord?.subtopic1} > ${sourceWord?.subtopic2}`}>
-                                {[sourceWord?.source, sourceWord?.subtopic1, sourceWord?.subtopic2].filter(Boolean).join(' > ')}
-                                {currentCard.tense !== 'infinitiv' && ` > ${currentCard.tense}`}
+                            <span className="text-3xl md:text-5xl font-bold text-white drop-shadow-md">{frontText}</span>
+                            {frontExample && <p className="text-base md:text-lg text-gray-400 mt-6 leading-relaxed max-w-sm">{frontExample}</p>}
+                            
+                            {/* Meta & Breadcrumbs */}
+                            <div className="absolute top-4 left-4 flex gap-2">
+                                <div className="text-[10px] md:text-xs text-white/80 bg-white/10 backdrop-blur px-3 py-1 rounded-full border border-white/5 font-semibold">
+                                    {intervalBadge}
+                                </div>
                             </div>
-                            {/* SRS badge */}
-                            <div className="absolute top-3 left-3 text-xs text-gray-500 bg-base-300 px-2 py-0.5 rounded-full flex gap-2 items-center">
-                                <span className="font-bold">{intervalBadge}</span>
-                                {currentCard.srs_last_reviewed_at && (
-                                    <>
-                                        <span className="opacity-30">|</span>
-                                        <span className="opacity-80">
-                                            {formatRelativeTime(currentCard.srs_last_reviewed_at)}
-                                        </span>
-                                        {currentCard.srs_last_quality !== undefined && (
-                                            <>
-                                                <span className="opacity-30">•</span>
-                                                <span className="opacity-80">
-                                                    {getLastQualityLabel(currentCard.srs_last_quality)}
-                                                </span>
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+
                             <button 
                                 onClick={e => { e.stopPropagation(); toggleWordFlag(sourceWord?.id || ''); }}
-                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${sourceWord?.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-300'}`}
-                                title="Flag translation"
+                                className={`absolute top-4 right-4 p-2 rounded-full transition-all ${sourceWord?.flagged ? 'text-red-400 bg-red-400/20 shadow-[0_0_15px_rgba(248,113,113,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                                 </svg>
+                            </button>
+
+                            <button onClick={e => { e.stopPropagation(); ttsService.speak(`${frontText} ${frontExample ?? ''}`, frontLang); }} className="absolute bottom-4 right-4 p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
                             </button>
                         </div>
 
-                        {/* Back */}
-                        <div className="card-face card-back absolute w-full h-full bg-base-300 rounded-xl flex flex-col items-center justify-center p-6 text-center">
-                            <div className="text-xs text-gray-500 mb-3 uppercase tracking-wider font-medium">
+                        {/* Back Face */}
+                        <div className="card-face card-back absolute w-full h-full rounded-3xl p-8 text-center bg-gradient-to-b from-base-100 to-base-200 border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center">
+                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-t-3xl opacity-50"></div>
+
+                            <div className="text-xs text-emerald-400/80 mb-4 uppercase tracking-widest font-bold">
                                 {startFace === 'swedish' ? currentLanguageInfo.englishName : 'Svenska'}
                             </div>
-                            <span className="text-2xl md:text-4xl font-bold">{backText}<NoteTooltip note={currentCard.note} /></span>
-                            {backExample && <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">{backExample}</p>}
-                            <button
-                                onClick={e => { e.stopPropagation(); ttsService.speak(`${backText} ${backExample ?? ''}`, backLang); }}
-                                className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50 transition-colors"
+                            
+                            <div className="flex items-center justify-center gap-3">
+                                <span className="text-3xl md:text-5xl font-bold text-white drop-shadow-md">{backText}</span>
+                                <div onClick={e => e.stopPropagation()}><NoteTooltip note={currentCard.note} /></div>
+                            </div>
+                            
+                            {backExample && <p className="text-base md:text-lg text-gray-400 mt-6 leading-relaxed max-w-sm">{backExample}</p>}
+                            
+                            {/* Promote / Retire Button */}
+                            <button 
+                                onClick={e => { e.stopPropagation(); handleRetireFromSrs(); }}
+                                className="absolute top-4 left-4 p-2 px-3 rounded-full bg-white/5 border border-white/10 hover:bg-yellow-500/20 hover:border-yellow-500/40 hover:text-yellow-400 text-gray-400 text-xs font-bold transition-all flex items-center gap-2"
+                                title="Promote card (Mastered) [Shortcut: 5]"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" />
-                                </svg>
+                                👑 <span className="hidden sm:inline">Promote</span>
                             </button>
+
                             <button 
                                 onClick={e => { e.stopPropagation(); toggleWordFlag(sourceWord?.id || ''); }}
-                                className={`absolute top-2 right-3 p-1.5 rounded-full transition-colors ${sourceWord?.flagged ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:bg-base-100'}`}
-                                title="Flag translation"
+                                className={`absolute top-4 right-4 p-2 rounded-full transition-all ${sourceWord?.flagged ? 'text-red-400 bg-red-400/20 shadow-[0_0_15px_rgba(248,113,113,0.3)]' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill={sourceWord?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                                 </svg>
                             </button>
-                            {/* Breadcrumbs */}
-                            <div className="absolute bottom-3 left-3 text-[10px] text-gray-500 font-medium truncate max-w-[70%]" title={`${sourceWord?.source} > ${sourceWord?.subtopic1} > ${sourceWord?.subtopic2}`}>
-                                {[sourceWord?.source, sourceWord?.subtopic1, sourceWord?.subtopic2].filter(Boolean).join(' > ')}
-                                {currentCard.tense !== 'infinitiv' && ` > ${currentCard.tense}`}
-                            </div>
+
+                            <button onClick={e => { e.stopPropagation(); ttsService.speak(`${backText} ${backExample ?? ''}`, backLang); }} className="absolute bottom-4 right-4 p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Controls */}
-            <div className="w-full max-w-xl mx-auto shrink-0 space-y-3">
+            {/* SRS Controls */}
+            <div className="w-full max-w-xl mx-auto shrink-0 px-4 pb-8">
                 {!isFlipped ? (
-                    <button
-                        onClick={() => setIsFlipped(true)}
-                        className="w-full py-4 bg-primary text-primary-content font-bold rounded-xl hover:bg-primary-focus transition-colors text-lg"
-                    >
-                        {t('game.smartCards.showAnswer')}
+                    <button onClick={() => setIsFlipped(true)} className="w-full py-4 md:py-5 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-2xl hover:bg-white/20 transition-all text-lg shadow-xl">
+                        Tap to flip or press Space
                     </button>
                 ) : (
-                    <>
-                        <p className="text-center text-xs text-gray-400 uppercase tracking-wider">
-                            {t('game.smartCards.howWell')}
-                        </p>
-                        <div className="grid grid-cols-4 gap-2">
-                            <button
-                                onClick={() => handleRateCard(0)}
-                                className="flex flex-col items-center py-3 px-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold transition-colors"
-                            >
-                                <span className="text-sm">{t('game.smartCards.again')}</span>
-                                <span className="text-xs opacity-70 mt-0.5">{previewInterval(0)}</span>
-                            </button>
-                            <button
-                                onClick={() => handleRateCard(3)}
-                                className="flex flex-col items-center py-3 px-1 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition-colors"
-                            >
-                                <span className="text-sm">{t('game.smartCards.hard')}</span>
-                                <span className="text-xs opacity-70 mt-0.5">{previewInterval(3)}</span>
-                            </button>
-                            <button
-                                onClick={() => handleRateCard(4)}
-                                className="flex flex-col items-center py-3 px-1 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold transition-colors"
-                            >
-                                <span className="text-sm">{t('game.smartCards.good')}</span>
-                                <span className="text-xs opacity-70 mt-0.5">{previewInterval(4)}</span>
-                            </button>
-                            <button
-                                onClick={() => handleRateCard(5)}
-                                className="flex flex-col items-center py-3 px-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-colors"
-                            >
-                                <span className="text-sm">{t('game.smartCards.easy')}</span>
-                                <span className="text-xs opacity-70 mt-0.5">{previewInterval(5)}</span>
-                            </button>
-                        </div>
-                    </>
+                    <div className="grid grid-cols-4 gap-2 md:gap-3">
+                        <button onClick={() => handleRateCard(0)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-red-900/50 to-red-950/80 border border-red-500/30 hover:border-red-400 hover:shadow-[0_0_20px_rgba(248,113,113,0.3)] transition-all overflow-hidden">
+                            <span className="text-red-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Again</span>
+                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(0)}</span>
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-red-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        </button>
+                        <button onClick={() => handleRateCard(3)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-orange-900/50 to-orange-950/80 border border-orange-500/30 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(251,146,60,0.3)] transition-all overflow-hidden">
+                            <span className="text-orange-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Hard</span>
+                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(3)}</span>
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-orange-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        </button>
+                        <button onClick={() => handleRateCard(4)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-green-900/50 to-green-950/80 border border-green-500/30 hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.3)] transition-all overflow-hidden">
+                            <span className="text-green-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Good</span>
+                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(4)}</span>
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-green-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        </button>
+                        <button onClick={() => handleRateCard(5)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-blue-900/50 to-blue-950/80 border border-blue-500/30 hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] transition-all overflow-hidden">
+                            <span className="text-blue-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Easy</span>
+                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(5)}</span>
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        </button>
+                    </div>
                 )}
-
-                {/* Retire button — always visible */}
-                <button
-                    onClick={handleRetireFromSrs}
-                    className="w-full py-2 bg-base-300 text-gray-400 hover:bg-red-900/40 hover:text-red-400 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-transparent hover:border-red-700/30"
-                    title="Remove this word from the SRS group entirely and skip it"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    Retire from SRS
-                </button>
             </div>
 
-            {/* Remaining count + back link */}
-            <div className="max-w-xl mx-auto flex justify-between items-center pt-4 w-full shrink-0 text-xs text-gray-500">
-                <span>{t('game.smartCards.remaining', { count: String(sessionQueue.length) })}</span>
-                <button onClick={() => setScreen('game-selection')} className="hover:underline">
-                    {t('game.backToGames')}
-                </button>
+            <div className="text-center text-sm text-gray-500 mt-2">
+                <button onClick={() => setScreen('game-selection')} className="hover:text-white transition-colors">Exit Session</button>
             </div>
         </div>
     );
