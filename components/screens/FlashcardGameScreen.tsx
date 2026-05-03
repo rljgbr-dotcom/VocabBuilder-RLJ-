@@ -809,13 +809,8 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                         </div>
                         {/* Back Face */}
                         <div className="card-face card-back absolute w-full h-full bg-base-300 rounded-xl flex flex-col items-center justify-center p-4 text-center">
-                            <span className="text-2xl md:text-4xl font-bold">{backText}</span>
-                            {backExample && (
-                                <p className="text-sm italic text-gray-400 mt-2">
-                                    {backExample}
-                                    <NoteTooltip note={currentWord?.swedishExampleNote} />
-                                </p>
-                            )}
+                            <span className="text-2xl md:text-4xl font-bold">{backText}<NoteTooltip note={currentWord?.swedishNote} /></span>
+                            {backExample && <p className="text-sm italic text-gray-400 mt-2">{backExample}</p>}
                              <button onClick={e => {e.stopPropagation(); ttsService.speak(backAudioText, backLang);}} className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>

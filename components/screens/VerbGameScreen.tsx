@@ -66,10 +66,10 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 }
             };
 
-            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5, w.swedishExampleNote);
-            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5, w.presentExampleNote);
-            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5, w.preteritumExampleNote);
-            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumExampleNote);
+            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5, w.swedishNote);
+            addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5, w.presentNote);
+            addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5, w.preteritumNote);
+            addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumNote);
         });
         return pool;
     }, [words]);
@@ -407,7 +407,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                             onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.swedish, 'sv-SE'); }}
                             className="text-3xl md:text-4xl font-bold mb-1 text-indigo-100 leading-tight cursor-pointer hover:text-indigo-300 transition-colors"
                         >
-                            {currentCard.swedish}
+                            {currentCard.swedish}<NoteTooltip note={currentCard.note} />
                         </h2>
                         <div className="w-16 h-0.5 bg-indigo-500/30 mb-2"></div>
                         <h2 
@@ -425,7 +425,6 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                                         className="text-lg italic text-gray-300 cursor-pointer hover:text-indigo-300 transition-colors"
                                     >
                                         {currentCard.exampleSv}
-                                        <NoteTooltip note={currentCard.note} />
                                     </p>
                                 )}
                                 {currentCard.exampleEn && (

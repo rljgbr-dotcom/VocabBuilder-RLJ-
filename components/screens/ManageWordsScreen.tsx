@@ -98,7 +98,7 @@ const ManageWordsScreen: React.FC = () => {
     };
 
     const handleDownloadTemplate = () => {
-        const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishExampleNote', 'PresentExampleNote', 'PreteritumExampleNote', 'SupiniumExampleNote'];
+        const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishNote', 'PresentNote', 'PreteritumNote', 'SupiniumNote'];
         const csvContent = header.join(',');
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");

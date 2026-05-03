@@ -80,11 +80,11 @@ export interface Word {
   verb_history_supinium?: number[];
   verb_shown_supinium?: number;
 
-  // Per-example usage notes (shown via ⓘ icon in games)
-  swedishExampleNote?: string;
-  presentExampleNote?: string;
-  preteritumExampleNote?: string;
-  supiniumExampleNote?: string;
+  // Per-word usage notes (shown via ⓘ icon in games next to the word)
+  swedishNote?: string;
+  presentNote?: string;
+  preteritumNote?: string;
+  supiniumNote?: string;
 
   // SRS data for secondary tenses (infinitiv uses the root srs_* fields)
   srs_present?: TenseSrsData;

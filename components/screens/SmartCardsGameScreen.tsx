@@ -40,7 +40,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                     english: w.translations[currentSourceLanguage]?.word || '',
                     exampleSv: w.swedishExample || '',
                     exampleEn: w.translations[currentSourceLanguage]?.example || '',
-                    note: w.swedishExampleNote,
+                    note: w.swedishNote,
                     srs_interval: w.srs_interval || 0,
                     srs_repetition: w.srs_repetition || 0,
                     srs_efactor: w.srs_efactor || 2.5,
@@ -72,9 +72,9 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             };
 
             if (w.wordType?.toLowerCase() === 'verb') {
-                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present, w.presentExampleNote);
-                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum, w.preteritumExampleNote);
-                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium, w.supiniumExampleNote);
+                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present, w.presentNote);
+                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum, w.preteritumNote);
+                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium, w.supiniumNote);
             }
         });
 
@@ -413,13 +413,8 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                             <div className="text-xs text-gray-500 mb-3 uppercase tracking-wider font-medium">
                                 {startFace === 'swedish' ? currentLanguageInfo.englishName : 'Svenska'}
                             </div>
-                            <span className="text-2xl md:text-4xl font-bold">{backText}</span>
-                            {backExample && (
-                                <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">
-                                    {backExample}
-                                    <NoteTooltip note={currentCard.note} />
-                                </p>
-                            )}
+                            <span className="text-2xl md:text-4xl font-bold">{backText}<NoteTooltip note={currentCard.note} /></span>
+                            {backExample && <p className="text-sm italic text-gray-400 mt-3 leading-relaxed">{backExample}</p>}
                             <button
                                 onClick={e => { e.stopPropagation(); ttsService.speak(`${backText} ${backExample ?? ''}`, backLang); }}
                                 className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50 transition-colors"

@@ -17,8 +17,8 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
     const expectedHeader42 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presenttranslation', 'presentexample', 'presentexampletranslation', 'preteritum', 'preteritumtranslation', 'preteritumexample', 'preteritumexampletranslation', 'supinium', 'supiniumtranslation', 'supiniumexample', 'supiniumexampletranslation'];
     const expectedHeader43 = [...expectedHeader42, 'id'];
-    const expectedHeader46 = [...expectedHeader42, 'swedishexamplenote', 'presentexamplenote', 'preteritumexamplenote', 'supiniumexamplenote'];
-    const expectedHeader47 = [...expectedHeader43, 'swedishexamplenote', 'presentexamplenote', 'preteritumexamplenote', 'supiniumexamplenote'];
+    const expectedHeader46 = [...expectedHeader42, 'swedishnote', 'presentnote', 'preteritumnote', 'supiniumnote'];
+    const expectedHeader47 = [...expectedHeader43, 'swedishnote', 'presentnote', 'preteritumnote', 'supiniumnote'];
     const expectedHeader30 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
     
     let isLegacy = false;
@@ -110,15 +110,15 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
             }
             // Note columns (46 = no id + 4 notes; 47 = id + 4 notes)
             if (expectedColCount === 46) {
-                newWord.swedishExampleNote    = values[verbIndex + 12] || '';
-                newWord.presentExampleNote    = values[verbIndex + 13] || '';
-                newWord.preteritumExampleNote = values[verbIndex + 14] || '';
-                newWord.supiniumExampleNote   = values[verbIndex + 15] || '';
+                newWord.swedishNote    = values[verbIndex + 12] || '';
+                newWord.presentNote    = values[verbIndex + 13] || '';
+                newWord.preteritumNote = values[verbIndex + 14] || '';
+                newWord.supiniumNote   = values[verbIndex + 15] || '';
             } else if (expectedColCount === 47) {
-                newWord.swedishExampleNote    = values[verbIndex + 13] || '';
-                newWord.presentExampleNote    = values[verbIndex + 14] || '';
-                newWord.preteritumExampleNote = values[verbIndex + 15] || '';
-                newWord.supiniumExampleNote   = values[verbIndex + 16] || '';
+                newWord.swedishNote    = values[verbIndex + 13] || '';
+                newWord.presentNote    = values[verbIndex + 14] || '';
+                newWord.preteritumNote = values[verbIndex + 15] || '';
+                newWord.supiniumNote   = values[verbIndex + 16] || '';
             }
         }
         
@@ -380,10 +380,10 @@ export const useWords = () => {
                                 supiniumExampleTranslation: nw.supiniumExampleTranslation || existingWord.supiniumExampleTranslation,
                                 original_csv_id: nw.original_csv_id || existingWord.original_csv_id,
                                 // Merge notes (CSV wins if non-empty)
-                                swedishExampleNote: nw.swedishExampleNote || existingWord.swedishExampleNote,
-                                presentExampleNote: nw.presentExampleNote || existingWord.presentExampleNote,
-                                preteritumExampleNote: nw.preteritumExampleNote || existingWord.preteritumExampleNote,
-                                supiniumExampleNote: nw.supiniumExampleNote || existingWord.supiniumExampleNote,
+                                swedishNote: nw.swedishNote || existingWord.swedishNote,
+                                presentNote: nw.presentNote || existingWord.presentNote,
+                                preteritumNote: nw.preteritumNote || existingWord.preteritumNote,
+                                supiniumNote: nw.supiniumNote || existingWord.supiniumNote,
                             });
                             totalUpdated++;
                         } else {
@@ -415,7 +415,7 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishExampleNote', 'PresentExampleNote', 'PreteritumExampleNote', 'SupiniumExampleNote'];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishNote', 'PresentNote', 'PreteritumNote', 'SupiniumNote'];
             
             const rows = words.map(word => {
                 const rowData = [
@@ -446,10 +446,10 @@ export const useWords = () => {
                 rowData.push(word.supiniumExampleTranslation || '');
                 rowData.push(word.original_csv_id || '');
                 // Note columns
-                rowData.push(word.swedishExampleNote || '');
-                rowData.push(word.presentExampleNote || '');
-                rowData.push(word.preteritumExampleNote || '');
-                rowData.push(word.supiniumExampleNote || '');
+                rowData.push(word.swedishNote || '');
+                rowData.push(word.presentNote || '');
+                rowData.push(word.preteritumNote || '');
+                rowData.push(word.supiniumNote || '');
                 
                 return rowData.map(field => {
                     const str = String(field || '');
