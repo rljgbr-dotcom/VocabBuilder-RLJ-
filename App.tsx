@@ -241,7 +241,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v5.2.1
+                    v5.3.0
                 </div>
             </footer>
 
