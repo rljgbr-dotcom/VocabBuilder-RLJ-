@@ -17,26 +17,17 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
     const delimiter = cleanedHeaderLine.includes(';') ? ';' : ',';
     const expectedHeader42 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`]), 'present', 'presenttranslation', 'presentexample', 'presentexampletranslation', 'preteritum', 'preteritumtranslation', 'preteritumexample', 'preteritumexampletranslation', 'supinium', 'supiniumtranslation', 'supiniumexample', 'supiniumexampletranslation'];
     const expectedHeader43 = [...expectedHeader42, 'id'];
-    const expectedHeader46 = [...expectedHeader42, 'swedishnote', 'presentnote', 'preteritumnote', 'supiniumnote'];
-    const expectedHeader47 = [...expectedHeader43, 'swedishnote', 'presentnote', 'preteritumnote', 'supiniumnote'];
     const expectedHeader30 = ['source', 'subtopic1', 'subtopic2', 'wordtype', 'swedish', 'swedishexample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_word`, `${lang}_example`])];
     
     let isLegacy = false;
-    let expectedColCount = 42;
 
     const header = cleanedHeaderLine.split(delimiter).map(c => c.trim().toLowerCase());
+    let expectedColCount = header.length;
 
     if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader30].sort())) {
         isLegacy = true;
-        expectedColCount = 30;
-    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader47].sort())) {
-        expectedColCount = 47;
-    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader46].sort())) {
-        expectedColCount = 46;
-    } else if (JSON.stringify([...header].sort()) === JSON.stringify([...expectedHeader43].sort())) {
-        expectedColCount = 43;
-    } else if (JSON.stringify([...header].sort()) !== JSON.stringify([...expectedHeader42].sort())) {
-        console.error("Header mismatch. Expected:", expectedHeader42, "Got:", header);
+    } else if (header.length < expectedHeader42.length) {
+        console.error("Header mismatch. Expected at least:", expectedHeader42.length, "columns. Got:", header.length);
         return { newWords: [], duplicateCount: 0, invalidCount: lines.length, addedCount: 0 };
     }
 
@@ -104,22 +95,23 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
             newWord.supiniumTranslation = values[verbIndex + 9] || '';
             newWord.supiniumExample = values[verbIndex + 10] || '';
             newWord.supiniumExampleTranslation = values[verbIndex + 11] || '';
-            // col 12 = id (optional)
-            if (expectedColCount === 43 || expectedColCount === 47) {
-                newWord.original_csv_id = values[verbIndex + 12] || '';
-            }
-            // Note columns (46 = no id + 4 notes; 47 = id + 4 notes)
-            if (expectedColCount === 46) {
-                newWord.swedishNote    = values[verbIndex + 12] || '';
-                newWord.presentNote    = values[verbIndex + 13] || '';
-                newWord.preteritumNote = values[verbIndex + 14] || '';
-                newWord.supiniumNote   = values[verbIndex + 15] || '';
-            } else if (expectedColCount === 47) {
-                newWord.swedishNote    = values[verbIndex + 13] || '';
-                newWord.presentNote    = values[verbIndex + 14] || '';
-                newWord.preteritumNote = values[verbIndex + 15] || '';
-                newWord.supiniumNote   = values[verbIndex + 16] || '';
-            }
+            const idIdx = header.indexOf('id');
+            if (idIdx !== -1) newWord.original_csv_id = values[idIdx] || '';
+            
+            const swedishNoteIdx = header.indexOf('swedishnote');
+            if (swedishNoteIdx !== -1) newWord.swedishNote = values[swedishNoteIdx] || '';
+            
+            const presentNoteIdx = header.indexOf('presentnote');
+            if (presentNoteIdx !== -1) newWord.presentNote = values[presentNoteIdx] || '';
+            
+            const preteritumNoteIdx = header.indexOf('preteritumnote');
+            if (preteritumNoteIdx !== -1) newWord.preteritumNote = values[preteritumNoteIdx] || '';
+            
+            const supiniumNoteIdx = header.indexOf('supiniumnote');
+            if (supiniumNoteIdx !== -1) newWord.supiniumNote = values[supiniumNoteIdx] || '';
+
+            const generalNoteIdx = header.indexOf('generalnote');
+            if (generalNoteIdx !== -1) newWord.generalNote = values[generalNoteIdx] || '';
         }
         
         if (Object.keys(newWord.translations).length === 0) {
@@ -384,6 +376,7 @@ export const useWords = () => {
                                 presentNote: nw.presentNote || existingWord.presentNote,
                                 preteritumNote: nw.preteritumNote || existingWord.preteritumNote,
                                 supiniumNote: nw.supiniumNote || existingWord.supiniumNote,
+                                generalNote: nw.generalNote || existingWord.generalNote,
                             });
                             totalUpdated++;
                         } else {
@@ -415,7 +408,7 @@ export const useWords = () => {
         }
 
         try {
-            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishNote', 'PresentNote', 'PreteritumNote', 'SupiniumNote'];
+            const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishNote', 'PresentNote', 'PreteritumNote', 'SupiniumNote', 'GeneralNote'];
             
             const rows = words.map(word => {
                 const rowData = [
@@ -450,6 +443,7 @@ export const useWords = () => {
                 rowData.push(word.presentNote || '');
                 rowData.push(word.preteritumNote || '');
                 rowData.push(word.supiniumNote || '');
+                rowData.push(word.generalNote || '');
                 
                 return rowData.map(field => {
                     const str = String(field || '');
