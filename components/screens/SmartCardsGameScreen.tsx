@@ -40,7 +40,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
                     english: w.translations[currentSourceLanguage]?.word || '',
                     exampleSv: w.swedishExample || '',
                     exampleEn: w.translations[currentSourceLanguage]?.example || '',
-                    note: w.generalNote || w.swedishNote,
+                    note: w.swedishNote,
                     srs_interval: w.srs_interval || 0,
                     srs_repetition: w.srs_repetition || 0,
                     srs_efactor: w.srs_efactor || 2.5,

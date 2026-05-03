@@ -66,7 +66,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 }
             };
 
-            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5, w.generalNote || w.swedishNote);
+            addIfUnpromoted('infinitiv', w.swedish, w.translations['en']?.word || '', w.swedishExample || '', w.translations['en']?.example || '', w.verb_rating_infinitiv ?? 5, w.swedishNote);
             addIfUnpromoted('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.verb_rating_present ?? 5, w.presentNote);
             addIfUnpromoted('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.verb_rating_preteritum ?? 5, w.preteritumNote);
             addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumNote);

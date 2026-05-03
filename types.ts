@@ -85,7 +85,6 @@ export interface Word {
   presentNote?: string;
   preteritumNote?: string;
   supiniumNote?: string;
-  generalNote?: string;
 
   // SRS data for secondary tenses (infinitiv uses the root srs_* fields)
   srs_present?: TenseSrsData;
