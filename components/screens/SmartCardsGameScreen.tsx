@@ -6,6 +6,16 @@ import { ttsService } from '../../services/ttsService';
 import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, isDueToday } from '../../services/srsService';
 import NoteTooltip from '../NoteTooltip';
+import UndoButton from '../UndoButton';
+
+interface SrsGameHistoryState {
+    sessionQueue: SrsVirtualCard[];
+    reviewedCount: number;
+    wordBeforeUpdate: Word;
+    ratedQuality?: number;
+    actionType: 'rate' | 'retire';
+    status: 'done' | 'undone';
+}
 
 interface SmartCardsGameScreenProps {
     setScreen: (screen: Screen) => void;
@@ -29,6 +39,8 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const totalDueRef = useRef(0);
     const touchStartRef = useRef<{ x: number, y: number } | null>(null);
     const [isTransitioning, setIsTransitioning] = useState(false);
+    
+    const [history, setHistory] = useState<SrsGameHistoryState | null>(null);
 
     // Initial load logic
     useEffect(() => {
@@ -106,10 +118,20 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         if (!currentCard || isTransitioning) return;
         setIsTransitioning(true);
 
+        const word = words.find(w => w.id === currentCard.wordId);
+        
+        setHistory({
+            sessionQueue: [...sessionQueue],
+            reviewedCount,
+            wordBeforeUpdate: word ? { ...word } : {} as Word,
+            ratedQuality: q,
+            actionType: 'rate',
+            status: 'done'
+        });
+
         const srsResult = applySM2(currentCard, q);
         const updatedCard: SrsVirtualCard = { ...currentCard, ...srsResult };
         
-        const word = words.find(w => w.id === currentCard.wordId);
         if (word) {
             let updatedWord = { ...word };
             if (currentCard.tense === 'infinitiv') {
@@ -151,6 +173,15 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         setIsTransitioning(true);
         
         const word = words.find(w => w.id === currentCard.wordId);
+        
+        setHistory({
+            sessionQueue: [...sessionQueue],
+            reviewedCount,
+            wordBeforeUpdate: word ? { ...word } : {} as Word,
+            actionType: 'retire',
+            status: 'done'
+        });
+
         if (word) {
             let updatedWord = { ...word };
             if (currentCard.tense === 'infinitiv') {
@@ -174,7 +205,26 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             });
             setTimeout(() => setIsTransitioning(false), delay);
         }, delay);
-    }, [currentCard, words, updateWord, isTransitioning, disableAnimations]);
+    }, [currentCard, words, updateWord, isTransitioning, disableAnimations, sessionQueue, reviewedCount]);
+
+    const handleUndo = useCallback(() => {
+        if (!history || history.status !== 'done') return;
+        updateWord(history.wordBeforeUpdate);
+        setSessionQueue(history.sessionQueue);
+        setReviewedCount(history.reviewedCount);
+        setSessionDone(false);
+        setIsFlipped(false);
+        setHistory(prev => prev ? { ...prev, status: 'undone' } : null);
+    }, [history, updateWord]);
+
+    const handleRedo = useCallback(() => {
+        if (!history || history.status !== 'undone') return;
+        if (history.actionType === 'rate' && history.ratedQuality !== undefined) {
+            handleRateCard(history.ratedQuality);
+        } else if (history.actionType === 'retire') {
+            handleRetireFromSrs();
+        }
+    }, [history, handleRateCard, handleRetireFromSrs]);
 
     // Keyboard bindings
     useEffect(() => {
@@ -374,7 +424,14 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const intervalBadge = isNewCard ? t('game.smartCards.newCard') : `${currentCard.srs_interval ?? 0}d`;
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-full pt-4 pb-20">
+        <div className="max-w-4xl mx-auto flex flex-col h-full pt-4 pb-20 relative">
+            <UndoButton 
+                canUndo={history?.status === 'done'} 
+                canRedo={history?.status === 'undone'} 
+                onUndo={handleUndo} 
+                onRedo={handleRedo} 
+            />
+
             {/* Progress */}
             <div className="w-full max-w-xl mx-auto mb-6 shrink-0 px-4">
                 <div className="flex justify-between text-xs text-gray-500 font-medium mb-2">

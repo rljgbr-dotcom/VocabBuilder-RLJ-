@@ -81,6 +81,9 @@ const NoteTooltip: React.FC<NoteTooltipProps> = ({ note }) => {
         <div 
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
         >
             <div 
                 className="bg-base-200 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto flex flex-col"

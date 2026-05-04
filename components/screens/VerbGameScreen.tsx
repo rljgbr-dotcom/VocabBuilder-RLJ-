@@ -6,6 +6,15 @@ import { useTranslation } from '../../hooks/useTranslation';
 
 import { ttsService } from '../../services/ttsService';
 import NoteTooltip from '../NoteTooltip';
+import UndoButton from '../UndoButton';
+
+interface VerbGameHistoryState {
+    activeStack: VirtualCard[];
+    currentCardIndex: number;
+    wordBeforeUpdate: Word;
+    rating: number;
+    status: 'done' | 'undone';
+}
 
 interface VerbGameScreenProps {
     setScreen: (screen: Screen) => void;
@@ -27,7 +36,7 @@ interface VirtualCard {
 }
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
-    const { words, updateWord } = useWords();
+    const { words, updateWord, toggleWordFlag } = useWords();
     const { currentSourceLanguage } = useSettings();
     const { t } = useTranslation();
 
@@ -40,6 +49,8 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     
+    const [history, setHistory] = useState<VerbGameHistoryState | null>(null);
+
     // Build the pool of available tenses across all active verbs
     const availablePool = useMemo(() => {
         const pool: VirtualCard[] = [];
@@ -114,6 +125,14 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         const currentCard = activeStack[currentCardIndex];
         const word = words.find(w => w.id === currentCard.wordId);
         if (!word) return;
+
+        setHistory({
+            activeStack: [...activeStack],
+            currentCardIndex,
+            wordBeforeUpdate: { ...word },
+            rating,
+            status: 'done'
+        });
 
         // 1. Update the rating on the Word object in context
         const ratingField = `verb_rating_${currentCard.tense}` as keyof Word;
@@ -219,6 +238,20 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         setCurrentCardIndex(nextIdx);
         setIsFlipped(false);
     };
+
+    const handleUndo = React.useCallback(() => {
+        if (!history || history.status !== 'done') return;
+        updateWord(history.wordBeforeUpdate);
+        setActiveStack(history.activeStack);
+        setCurrentCardIndex(history.currentCardIndex);
+        setIsFlipped(false);
+        setHistory(prev => prev ? { ...prev, status: 'undone' } : null);
+    }, [history, updateWord]);
+
+    const handleRedo = React.useCallback(() => {
+        if (!history || history.status !== 'undone') return;
+        handleRate(history.rating);
+    }, [history, handleRate]);
 
     if (currentSourceLanguage !== 'en') {
         return (
@@ -354,9 +387,15 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             </div>
 
             {/* Flashcard — uses the same CSS classes as FlashcardGameScreen */}
-            <div className="w-full aspect-video min-h-[300px] perspective-[1000px] cursor-pointer mb-8"
+            <div className="w-full aspect-video min-h-[300px] perspective-[1000px] cursor-pointer mb-8 relative"
                 onClick={() => setIsFlipped(!isFlipped)}
             >
+                <UndoButton 
+                    canUndo={history?.status === 'done'} 
+                    canRedo={history?.status === 'undone'} 
+                    onUndo={handleUndo} 
+                    onRedo={handleRedo} 
+                />
                 <div className={`card-inner w-full h-full relative shadow-xl rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     
                     {/* FRONT — Swedish only, updated premium styling */}
@@ -364,12 +403,21 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
-                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2">
+                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2 items-center">
                             <span>Rating: {currentCard.rating}</span>
                             {currentCard.scoreHistory.length > 0 && (
-                                <span className="text-gray-500">• Scores: {currentCard.scoreHistory.join(', ')}</span>
+                                <span className="text-gray-500 hidden sm:inline">• Scores: {currentCard.scoreHistory.join(', ')}</span>
                             )}
-                            <span className="text-gray-500">• Views: {currentCard.shownCount}</span>
+                            <span className="text-gray-500 hidden sm:inline">• Views: {currentCard.shownCount}</span>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentCard.wordId); }}
+                                className={`ml-2 p-1.5 rounded-full transition-colors ${words.find(w => w.id === currentCard.wordId)?.flagged ? 'text-red-500 bg-red-500/20' : 'text-gray-400 hover:bg-base-300'}`}
+                                title="Flag word"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={words.find(w => w.id === currentCard.wordId)?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </button>
                         </span>
                         
                         {startFace === 'swedish' ? (
@@ -395,12 +443,21 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
-                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2">
+                        <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2 items-center">
                             <span>Rating: {currentCard.rating}</span>
                             {currentCard.scoreHistory.length > 0 && (
-                                <span className="text-gray-500">• Scores: {currentCard.scoreHistory.join(', ')}</span>
+                                <span className="text-gray-500 hidden sm:inline">• Scores: {currentCard.scoreHistory.join(', ')}</span>
                             )}
-                            <span className="text-gray-500">• Views: {currentCard.shownCount}</span>
+                            <span className="text-gray-500 hidden sm:inline">• Views: {currentCard.shownCount}</span>
+                            <button 
+                                onClick={e => { e.stopPropagation(); toggleWordFlag(currentCard.wordId); }}
+                                className={`ml-2 p-1.5 rounded-full transition-colors ${words.find(w => w.id === currentCard.wordId)?.flagged ? 'text-red-500 bg-red-500/20' : 'text-gray-400 hover:bg-base-300'}`}
+                                title="Flag word"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={words.find(w => w.id === currentCard.wordId)?.flagged ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                </svg>
+                            </button>
                         </span>
                         
                         <h2 

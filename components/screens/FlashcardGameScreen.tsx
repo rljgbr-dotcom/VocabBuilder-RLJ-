@@ -12,6 +12,19 @@ import { WORD_TYPES } from '../../constants';
 import MatchingGameScreen from './MatchingGameScreen';
 import { gradeInput } from '../../utils/stringUtils';
 import NoteTooltip from '../NoteTooltip';
+import UndoButton from '../UndoButton';
+
+interface FlashcardGameHistoryState {
+    deck: FlashcardWord[];
+    removedStack: FlashcardWord[];
+    allActiveWordsPool: FlashcardWord[];
+    totalActiveWords: number;
+    currentIndex: number;
+    wordBeforeUpdate: Word;
+    actionType: 'move' | 'back' | 'hide' | 'srs';
+    actionPayload?: any;
+    status: 'done' | 'undone';
+}
 
 type Difficulty = 'unmarked' | 'easy' | 'medium' | 'hard';
 const difficultyLevels: Difficulty[] = ['unmarked', 'easy', 'medium', 'hard'];
@@ -55,6 +68,8 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [sessionCompleted, setSessionCompleted] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    
+    const [history, setHistory] = useState<FlashcardGameHistoryState | null>(null);
     
     // Auto-match break state
     const [recentWords, setRecentWords] = useState<Word[]>([]);
@@ -287,6 +302,19 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         if (deck.length < 2 || isTransitioning) return;
         setIsTransitioning(true);
 
+        const currentWordData = words.find(w => w.id === deck[currentIndex]?.id) || deck[currentIndex];
+        setHistory({
+            deck: [...deck],
+            removedStack: [...removedStack],
+            allActiveWordsPool: [...allActiveWordsPool],
+            totalActiveWords,
+            currentIndex,
+            wordBeforeUpdate: { ...currentWordData } as Word,
+            actionType: 'move',
+            actionPayload: { positions },
+            status: 'done'
+        });
+
         const cardToMove = recordAction(deck[currentIndex], `+${positions}`) as FlashcardWord;
         
         setRecentWords(prev => prev.some(w => w.id === cardToMove.id) ? prev : [...prev, cardToMove]);
@@ -313,6 +341,19 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
         if (deck.length < 2 || isTransitioning) return;
         setIsTransitioning(true);
 
+        const currentWordData = words.find(w => w.id === deck[currentIndex]?.id) || deck[currentIndex];
+        setHistory({
+            deck: [...deck],
+            removedStack: [...removedStack],
+            allActiveWordsPool: [...allActiveWordsPool],
+            totalActiveWords,
+            currentIndex,
+            wordBeforeUpdate: { ...currentWordData } as Word,
+            actionType: 'back',
+            actionPayload: { reverse, blur },
+            status: 'done'
+        });
+
         const baseAction = reverse ? t('game.flashcards.reverseBackAndBlur').split(' ')[0] : t('game.flashcards.back'); // 'Rev' or 'Back'
         const cardToMove = {
             ...(recordAction(deck[currentIndex], baseAction) as FlashcardWord),
@@ -338,6 +379,18 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const hideCard = () => {
         if(!currentWord || isTransitioning) return;
         setIsTransitioning(true);
+
+        const currentWordData = words.find(w => w.id === currentWord.id) || currentWord;
+        setHistory({
+            deck: [...deck],
+            removedStack: [...removedStack],
+            allActiveWordsPool: [...allActiveWordsPool],
+            totalActiveWords,
+            currentIndex,
+            wordBeforeUpdate: { ...currentWordData } as Word,
+            actionType: 'hide',
+            status: 'done'
+        });
 
         const wordToHide = {...recordActionNoPersist(currentWord, t('game.flashcards.hide')), active: false};
         updateWord(wordToHide);
@@ -368,6 +421,18 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const moveToSrs = () => {
         if(!currentWord || isTransitioning) return;
         setIsTransitioning(true);
+
+        const currentWordData = words.find(w => w.id === currentWord.id) || currentWord;
+        setHistory({
+            deck: [...deck],
+            removedStack: [...removedStack],
+            allActiveWordsPool: [...allActiveWordsPool],
+            totalActiveWords,
+            currentIndex,
+            wordBeforeUpdate: { ...currentWordData } as Word,
+            actionType: 'srs',
+            status: 'done'
+        });
 
         // Mark as SRS active and hide from regular active pool as requested
         const wordUpdate = {
@@ -408,6 +473,31 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
             setTimeout(() => setIsTransitioning(false), delay);
         }, delay);
     };
+
+    const handleUndo = useCallback(() => {
+        if (!history || history.status !== 'done') return;
+        updateWord(history.wordBeforeUpdate);
+        setDeck(history.deck);
+        setRemovedStack(history.removedStack);
+        setAllActiveWordsPool(history.allActiveWordsPool);
+        setTotalActiveWords(history.totalActiveWords);
+        setCurrentIndex(history.currentIndex);
+        setIsFlipped(false);
+        setHistory(prev => prev ? { ...prev, status: 'undone' } : null);
+    }, [history, updateWord]);
+
+    const handleRedo = useCallback(() => {
+        if (!history || history.status !== 'undone') return;
+        if (history.actionType === 'move') {
+            moveCard(history.actionPayload.positions);
+        } else if (history.actionType === 'back') {
+            sendToBack(history.actionPayload.reverse, history.actionPayload.blur);
+        } else if (history.actionType === 'hide') {
+            hideCard();
+        } else if (history.actionType === 'srs') {
+            moveToSrs();
+        }
+    }, [history]);
 
     const handleSelfAssessment = (e: React.FormEvent) => {
         e.preventDefault();
@@ -756,7 +846,13 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
     const currentDifficulty = currentWord.difficulty || 'unmarked';
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-full">
+        <div className="max-w-4xl mx-auto flex flex-col h-full relative">
+            <UndoButton 
+                canUndo={history?.status === 'done'} 
+                canRedo={history?.status === 'undone'} 
+                onUndo={handleUndo} 
+                onRedo={handleRedo} 
+            />
             {toastMessage && (
                 <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-2 px-6 rounded-full shadow-lg z-50 animate-fade-in-out">
                     {toastMessage}
