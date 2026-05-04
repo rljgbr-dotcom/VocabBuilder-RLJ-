@@ -45,6 +45,9 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const [initialVerbs, setInitialVerbs] = useState(1);
     const [startFace, setStartFace] = useState<'swedish' | 'english'>('swedish');
     
+    const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
+    const [selectedTenses, setSelectedTenses] = useState<Set<TenseType>>(new Set(['infinitiv', 'present', 'preteritum', 'supinium']));
+    
     const [activeStack, setActiveStack] = useState<VirtualCard[]>([]);
     const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -57,7 +60,22 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         words.forEach(w => {
             if (w.wordType?.toLowerCase() !== 'verb' || !w.verb_game_active) return;
             
+            // Extract group
+            let group = 'unknown';
+            const noteMatch = w.swedishNote?.match(/GROUP:\s*([^#\s]+)/i);
+            if (noteMatch) {
+                const g = noteMatch[1].toLowerCase();
+                if (g.startsWith('1')) group = '1';
+                else if (g.startsWith('2')) group = '2';
+                else if (g.startsWith('3')) group = '3';
+                else if (g.startsWith('4')) group = '4';
+            }
+
+            if (!selectedGroups.has(group)) return;
+            
             const addIfUnpromoted = (tense: TenseType, sv: string, en: string, exSv: string, exEn: string, rating: number, note?: string) => {
+                if (!selectedTenses.has(tense)) return;
+                
                 if (rating > 1 && sv) {
                     const scoreHistory = w[`verb_history_${tense}` as keyof Word] as number[] || [];
                     const shownCount = w[`verb_shown_${tense}` as keyof Word] as number || 0;
@@ -83,7 +101,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumNote);
         });
         return pool;
-    }, [words]);
+    }, [words, selectedGroups, selectedTenses]);
 
     const startGame = () => {
         // Build initial stack
@@ -106,15 +124,15 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         
         // Shuffle the initial stack
         initialStack.sort(() => 0.5 - Math.random());
-        if (initialStack.length > 0) {
-            initialStack[0].shownCount++;
-            const first = initialStack[0];
-            const w = words.find(x => x.id === first.wordId);
+        // Handle tracking view counts correctly across the initial stack
+        initialStack.forEach(card => {
+            card.shownCount++;
+            const w = words.find(x => x.id === card.wordId);
             if (w) {
-                const shownField = `verb_shown_${first.tense}` as keyof Word;
-                updateWord({ ...w, [shownField]: first.shownCount });
+                const shownField = `verb_shown_${card.tense}` as keyof Word;
+                updateWord({ ...w, [shownField]: card.shownCount });
             }
-        }
+        });
         setActiveStack(initialStack);
         setHasStarted(true);
         setIsFlipped(false);
@@ -322,19 +340,56 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         </div>
                     </div>
 
-                    <div className="bg-base-300 p-4 rounded-lg">
-                        <p className="text-sm text-center mb-2">Available unpromoted tenses: <strong className="text-blue-400">{availablePool.length}</strong></p>
-                        {availablePool.length === 0 && (
-                            <p className="text-xs text-red-400 text-center">No active verbs found. Go to Manage Words to enable the Verb Game for your verbs.</p>
-                        )}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-400 mb-2">Verb Groups to Include</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {['1', '2', '3', '4'].map(g => (
+                                <label key={g} className="flex items-center gap-2 bg-base-300 p-2 rounded-lg cursor-pointer hover:bg-base-100 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        className="checkbox checkbox-primary checkbox-sm"
+                                        checked={selectedGroups.has(g)}
+                                        onChange={(e) => {
+                                            const newSet = new Set(selectedGroups);
+                                            if (e.target.checked) newSet.add(g);
+                                            else newSet.delete(g);
+                                            setSelectedGroups(newSet);
+                                        }}
+                                    />
+                                    <span className="text-sm font-bold text-gray-300 whitespace-nowrap">Group {g}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-400 mb-2">Tenses to Practice</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {(['infinitiv', 'present', 'preteritum', 'supinium'] as TenseType[]).map(t => (
+                                <label key={t} className="flex items-center gap-2 bg-base-300 p-2 rounded-lg cursor-pointer hover:bg-base-100 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        className="checkbox checkbox-secondary checkbox-sm"
+                                        checked={selectedTenses.has(t)}
+                                        onChange={(e) => {
+                                            const newSet = new Set(selectedTenses);
+                                            if (e.target.checked) newSet.add(t);
+                                            else newSet.delete(t);
+                                            setSelectedTenses(newSet);
+                                        }}
+                                    />
+                                    <span className="text-sm font-bold text-gray-300 capitalize whitespace-nowrap">{t}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
 
                     <button 
-                        onClick={startGame} 
-                        disabled={availablePool.length === 0}
-                        className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg disabled:opacity-50 transition-all transform hover:scale-[1.02]"
+                        onClick={startGame}
+                        disabled={selectedGroups.size === 0 || selectedTenses.size === 0 || availablePool.length === 0}
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
-                        Start Game
+                        {availablePool.length === 0 ? "No verbs available" : "Start Verb Game"}
                     </button>
                 </div>
             </div>

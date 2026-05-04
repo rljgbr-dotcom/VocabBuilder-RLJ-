@@ -858,15 +858,17 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                     {toastMessage}
                 </div>
             )}
-            <div className="w-full max-w-xl mx-auto mb-4 shrink-0">
-                <div className="aspect-[16/9] perspective-[1000px]">
+            <div className="w-full max-w-xl mx-auto mb-4 shrink-0 px-4">
+                <div className="aspect-[4/3] md:aspect-[16/10] perspective-[1200px]">
                     <div className={`card-inner swipe-area relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''} ${isBlurred ? 'is-blurred' : ''}`} onClick={handleFlip} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                         {/* Front Face */}
-                        <div className="card-face absolute w-full h-full bg-base-200 rounded-xl flex flex-col items-center justify-center p-4 text-center">
-                            <span className="text-2xl md:text-4xl font-bold">{frontText}</span>
-                            {frontExample && <p className="text-sm italic text-gray-400 mt-2">{frontExample}</p>}
-                            <button onClick={e => {e.stopPropagation(); ttsService.speak(frontAudioText, frontLang);}} className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-300/50">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
+                        <div className="card-face absolute w-full h-full rounded-3xl p-8 text-center bg-gradient-to-b from-base-200 to-base-300 border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center">
+                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-t-3xl opacity-50"></div>
+                            
+                            <span className="text-3xl md:text-5xl font-bold text-white drop-shadow-md">{frontText}</span>
+                            {frontExample && <p className="text-base md:text-lg text-gray-400 mt-6 leading-relaxed max-w-sm">{frontExample}</p>}
+                            <button onClick={e => {e.stopPropagation(); ttsService.speak(frontAudioText, frontLang);}} className="absolute bottom-4 right-4 p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
                             <div className="absolute bottom-3 left-3 flex flex-col items-start gap-1 max-w-[70%]">
                                 <div className="text-[10px] text-gray-500 font-medium truncate" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
@@ -904,11 +906,16 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                             </div>
                         </div>
                         {/* Back Face */}
-                        <div className="card-face card-back absolute w-full h-full bg-base-300 rounded-xl flex flex-col items-center justify-center p-4 text-center">
-                            <span className="text-2xl md:text-4xl font-bold">{backText}<NoteTooltip note={currentWord?.swedishNote} /></span>
-                            {backExample && <p className="text-sm italic text-gray-400 mt-2">{backExample}</p>}
-                             <button onClick={e => {e.stopPropagation(); ttsService.speak(backAudioText, backLang);}} className="speaker-btn absolute bottom-3 right-3 p-2 rounded-full hover:bg-base-100/50">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
+                        <div className="card-face card-back absolute w-full h-full rounded-3xl p-8 text-center bg-gradient-to-b from-base-100 to-base-200 border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.6)] flex flex-col items-center justify-center">
+                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-t-3xl opacity-50"></div>
+                            
+                            <div className="flex items-center justify-center gap-3">
+                                <span className="text-3xl md:text-5xl font-bold text-white drop-shadow-md">{backText}</span>
+                                <div onClick={e => e.stopPropagation()}><NoteTooltip note={currentWord?.swedishNote} /></div>
+                            </div>
+                            {backExample && <p className="text-base md:text-lg text-gray-400 mt-6 leading-relaxed max-w-sm">{backExample}</p>}
+                             <button onClick={e => {e.stopPropagation(); ttsService.speak(backAudioText, backLang);}} className="absolute bottom-4 right-4 p-3 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
                             </button>
                             <div className="absolute bottom-3 left-3 flex flex-col items-start gap-1 max-w-[70%]">
                                 <div className="text-[10px] text-gray-500 font-medium truncate" title={`${currentWord.source} > ${currentWord.subtopic1} > ${currentWord.subtopic2}`}>
@@ -949,7 +956,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
                 </div>
             </div>
 
-            <div className="max-w-xl mx-auto space-y-3 mt-2 w-full shrink-0">
+            <div className="max-w-xl mx-auto space-y-4 mt-2 w-full shrink-0 px-4">
                 <form onSubmit={handleSelfAssessment} className="relative">
                     <input 
                         value={selfAssessment} 
@@ -988,13 +995,13 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
                 <div className={`grid grid-cols-6 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
                     {[1, 2, 3, 4].map(n => (
-                        <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content text-sm">+{n}</button>
+                        <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-200 border border-white/5 shadow-sm rounded-xl hover:bg-primary hover:text-primary-content font-medium transition-colors">+{n}</button>
                     ))}
-                    <button onClick={moveToSrs} className="p-2 bg-base-300 rounded-md hover:bg-purple-600 hover:text-white text-sm font-bold text-purple-400 border border-base-300 hover:border-purple-600 flex flex-col items-center justify-center -gap-1" title={t('game.flashcards.moveToSrs')}>
+                    <button onClick={moveToSrs} className="p-2 bg-base-200 border border-purple-500/30 rounded-xl hover:bg-purple-600 hover:text-white font-bold text-purple-400 flex flex-col items-center justify-center -gap-1 transition-colors" title={t('game.flashcards.moveToSrs')}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                         <span className="text-[10px]">SRS</span>
                     </button>
-                    <button onClick={hideCard} className="p-2 bg-base-300 rounded-md hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 border border-base-300 hover:border-red-600">{t('game.flashcards.hide')}</button>
+                    <button onClick={hideCard} className="p-2 bg-base-200 border border-red-500/30 rounded-xl hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 transition-colors">{t('game.flashcards.hide')}</button>
                 </div>
 
                 <div className={`w-full grid grid-cols-6 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -1079,7 +1086,7 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
             {/* Mobile-only Swipe Area */}
             <div
-                className="block md:hidden swipe-area my-4 max-w-xl mx-auto w-full flex-grow min-h-[80px] bg-base-200 p-4 rounded-lg text-center cursor-pointer border-2 border-dashed border-base-300 active:bg-base-300 transition-colors flex items-center justify-center"
+                className="block md:hidden swipe-area my-4 max-w-xl mx-auto w-full flex-grow min-h-[80px] bg-base-200/50 backdrop-blur p-4 rounded-xl text-center cursor-pointer border-2 border-dashed border-white/10 active:bg-base-300 transition-colors flex items-center justify-center"
                 onClick={handleFlip}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
