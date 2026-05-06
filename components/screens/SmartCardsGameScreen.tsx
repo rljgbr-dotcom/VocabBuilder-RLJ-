@@ -87,9 +87,9 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             };
 
             if (w.wordType?.toLowerCase() === 'verb') {
-                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentTranslation || '', w.srs_present, w.presentNote);
-                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumTranslation || '', w.srs_preteritum, w.preteritumNote);
-                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumTranslation || '', w.srs_supinium, w.supiniumNote);
+                addTense('present', w.present || '', w.presentTranslation || '', w.presentExample || '', w.presentExampleTranslation || '', w.srs_present, w.presentNote);
+                addTense('preteritum', w.preteritum || '', w.preteritumTranslation || '', w.preteritumExample || '', w.preteritumExampleTranslation || '', w.srs_preteritum, w.preteritumNote);
+                addTense('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.srs_supinium, w.supiniumNote);
             }
         });
 
@@ -446,7 +446,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             {/* Main Card Area */}
             <div className="w-full max-w-xl mx-auto mb-8 shrink-0 swipe-area touch-none px-4" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                 <div className="aspect-[4/3] md:aspect-[16/10] perspective-[1200px]">
-                    <div className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''}`} onClick={() => !isFlipped && setIsFlipped(true)}>
+                    <div className={`card-inner relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
                         
                         {/* Front Face */}
                         <div className="card-face absolute w-full h-full rounded-3xl p-8 text-center bg-gradient-to-b from-base-200 to-base-300 border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center">
