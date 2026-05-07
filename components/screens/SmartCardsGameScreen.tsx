@@ -425,18 +425,20 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
 
     return (
         <div className="max-w-4xl mx-auto flex flex-col h-full pt-4 pb-20 relative">
-            <UndoButton 
-                canUndo={history?.status === 'done'} 
-                canRedo={history?.status === 'undone'} 
-                onUndo={handleUndo} 
-                onRedo={handleRedo} 
-            />
-
             {/* Progress */}
             <div className="w-full max-w-xl mx-auto mb-6 shrink-0 px-4">
-                <div className="flex justify-between text-xs text-gray-500 font-medium mb-2">
-                    <span>{reviewedCount} reviewed</span>
-                    <span>{totalDueRef.current} total due</span>
+                <div className="flex justify-between items-center text-xs text-gray-500 font-medium mb-2 min-h-[36px]">
+                    <div className="flex flex-col">
+                        <span>{reviewedCount} reviewed</span>
+                        <span>{totalDueRef.current} total due</span>
+                    </div>
+                    <UndoButton 
+                        canUndo={history?.status === 'done'} 
+                        canRedo={history?.status === 'undone'} 
+                        onUndo={handleUndo} 
+                        onRedo={handleRedo} 
+                        className="p-2.5 rounded-xl bg-base-200/80 border border-white/10 text-gray-400 hover:text-white transition-all shadow-sm flex items-center justify-center relative select-none"
+                    />
                 </div>
                 <div className="w-full h-2 bg-base-300/50 rounded-full overflow-hidden border border-white/5">
                     <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(147,51,234,0.5)]" style={{ width: `${progressPct}%` }} />

@@ -847,18 +847,22 @@ const FlashcardGameScreen: React.FC<FlashcardGameScreenProps> = ({ setScreen }) 
 
     return (
         <div className="max-w-4xl mx-auto flex flex-col h-full relative">
-            <UndoButton 
-                canUndo={history?.status === 'done'} 
-                canRedo={history?.status === 'undone'} 
-                onUndo={handleUndo} 
-                onRedo={handleRedo} 
-            />
             {toastMessage && (
                 <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-accent text-accent-content py-2 px-6 rounded-full shadow-lg z-50 animate-fade-in-out">
                     {toastMessage}
                 </div>
             )}
             <div className="w-full max-w-xl mx-auto mb-4 shrink-0 px-4">
+                <div className="flex justify-between items-center mb-2 px-1 text-xs text-gray-500 font-semibold min-h-[36px]">
+                    <span>Card {currentIndex + 1} of {deck.length}</span>
+                    <UndoButton 
+                        canUndo={history?.status === 'done'} 
+                        canRedo={history?.status === 'undone'} 
+                        onUndo={handleUndo} 
+                        onRedo={handleRedo} 
+                        className="p-2.5 rounded-xl bg-base-200/80 border border-white/10 text-gray-400 hover:text-white transition-all shadow-sm flex items-center justify-center relative select-none"
+                    />
+                </div>
                 <div className="aspect-[4/3] md:aspect-[16/10] perspective-[1200px]">
                     <div className={`card-inner swipe-area relative w-full h-full cursor-pointer ${isFlipped ? 'is-flipped' : ''} ${isBlurred ? 'is-blurred' : ''}`} onClick={handleFlip} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                         {/* Front Face */}

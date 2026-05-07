@@ -5,9 +5,10 @@ interface UndoButtonProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    className?: string;
 }
 
-const UndoButton: React.FC<UndoButtonProps> = ({ onUndo, onRedo, canUndo, canRedo }) => {
+const UndoButton: React.FC<UndoButtonProps> = ({ onUndo, onRedo, canUndo, canRedo, className }) => {
     const [isHolding, setIsHolding] = useState(false);
     const [holdProgress, setHoldProgress] = useState(0);
     const pressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -72,7 +73,7 @@ const UndoButton: React.FC<UndoButtonProps> = ({ onUndo, onRedo, canUndo, canRed
             onMouseDown={handlePressStart}
             onMouseUp={handlePressEnd}
             onMouseLeave={clearTimers}
-            className="absolute top-4 left-4 md:top-6 md:left-6 z-50 p-3 rounded-full bg-base-300/80 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white transition-all shadow-lg active:scale-95 flex items-center justify-center overflow-hidden group select-none"
+            className={className || "absolute top-4 left-4 md:top-6 md:left-6 z-50 p-3 rounded-full bg-base-300/80 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white transition-all shadow-lg active:scale-95 flex items-center justify-center overflow-hidden group select-none"}
             title={canRedo ? "Hold for 2s to Redo" : "Tap to Undo"}
             style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'none' }}
         >

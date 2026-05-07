@@ -418,6 +418,13 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                     <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Stack stats</span>
                     <span className="text-base font-bold">{activeStack.length} cards from {uniqueVerbsCount} {uniqueVerbsCount === 1 ? 'verb' : 'verbs'}</span>
                 </div>
+                <UndoButton 
+                    canUndo={history?.status === 'done'} 
+                    canRedo={history?.status === 'undone'} 
+                    onUndo={handleUndo} 
+                    onRedo={handleRedo} 
+                    className="p-2.5 rounded-xl bg-base-300/80 border border-white/10 text-gray-400 hover:text-white transition-all shadow-sm flex items-center justify-center relative select-none"
+                />
                 <div className="flex flex-col items-end">
                     <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Unfamiliarity Sum</span>
                     <span className="text-base font-bold text-blue-400">{currentSum} / {intensityLimit}</span>
@@ -445,12 +452,6 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             <div className="w-full aspect-video min-h-[300px] perspective-[1000px] cursor-pointer mb-8 relative"
                 onClick={() => setIsFlipped(!isFlipped)}
             >
-                <UndoButton 
-                    canUndo={history?.status === 'done'} 
-                    canRedo={history?.status === 'undone'} 
-                    onUndo={handleUndo} 
-                    onRedo={handleRedo} 
-                />
                 <div className={`card-inner w-full h-full relative shadow-xl rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     
                     {/* FRONT — Swedish only, updated premium styling */}
