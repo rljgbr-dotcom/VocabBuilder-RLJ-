@@ -57,7 +57,7 @@ const AppContent: React.FC = () => {
     const { t } = useTranslation();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
-    const { importSharedDeck } = useWords();
+    const { importSharedDeck, isLoadingWords } = useWords();
     const [disclaimerConfirmed, setDisclaimerConfirmed] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -180,6 +180,14 @@ const AppContent: React.FC = () => {
     }, []);
 
     const renderScreen = () => {
+        if (isLoadingWords) {
+            return (
+                <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 animate-fade-in">
+                    <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-gray-400">Hydrating database...</p>
+                </div>
+            );
+        }
         if (!disclaimerConfirmed) return null;
 
         switch (screen) {
@@ -241,7 +249,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v5.6.0
+                    v5.7.0
                 </div>
             </footer>
 

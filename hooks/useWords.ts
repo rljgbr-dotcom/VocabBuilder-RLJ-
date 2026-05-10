@@ -1,8 +1,8 @@
 
-import { useCallback } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { Word } from '../types';
 import { LANGUAGE_ORDER } from '../constants';
+import { loadWordsFromDB, saveWordsToDB } from '../services/storageService';
 
 // Helper to parse CSV content into word objects
 const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newWords: Omit<Word, 'id'>[], duplicateCount: number, invalidCount: number, addedCount: number } => {
@@ -136,7 +136,58 @@ const parseCSVContent = (csvText: string, existingWordKeys: Set<string>): { newW
 };
 
 export const useWords = () => {
-    const [words, setWords] = useLocalStorage<Word[]>('vocabuilder_words', []);
+    const [words, setWords] = useState<Word[]>([]);
+    const [isLoadingWords, setIsLoadingWords] = useState(true);
+    const isLoadedRef = useRef(false);
+
+    // ── 1. INITIAL HYDRATION & AUTO-MIGRATION ────────────────────────────────────
+    useEffect(() => {
+        const initializeData = async () => {
+            try {
+                // A. Check IndexedDB first
+                let dbWords = await loadWordsFromDB();
+                
+                // B. Fallback/Migration check
+                if (!dbWords) {
+                    const legacyData = localStorage.getItem('vocabuilder_words');
+                    if (legacyData) {
+                        try {
+                            dbWords = JSON.parse(legacyData);
+                            // Persist immediately to IDB to prevent repetitive migration
+                            if (dbWords && dbWords.length > 0) {
+                                await saveWordsToDB(dbWords);
+                                console.log("✅ Migrated legacy localStorage words to IndexedDB");
+                                // We leave the localStorage there for now, user can clear it later or 
+                                // we can purge it after we know migration is stable.
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse legacy localStorage content", e);
+                        }
+                    }
+                }
+
+                setWords(dbWords || []);
+            } catch (err) {
+                console.error("Initial IDB load failed", err);
+            } finally {
+                setIsLoadingWords(false);
+                isLoadedRef.current = true;
+            }
+        };
+
+        initializeData();
+    }, []);
+
+    // ── 2. BACKGROUND PERSISTENCE ────────────────────────────────────────────────
+    // Automatically write to IndexedDB whenever 'words' state changes, BUT ONLY
+    // AFTER initialization has occurred to prevent overwriting DB with empty array.
+    useEffect(() => {
+        if (!isLoadedRef.current || isLoadingWords) return;
+        
+        saveWordsToDB(words).catch(err => 
+            console.error("Autosave to IndexedDB failed", err)
+        );
+    }, [words, isLoadingWords]);
 
     const addWord = useCallback((wordData: Omit<Word, 'id' | 'active' | 'backCount' | 'difficulty'>) => {
         const newWord: Word = {
@@ -535,5 +586,7 @@ export const useWords = () => {
         loadWordState,
         listWordStates,
         deleteWordState,
+        isLoadingWords,
+        setWords // for direct manipulation from external if needed, though rare
     };
 };
