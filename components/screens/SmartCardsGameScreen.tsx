@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { applySM2, isDueToday } from '../../services/srsService';
 import NoteTooltip from '../NoteTooltip';
 import UndoButton from '../UndoButton';
+import { gradeInput } from '../../utils/stringUtils';
 
 interface SrsGameHistoryState {
     sessionQueue: SrsVirtualCard[];
@@ -23,7 +24,7 @@ interface SmartCardsGameScreenProps {
 
 const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage, disableAnimations } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, disableAnimations, gradingSystem } = useSettings();
     const { t } = useTranslation();
 
     const [gameStarted, setGameStarted] = useState(false);
@@ -41,6 +42,80 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
     const [isTransitioning, setIsTransitioning] = useState(false);
     
     const [history, setHistory] = useState<SrsGameHistoryState | null>(null);
+    
+    // Typing assessment & Voice States
+    const [typedAnswer, setTypedAnswer] = useState('');
+    const [gradingResult, setGradingResult] = useState<'correct' | 'incorrect' | 'almost' | null>(null);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                setTypedAnswer(finalTranscript.trim() || interimTranscript.trim());
+            };
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+            recognitionRef.current = recognition;
+        }
+    }, []);
+
+    const currentCard: SrsVirtualCard | undefined = sessionQueue[0];
+
+    const sourceWord = words.find(w => w.id === currentCard?.wordId);
+    const frontText    = startFace === 'swedish' ? currentCard?.swedish        : currentCard?.english;
+    const backText     = startFace === 'swedish' ? currentCard?.english            : currentCard?.swedish;
+    const frontExample = startFace === 'swedish' ? currentCard?.exampleSv : currentCard?.exampleEn;
+    const backExample  = startFace === 'swedish' ? currentCard?.exampleEn         : currentCard?.exampleSv;
+    const frontLang    = startFace === 'swedish' ? 'sv-SE'                     : currentLanguageInfo.ttsCode;
+    const backLang     = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
+
+    // Reset inputs on card change
+    useEffect(() => {
+        setTypedAnswer('');
+        setGradingResult(null);
+    }, [currentCard?.id]);
+
+    const handleCheckAnswer = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isListening) recognitionRef.current?.stop();
+        
+        if (typedAnswer.trim() && currentCard) {
+            const result = gradeInput(typedAnswer, backText || '', gradingSystem === 'none' ? 'loose' : gradingSystem);
+            setGradingResult(result);
+        }
+        
+        if (!isFlipped) setIsFlipped(true);
+    };
+
+    const handleToggleListening = () => {
+        if (!recognitionRef.current || !currentCard) return;
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            recognitionRef.current.lang = backLang;
+            setTypedAnswer('');
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
 
     // Initial load logic
     useEffect(() => {
@@ -111,8 +186,6 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         localStorage.setItem('smartcards_start_face', startFace);
         setGameStarted(true);
     };
-
-    const currentCard: SrsVirtualCard | undefined = sessionQueue[0];
 
     const handleRateCard = useCallback((q: number) => {
         if (!currentCard || isTransitioning) return;
@@ -290,13 +363,7 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
         touchStartRef.current = null;
     };
 
-    const sourceWord = words.find(w => w.id === currentCard?.wordId);
-    const frontText    = startFace === 'swedish' ? currentCard?.swedish        : currentCard?.english;
-    const backText     = startFace === 'swedish' ? currentCard?.english            : currentCard?.swedish;
-    const frontExample = startFace === 'swedish' ? currentCard?.exampleSv : currentCard?.exampleEn;
-    const backExample  = startFace === 'swedish' ? currentCard?.exampleEn         : currentCard?.exampleSv;
-    const frontLang    = startFace === 'swedish' ? 'sv-SE'                     : currentLanguageInfo.ttsCode;
-    const backLang     = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
+
 
     const formatRelativeTime = (isoString: string | undefined): string => {
         if (!isoString) return '';
@@ -525,31 +592,101 @@ const SmartCardsGameScreen: React.FC<SmartCardsGameScreenProps> = ({ setScreen }
             {/* SRS Controls */}
             <div className="w-full max-w-xl mx-auto shrink-0 px-4 pb-8">
                 {!isFlipped ? (
-                    <button onClick={() => setIsFlipped(true)} className="w-full py-4 md:py-5 bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold rounded-2xl hover:bg-white/20 transition-all text-lg shadow-xl">
-                        Tap to flip or press Space
-                    </button>
+                    <div className="space-y-4">
+                        <form onSubmit={handleCheckAnswer} className="relative">
+                            <input 
+                                value={typedAnswer} 
+                                onChange={e => {
+                                    setTypedAnswer(e.target.value);
+                                    setGradingResult(null);
+                                }} 
+                                type="text" 
+                                placeholder={t('game.flashcards.typeAnswer')} 
+                                className={`w-full border border-white/10 rounded-2xl p-4 md:p-5 text-center focus:outline-none pr-14 transition-all duration-300 bg-base-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 shadow-lg text-lg font-medium text-white`} 
+                                disabled={isListening}
+                                autoFocus
+                            />
+                            {recognitionRef.current && (
+                                <button 
+                                    type="button" 
+                                    onClick={handleToggleListening} 
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`} 
+                                    title="Use Voice Input"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                </button>
+                            )}
+                        </form>
+
+                        <div className="flex gap-3">
+                            <button 
+                                type="button"
+                                onClick={() => ttsService.speak(backText || '', backLang)}
+                                className="flex-1 py-4 bg-white/5 border border-white/10 text-gray-300 font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                title="Pronounce correct answer"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
+                                <span className="hidden sm:inline">{t('game.flashcards.readAloud')}</span>
+                            </button>
+
+                            <button 
+                                onClick={handleCheckAnswer} 
+                                className="flex-[2] py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl hover:from-purple-500 hover:to-indigo-500 transition-all text-lg shadow-xl flex items-center justify-center gap-2"
+                            >
+                                <span>{typedAnswer.trim() ? t('game.check') : t('game.smartCards.showAnswer')}</span>
+                            </button>
+                        </div>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-4 gap-2 md:gap-3">
-                        <button onClick={() => handleRateCard(0)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-red-900/50 to-red-950/80 border border-red-500/30 hover:border-red-400 hover:shadow-[0_0_20px_rgba(248,113,113,0.3)] transition-all overflow-hidden">
-                            <span className="text-red-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Again</span>
-                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(0)}</span>
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-red-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="space-y-4">
+                        {/* Show assessment results if typed */}
+                        {typedAnswer.trim() && (
+                            <div className={`text-center py-3 px-4 rounded-2xl border backdrop-blur-sm transition-all shadow-md
+                                ${gradingResult === 'correct' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                  gradingResult === 'almost' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                  'bg-red-500/10 border-red-500/30 text-red-400'}`}
+                            >
+                                <div className="text-xs text-gray-400 mb-0.5">Your answer:</div>
+                                <div className="text-lg font-bold mb-1 italic">"{typedAnswer}"</div>
+                                <div className="uppercase tracking-widest text-xs font-extrabold flex items-center justify-center gap-1">
+                                    {gradingResult === 'correct' ? `✓ ${t('game.typing.correct')}` : 
+                                     gradingResult === 'almost' ? '⚠ Almost Correct' : 
+                                     `✗ ${t('game.typing.incorrect')}`}
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            type="button"
+                            onClick={() => ttsService.speak(backText || '', backLang)}
+                            className="w-full py-3 bg-accent/10 text-accent border border-accent/20 font-bold rounded-xl hover:bg-accent/20 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
+                            <span>{t('game.flashcards.readAloud')}</span>
                         </button>
-                        <button onClick={() => handleRateCard(3)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-orange-900/50 to-orange-950/80 border border-orange-500/30 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(251,146,60,0.3)] transition-all overflow-hidden">
-                            <span className="text-orange-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Hard</span>
-                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(3)}</span>
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-orange-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                        </button>
-                        <button onClick={() => handleRateCard(4)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-green-900/50 to-green-950/80 border border-green-500/30 hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.3)] transition-all overflow-hidden">
-                            <span className="text-green-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Good</span>
-                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(4)}</span>
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-green-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                        </button>
-                        <button onClick={() => handleRateCard(5)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-blue-900/50 to-blue-950/80 border border-blue-500/30 hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] transition-all overflow-hidden">
-                            <span className="text-blue-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Easy</span>
-                            <span className="text-white text-base md:text-lg font-bold">{previewInterval(5)}</span>
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                        </button>
+
+                        <div className="grid grid-cols-4 gap-2 md:gap-3">
+                            <button onClick={() => handleRateCard(0)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-red-900/50 to-red-950/80 border border-red-500/30 hover:border-red-400 hover:shadow-[0_0_20px_rgba(248,113,113,0.3)] transition-all overflow-hidden">
+                                <span className="text-red-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">{t('game.smartCards.again')}</span>
+                                <span className="text-white text-base md:text-lg font-bold">{previewInterval(0)}</span>
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-red-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+                            <button onClick={() => handleRateCard(3)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-orange-900/50 to-orange-950/80 border border-orange-500/30 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(251,146,60,0.3)] transition-all overflow-hidden">
+                                <span className="text-orange-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">{t('game.smartCards.hard')}</span>
+                                <span className="text-white text-base md:text-lg font-bold">{previewInterval(3)}</span>
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-orange-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+                            <button onClick={() => handleRateCard(4)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-green-900/50 to-green-950/80 border border-green-500/30 hover:border-green-400 hover:shadow-[0_0_20px_rgba(74,222,128,0.3)] transition-all overflow-hidden">
+                                <span className="text-green-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">{t('game.smartCards.good')}</span>
+                                <span className="text-white text-base md:text-lg font-bold">{previewInterval(4)}</span>
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-green-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+                            <button onClick={() => handleRateCard(5)} className="group relative flex flex-col items-center justify-center py-4 rounded-2xl bg-gradient-to-b from-blue-900/50 to-blue-950/80 border border-blue-500/30 hover:border-blue-400 hover:shadow-[0_0_20px_rgba(96,165,250,0.3)] transition-all overflow-hidden">
+                                <span className="text-blue-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">{t('game.smartCards.easy')}</span>
+                                <span className="text-white text-base md:text-lg font-bold">{previewInterval(5)}</span>
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
