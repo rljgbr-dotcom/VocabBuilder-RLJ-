@@ -49,8 +49,9 @@ const ThemeOption: React.FC<{
 
 const CloudSyncPanel: React.FC = () => {
     const { connected, syncStatus, lastSyncTime, syncError, backupInfo, connect, disconnect, syncNow, restoreFromBackup } = useGoogleDrive();
-    const { words, importSharedDeck } = useWords();
+    const { words, setWords } = useWords();
     const { showModal } = useModal();
+
 
     const isBusy = syncStatus === 'syncing';
 
@@ -67,9 +68,10 @@ const CloudSyncPanel: React.FC = () => {
             text: 'Restore from your Google Drive backup? This will replace all current words and saved states with the backed-up version.',
             onConfirm: () => {
                 restoreFromBackup((restoredWords) => {
-                    importSharedDeck(restoredWords);
+                    setWords(restoredWords);
                     showModal('info', {
                         title: 'Backup Restored',
+
                         message: `✅ ${restoredWords.length} words restored from Google Drive.`,
                     });
                 });

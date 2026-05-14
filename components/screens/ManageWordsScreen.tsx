@@ -6,6 +6,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { Word } from '../../types';
 import WordGroup from '../WordGroup';
 import { LANGUAGE_ORDER } from '../../constants';
+import { clearDB } from '../../services/storageService';
 
 interface GroupedWords {
     [source: string]: {
@@ -16,10 +17,11 @@ interface GroupedWords {
 }
 
 const ManageWordsScreen: React.FC = () => {
-    const { words, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, toggleGroupVerbGameActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive, saveWordState, loadWordState, listWordStates, deleteWordState } = useWords();
+    const { words, setWords, importFromCSV, exportToCSV, toggleGroupActive, toggleGroupSrsActive, toggleGroupVerbGameActive, syncWithDataFolder, syncActiveToSrs, syncSrsToActive, saveWordState, loadWordState, listWordStates, deleteWordState } = useWords();
     const { showModal } = useModal();
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const fullBackupInputRef = useRef<HTMLInputElement>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
     const [saveStateName, setSaveStateName] = useState('');
@@ -97,6 +99,54 @@ const ManageWordsScreen: React.FC = () => {
         }
     };
 
+    const handleExportFullBackup = () => {
+        const savedStates = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+        const backupData = {
+            exportedAt: new Date().toISOString(),
+            words,
+            savedStates
+        };
+        const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `vocab_builder_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleImportFullBackupChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result as string;
+                const backup = JSON.parse(text);
+                if (!backup.words || !Array.isArray(backup.words)) {
+                    throw new Error("Invalid backup format");
+                }
+
+                showModal('confirmation', {
+                    text: 'Restore this full backup? All current words and progress will be replaced.',
+                    onConfirm: () => {
+                        if (backup.savedStates) {
+                            localStorage.setItem('vocabuilder_word_states', JSON.stringify(backup.savedStates));
+                        }
+                        setWords(backup.words);
+                        showModal('info', { title: 'Restored', message: `Restored ${backup.words.length} words successfully.` });
+                    }
+                });
+            } catch (error) {
+                showModal('info', { title: 'Error', message: 'Failed to read backup file. Please ensure it is a valid Vocab Builder backup JSON.' });
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset file input
+    };
+
     const handleDownloadTemplate = () => {
         const header = ['Source', 'Subtopic1', 'Subtopic2', 'WordType', 'Swedish', 'SwedishExample', ...LANGUAGE_ORDER.flatMap(lang => [`${lang}_Word`, `${lang}_Example`]), 'Present', 'PresentTranslation', 'PresentExample', 'PresentExampleTranslation', 'Preteritum', 'PreteritumTranslation', 'PreteritumExample', 'PreteritumExampleTranslation', 'Supinium', 'SupiniumTranslation', 'SupiniumExample', 'SupiniumExampleTranslation', 'ID', 'SwedishNote', 'PresentNote', 'PreteritumNote', 'SupiniumNote'];
         const csvContent = header.join(',');
@@ -140,6 +190,12 @@ const ManageWordsScreen: React.FC = () => {
                             <button onClick={handleDownloadTemplate} className="px-3 py-1.5 text-xs font-bold bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-md hover:bg-blue-600/30 transition-colors" title="Download empty CSV header">{t('manageWords.downloadTemplate')}</button>
                         </div>
                         <div className="h-4 w-px bg-base-300 mx-1"></div>
+                        <div className="flex items-center gap-2">
+                            <input type="file" ref={fullBackupInputRef} className="hidden" accept=".json" onChange={handleImportFullBackupChange} />
+                            <button onClick={() => fullBackupInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors shadow-sm">Import JSON Backup</button>
+                            <button onClick={handleExportFullBackup} className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors shadow-sm">Export JSON Backup</button>
+                        </div>
+                        <div className="h-4 w-px bg-base-300 mx-1"></div>
                         <button 
                             onClick={handleSyncFolder} 
                             disabled={isSyncing}
@@ -151,7 +207,8 @@ const ManageWordsScreen: React.FC = () => {
                         <button 
                             onClick={() => showModal('confirmation', {
                                 text: 'Are you sure you want to completely clear the application cache, stored words, and custom study progress? This will reset the app back to its initial installation state.',
-                                onConfirm: () => {
+                                onConfirm: async () => {
+                                    await clearDB();
                                     localStorage.clear();
                                     window.location.reload();
                                 }

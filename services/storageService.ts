@@ -82,3 +82,27 @@ export const saveWordsToDB = async (words: Word[]): Promise<void> => {
         console.error('Failed to save to IndexedDB:', error);
     }
 };
+
+/**
+ * Clears the entire word store in IndexedDB.
+ */
+export const clearDB = async (): Promise<void> => {
+    try {
+        const db = await getDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(WORD_STORE, 'readwrite');
+            const store = transaction.objectStore(WORD_STORE);
+            const request = store.clear();
+
+            request.onsuccess = () => {
+                resolve();
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    } catch (error) {
+        console.error('Failed to clear IndexedDB:', error);
+    }
+};
