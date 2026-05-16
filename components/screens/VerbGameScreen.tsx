@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Screen, Word, TenseSrsData } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { ttsService } from '../../services/ttsService';
 import NoteTooltip from '../NoteTooltip';
 import UndoButton from '../UndoButton';
+import { gradeInput } from '../../utils/stringUtils';
 
 interface VerbGameHistoryState {
     activeStack: VirtualCard[];
@@ -37,7 +38,7 @@ interface VirtualCard {
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentSourceLanguage } = useSettings();
+    const { currentSourceLanguage, gradingSystem, currentLanguageInfo } = useSettings();
     const { t } = useTranslation();
 
     const [hasStarted, setHasStarted] = useState(false);
@@ -53,6 +54,40 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const [isFlipped, setIsFlipped] = useState(false);
     
     const [history, setHistory] = useState<VerbGameHistoryState | null>(null);
+
+    // Typing assessment & Voice States
+    const [typedAnswer, setTypedAnswer] = useState('');
+    const [gradingResult, setGradingResult] = useState<'correct' | 'incorrect' | 'almost' | null>(null);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                setTypedAnswer(finalTranscript.trim() || interimTranscript.trim());
+            };
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+            recognitionRef.current = recognition;
+        }
+    }, []);
 
     // Build the pool of available tenses across all active verbs
     const availablePool = useMemo(() => {
@@ -199,7 +234,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         // 3. Dynamic Injection: check if sum < intensityLimit
         const currentSum = newStack.reduce((sum, card) => sum + card.rating, 0);
         if (currentSum < intensityLimit) {
-            // Find a tense from the pool that isn't in the stack
+            // Find tenses from the pool that aren't in the stack
             const availableToInject = availablePool.filter(poolCard => 
                 !newStack.some(stackCard => stackCard.wordId === poolCard.wordId && stackCard.tense === poolCard.tense) &&
                 // Prevent injecting the card we just promoted (since availablePool might be stale)
@@ -207,9 +242,30 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             );
             
             if (availableToInject.length > 0) {
-                // Pick a random tense
-                const injectedCard = availableToInject[Math.floor(Math.random() * availableToInject.length)];
-                newStack.push({ ...injectedCard });
+                // Group available by wordId
+                const availableByWord: Record<string, VirtualCard[]> = {};
+                availableToInject.forEach(c => {
+                    if (!availableByWord[c.wordId]) availableByWord[c.wordId] = [];
+                    availableByWord[c.wordId].push(c);
+                });
+
+                // First, are there any words in availableByWord that are ALREADY partially in newStack?
+                const activeWordIds = new Set(newStack.map(c => c.wordId));
+                let chosenWordId = Object.keys(availableByWord).find(wid => activeWordIds.has(wid));
+
+                // If not, pick a random new wordId
+                if (!chosenWordId) {
+                    const wordIds = Object.keys(availableByWord);
+                    chosenWordId = wordIds[Math.floor(Math.random() * wordIds.length)];
+                }
+
+                // Inject ALL available tenses for the chosen word
+                if (chosenWordId) {
+                    const cardsToInject = availableByWord[chosenWordId];
+                    cardsToInject.forEach(card => {
+                        newStack.push({ ...card });
+                    });
+                }
             }
         }
 
@@ -410,6 +466,40 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const currentSum = activeStack.reduce((sum, c) => sum + c.rating, 0);
     const uniqueVerbsCount = new Set(activeStack.map(c => c.wordId)).size;
 
+    // Reset inputs on card change
+    useEffect(() => {
+        setTypedAnswer('');
+        setGradingResult(null);
+    }, [currentCard?.wordId, currentCard?.tense]);
+
+    const frontText = startFace === 'swedish' ? currentCard?.swedish : currentCard?.english;
+    const backText  = startFace === 'swedish' ? currentCard?.english : currentCard?.swedish;
+    const backLang  = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
+
+    const handleCheckAnswer = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isListening) recognitionRef.current?.stop();
+        
+        if (typedAnswer.trim() && currentCard) {
+            const result = gradeInput(typedAnswer, backText || '', gradingSystem === 'none' ? 'loose' : gradingSystem);
+            setGradingResult(result);
+        }
+        
+        if (!isFlipped) setIsFlipped(true);
+    };
+
+    const handleToggleListening = () => {
+        if (!recognitionRef.current || !currentCard) return;
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            recognitionRef.current.lang = backLang;
+            setTypedAnswer('');
+            recognitionRef.current.start();
+            setIsListening(true);
+        }
+    };
+
     return (
         <div className="max-w-2xl mx-auto flex flex-col items-center">
             {/* Header Stats */}
@@ -554,28 +644,104 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 </div>
             </div>
 
-            {/* Rating Controls — only visible after flip */}
-            <div className={`w-full transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                <h3 className="text-center text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">Rate your confidence</h3>
-                <div className="flex gap-3 justify-center w-full">
-                    {[
-                        { val: 1, label: 'Fluent', color: 'bg-green-600 hover:bg-green-500 text-white', sub: 'Promote to SRS' },
-                        { val: 2, label: 'Good', color: 'bg-emerald-600/50 hover:bg-emerald-500/60 text-emerald-100', sub: '' },
-                        { val: 3, label: 'Okay', color: 'bg-yellow-600/50 hover:bg-yellow-500/60 text-yellow-100', sub: '' },
-                        { val: 4, label: 'Hard', color: 'bg-orange-600/50 hover:bg-orange-500/60 text-orange-100', sub: '' },
-                        { val: 5, label: 'Unknown', color: 'bg-red-600/50 hover:bg-red-500/60 text-red-100', sub: '' }
-                    ].map(btn => (
-                        <button
-                            key={btn.val}
-                            onClick={(e) => { e.stopPropagation(); handleRate(btn.val); }}
-                            className={`flex-1 py-3 px-2 rounded-xl font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md flex flex-col items-center justify-center ${btn.color}`}
+            {/* Lower Controls Section */}
+            <div className="w-full max-w-xl mx-auto shrink-0 px-4 pb-8">
+                {!isFlipped ? (
+                    <div className="space-y-4">
+                        <form onSubmit={handleCheckAnswer} className="relative">
+                            <input 
+                                value={typedAnswer} 
+                                onChange={e => {
+                                    setTypedAnswer(e.target.value);
+                                    setGradingResult(null);
+                                }} 
+                                type="text" 
+                                placeholder={t('game.flashcards.typeAnswer')} 
+                                className={`w-full border border-white/10 rounded-2xl p-4 md:p-5 text-center focus:outline-none pr-14 transition-all duration-300 bg-base-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-lg text-lg font-medium text-white`} 
+                                disabled={isListening}
+                                autoFocus
+                            />
+                            {recognitionRef.current && (
+                                <button 
+                                    type="button" 
+                                    onClick={handleToggleListening} 
+                                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`} 
+                                    title="Use Voice Input"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                </button>
+                            )}
+                        </form>
+
+                        <div className="flex gap-3">
+                            <button 
+                                type="button"
+                                onClick={() => ttsService.speak(backText || '', backLang)}
+                                className="flex-1 py-4 bg-white/5 border border-white/10 text-gray-300 font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                title="Pronounce correct answer"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
+                                <span className="hidden sm:inline">{t('game.flashcards.readAloud')}</span>
+                            </button>
+
+                            <button 
+                                onClick={handleCheckAnswer} 
+                                className="flex-[2] py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-2xl hover:from-blue-500 hover:to-indigo-500 transition-all text-lg shadow-xl flex items-center justify-center gap-2"
+                            >
+                                <span>{typedAnswer.trim() ? t('game.check') : t('game.smartCards.showAnswer')}</span>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-4 transition-all duration-300 opacity-100 translate-y-0">
+                        {/* Show assessment results if typed */}
+                        {typedAnswer.trim() && (
+                            <div className={`text-center py-3 px-4 rounded-2xl border backdrop-blur-sm transition-all shadow-md
+                                ${gradingResult === 'correct' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                  gradingResult === 'almost' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                  'bg-red-500/10 border-red-500/30 text-red-400'}`}
+                            >
+                                <div className="text-xs text-gray-400 mb-0.5">Your answer:</div>
+                                <div className="text-lg font-bold mb-1 italic">"{typedAnswer}"</div>
+                                <div className="uppercase tracking-widest text-xs font-extrabold flex items-center justify-center gap-1">
+                                    {gradingResult === 'correct' ? `✓ ${t('game.typing.correct')}` : 
+                                     gradingResult === 'almost' ? '⚠ Almost Correct' : 
+                                     `✗ ${t('game.typing.incorrect')}`}
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            type="button"
+                            onClick={() => ttsService.speak(backText || '', backLang)}
+                            className="w-full py-3 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold rounded-xl hover:bg-indigo-500/20 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
                         >
-                            <span className="text-lg mb-0.5">{btn.val}</span>
-                            <span className="text-[10px] uppercase opacity-80">{btn.label}</span>
-                            {btn.sub && <span className="text-[8px] mt-0.5 opacity-60 text-center leading-tight">{btn.sub}</span>}
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
+                            <span>{t('game.flashcards.readAloud')}</span>
                         </button>
-                    ))}
-                </div>
+
+                        <h3 className="text-center text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">Rate your confidence</h3>
+                        <div className="flex gap-3 justify-center w-full">
+                            {[
+                                { val: 1, label: 'Fluent', color: 'bg-green-600 hover:bg-green-500 text-white', sub: 'Promote to SRS' },
+                                { val: 2, label: 'Good', color: 'bg-emerald-600/50 hover:bg-emerald-500/60 text-emerald-100', sub: '' },
+                                { val: 3, label: 'Okay', color: 'bg-yellow-600/50 hover:bg-yellow-500/60 text-yellow-100', sub: '' },
+                                { val: 4, label: 'Hard', color: 'bg-orange-600/50 hover:bg-orange-500/60 text-orange-100', sub: '' },
+                                { val: 5, label: 'Unknown', color: 'bg-red-600/50 hover:bg-red-500/60 text-red-100', sub: '' }
+                            ].map(btn => (
+                                <button
+                                    key={btn.val}
+                                    onClick={(e) => { e.stopPropagation(); handleRate(btn.val); }}
+                                    className={`flex-1 py-3 px-2 rounded-xl font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md flex flex-col items-center justify-center ${btn.color}`}
+                                >
+                                    <span className="text-lg mb-0.5">{btn.val}</span>
+                                    <span className="text-[10px] uppercase opacity-80">{btn.label}</span>
+                                    {btn.sub && <span className="text-[8px] mt-0.5 opacity-60 text-center leading-tight">{btn.sub}</span>}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
