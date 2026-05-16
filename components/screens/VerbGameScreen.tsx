@@ -38,7 +38,7 @@ interface VirtualCard {
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentSourceLanguage, gradingSystem, currentLanguageInfo } = useSettings();
+    const { currentSourceLanguage, gradingSystem, currentLanguageInfo, typingTarget } = useSettings();
     const { t } = useTranslation();
 
     const [hasStarted, setHasStarted] = useState(false);
@@ -477,12 +477,15 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const backText  = startFace === 'swedish' ? currentCard?.english : currentCard?.swedish;
     const backLang  = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
 
+    const backExample = startFace === 'swedish' ? currentCard?.exampleEn : currentCard?.exampleSv;
+    const targetText = typingTarget === 'word' ? backText : backExample;
+
     const handleCheckAnswer = (e: React.FormEvent) => {
         e.preventDefault();
         if (isListening) recognitionRef.current?.stop();
         
         if (typedAnswer.trim() && currentCard) {
-            const result = gradeInput(typedAnswer, backText || '', gradingSystem === 'none' ? 'loose' : gradingSystem);
+            const result = gradeInput(typedAnswer, targetText || '', gradingSystem === 'none' ? 'loose' : gradingSystem);
             setGradingResult(result);
         }
         
@@ -677,7 +680,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         <div className="flex gap-3">
                             <button 
                                 type="button"
-                                onClick={() => ttsService.speak(backText || '', backLang)}
+                                onClick={() => ttsService.speak(targetText || '', backLang)}
                                 className="flex-1 py-4 bg-white/5 border border-white/10 text-gray-300 font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 shadow-lg"
                                 title="Pronounce correct answer"
                             >
@@ -714,7 +717,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
 
                         <button 
                             type="button"
-                            onClick={() => ttsService.speak(backText || '', backLang)}
+                            onClick={() => ttsService.speak(targetText || '', backLang)}
                             className="w-full py-3 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold rounded-xl hover:bg-indigo-500/20 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
