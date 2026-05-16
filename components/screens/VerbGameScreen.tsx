@@ -1,25 +1,16 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Screen, Word, TenseSrsData } from '../../types';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Screen, Word, TenseSrsData, SwipeDirection, SwipeAction } from '../../types';
 import { useWords } from '../../contexts/WordsContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useModal } from '../../contexts/ModalContext';
+import { useSwipeSettings } from '../../contexts/SwipeSettingsContext';
+import { applySM2, nowISO } from '../../services/srsService';
 
 import { ttsService } from '../../services/ttsService';
 import NoteTooltip from '../NoteTooltip';
 import UndoButton from '../UndoButton';
 import { gradeInput } from '../../utils/stringUtils';
-
-interface VerbGameHistoryState {
-    activeStack: VirtualCard[];
-    currentCardIndex: number;
-    wordBeforeUpdate: Word;
-    rating: number;
-    status: 'done' | 'undone';
-}
-
-interface VerbGameScreenProps {
-    setScreen: (screen: Screen) => void;
-}
 
 type TenseType = 'infinitiv' | 'present' | 'preteritum' | 'supinium';
 
@@ -34,24 +25,51 @@ interface VirtualCard {
     scoreHistory: number[];
     shownCount: number;
     note?: string;
+    isBlurredNext?: boolean;
+    face?: 'swedish' | 'source';
+}
+
+interface VerbGameHistoryState {
+    deck: VirtualCard[];
+    removedStack: VirtualCard[];
+    allActiveWordsPool: VirtualCard[];
+    totalActiveWords: number;
+    currentIndex: number;
+    wordBeforeUpdate: Word;
+    actionType: string;
+    actionPayload?: any;
+    status: 'done' | 'undone';
+}
+
+interface VerbGameScreenProps {
+    setScreen: (screen: Screen) => void;
 }
 
 const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const { words, updateWord, toggleWordFlag } = useWords();
-    const { currentSourceLanguage, gradingSystem, currentLanguageInfo, typingTarget } = useSettings();
+    const { currentSourceLanguage, gradingSystem, currentLanguageInfo, typingTarget, disableAnimations } = useSettings();
     const { t } = useTranslation();
+    const { showModal, showToast } = useModal();
+    const { swipeSettings } = useSwipeSettings();
 
     const [hasStarted, setHasStarted] = useState(false);
-    const [intensityLimit, setIntensityLimit] = useState(20);
-    const [initialVerbs, setInitialVerbs] = useState(1);
+    const [initialStackSize, setInitialStackSize] = useState(10);
     const [startFace, setStartFace] = useState<'swedish' | 'english'>('swedish');
     
     const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set(['1', '2', '3', '4']));
     const [selectedTenses, setSelectedTenses] = useState<Set<TenseType>>(new Set(['infinitiv', 'present', 'preteritum', 'supinium']));
     
-    const [activeStack, setActiveStack] = useState<VirtualCard[]>([]);
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
+    const [deck, setDeck] = useState<VirtualCard[]>([]);
+    const [allActiveWordsPool, setAllActiveWordsPool] = useState<VirtualCard[]>([]);
+    const [removedStack, setRemovedStack] = useState<VirtualCard[]>([]);
+    const [totalActiveWords, setTotalActiveWords] = useState(0);
+    
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
+    const [isBlurred, setIsBlurred] = useState(false);
+    
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [isActionDelayed, setIsActionDelayed] = useState(false);
     
     const [history, setHistory] = useState<VerbGameHistoryState | null>(null);
 
@@ -61,33 +79,8 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
 
-    // Initialize Speech Recognition
-    useEffect(() => {
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.onresult = (event: any) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-                setTypedAnswer(finalTranscript.trim() || interimTranscript.trim());
-            };
-            recognition.onend = () => setIsListening(false);
-            recognition.onerror = (event: any) => {
-                console.error('Speech recognition error:', event.error);
-                setIsListening(false);
-            };
-            recognitionRef.current = recognition;
-        }
-    }, []);
+    const stateRef = useRef({ deck, currentIndex });
+    useEffect(() => { stateRef.current = { deck, currentIndex }; }, [deck, currentIndex]);
 
     // Build the pool of available tenses across all active verbs
     const availablePool = useMemo(() => {
@@ -95,7 +88,6 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         words.forEach(w => {
             if (w.wordType?.toLowerCase() !== 'verb' || !w.verb_game_active) return;
             
-            // Extract group
             let group = 'unknown';
             const noteMatch = w.swedishNote?.match(/GROUP:\s*([^#\s]+)/i);
             if (noteMatch) {
@@ -116,16 +108,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                     const shownCount = w[`verb_shown_${tense}` as keyof Word] as number || 0;
                     
                     pool.push({
-                        wordId: w.id,
-                        tense,
-                        swedish: sv,
-                        english: en,
-                        exampleSv: exSv,
-                        exampleEn: exEn,
-                        rating: rating,
-                        scoreHistory,
-                        shownCount,
-                        note
+                        wordId: w.id, tense, swedish: sv, english: en, exampleSv: exSv, exampleEn: exEn, rating, scoreHistory, shownCount, note, face: startFace === 'swedish' ? 'swedish' : 'source'
                     });
                 }
             };
@@ -136,203 +119,402 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             addIfUnpromoted('supinium', w.supinium || '', w.supiniumTranslation || '', w.supiniumExample || '', w.supiniumExampleTranslation || '', w.verb_rating_supinium ?? 5, w.supiniumNote);
         });
         return pool;
-    }, [words, selectedGroups, selectedTenses]);
+    }, [words, selectedGroups, selectedTenses, startFace]);
 
-    const startGame = () => {
-        // Build initial stack
-        let initialStack: VirtualCard[] = [];
-        let usedWordIds = new Set<string>();
+    const startGame = useCallback(() => {
+        const pool = [...availablePool];
+        pool.sort(() => 0.5 - Math.random());
         
-        // Group pool by wordId to pull full verbs initially
-        const groupedByWord: Record<string, VirtualCard[]> = {};
-        availablePool.forEach(c => {
-            if (!groupedByWord[c.wordId]) groupedByWord[c.wordId] = [];
-            groupedByWord[c.wordId].push(c);
-        });
+        setTotalActiveWords(pool.length);
+        const startSize = Math.min(initialStackSize, pool.length);
         
-        const wordIds = Object.keys(groupedByWord).sort(() => 0.5 - Math.random());
-        for (let i = 0; i < Math.min(initialVerbs, wordIds.length); i++) {
-            const wid = wordIds[i];
-            initialStack = [...initialStack, ...groupedByWord[wid]];
-            usedWordIds.add(wid);
-        }
+        const initialDeck = pool.slice(0, startSize).map(card => ({...card, shownCount: card.shownCount + 1}));
+        setDeck(initialDeck);
+        setAllActiveWordsPool(pool.slice(startSize));
+        setCurrentIndex(0);
+        setRemovedStack([]);
+        setIsFlipped(false);
+        setHasStarted(true);
         
-        // Shuffle the initial stack
-        initialStack.sort(() => 0.5 - Math.random());
-        // Handle tracking view counts correctly across the initial stack
-        initialStack.forEach(card => {
-            card.shownCount++;
+        // Update shown count for the initial deck in the main word object
+        initialDeck.forEach(card => {
             const w = words.find(x => x.id === card.wordId);
             if (w) {
                 const shownField = `verb_shown_${card.tense}` as keyof Word;
                 updateWord({ ...w, [shownField]: card.shownCount });
             }
         });
-        setActiveStack(initialStack);
-        setHasStarted(true);
-        setIsFlipped(false);
-        setCurrentCardIndex(0);
-    };
+    }, [availablePool, initialStackSize, words, updateWord]);
 
-    const handleRate = (rating: number) => {
-        const currentCard = activeStack[currentCardIndex];
-        const word = words.find(w => w.id === currentCard.wordId);
-        if (!word) return;
-
-        setHistory({
-            activeStack: [...activeStack],
-            currentCardIndex,
-            wordBeforeUpdate: { ...word },
-            rating,
-            status: 'done'
-        });
-
-        // 1. Update the rating on the Word object in context
-        const ratingField = `verb_rating_${currentCard.tense}` as keyof Word;
-        const historyField = `verb_history_${currentCard.tense}` as keyof Word;
-        const shownField = `verb_shown_${currentCard.tense}` as keyof Word;
-
-        const currentHistory = currentCard.scoreHistory || [];
-        const updatedHistory = [...currentHistory, rating].slice(-3);
-
-        const updatedWord: Word = { 
-            ...word, 
-            [ratingField]: rating,
-            [historyField]: updatedHistory,
-            [shownField]: currentCard.shownCount
-        };
-        
-        let promoted = false;
-        if (rating === 1) {
-            // Promote to SRS
-            promoted = true;
-            if (currentCard.tense === 'infinitiv') {
-                updatedWord.srs_active = true;
-                if (!updatedWord.srs_added_at) updatedWord.srs_added_at = new Date().toISOString();
-            } else {
-                const srsField = `srs_${currentCard.tense}` as keyof Word;
-                updatedWord[srsField] = { active: true, added_at: new Date().toISOString() } as TenseSrsData;
-            }
-        }
-        
-        updateWord(updatedWord);
-
-        // 2. Update the active stack
-        let newStack = [...activeStack];
-        if (promoted) {
-            // Remove from stack
-            newStack.splice(currentCardIndex, 1);
-        } else {
-            // Update rating and history in the stack
-            newStack[currentCardIndex] = { 
-                ...currentCard, 
-                rating,
-                scoreHistory: updatedHistory
-            };
-        }
-
-        // 3. Dynamic Injection: check if sum < intensityLimit
-        const currentSum = newStack.reduce((sum, card) => sum + card.rating, 0);
-        if (currentSum < intensityLimit) {
-            // Find tenses from the pool that aren't in the stack
-            const availableToInject = availablePool.filter(poolCard => 
-                !newStack.some(stackCard => stackCard.wordId === poolCard.wordId && stackCard.tense === poolCard.tense) &&
-                // Prevent injecting the card we just promoted (since availablePool might be stale)
-                !(promoted && poolCard.wordId === currentCard.wordId && poolCard.tense === currentCard.tense)
-            );
-            
-            if (availableToInject.length > 0) {
-                // Group available by wordId
-                const availableByWord: Record<string, VirtualCard[]> = {};
-                availableToInject.forEach(c => {
-                    if (!availableByWord[c.wordId]) availableByWord[c.wordId] = [];
-                    availableByWord[c.wordId].push(c);
-                });
-
-                // First, are there any words in availableByWord that are ALREADY partially in newStack?
-                const activeWordIds = new Set(newStack.map(c => c.wordId));
-                let chosenWordId = Object.keys(availableByWord).find(wid => activeWordIds.has(wid));
-
-                // If not, pick a random new wordId
-                if (!chosenWordId) {
-                    const wordIds = Object.keys(availableByWord);
-                    chosenWordId = wordIds[Math.floor(Math.random() * wordIds.length)];
-                }
-
-                // Inject ALL available tenses for the chosen word
-                if (chosenWordId) {
-                    const cardsToInject = availableByWord[chosenWordId];
-                    cardsToInject.forEach(card => {
-                        newStack.push({ ...card });
-                    });
-                }
-            }
-        }
-
-        if (newStack.length === 0) {
-            // Game Over or completely empty
-            setActiveStack([]);
-            return;
-        }
-
-        // 4. Determine next card (strict highest unfamiliarity / confidence first, but prioritize same verb stem)
-        let candidates = newStack.map((c, i) => ({ card: c, idx: i }));
-        // Only filter out the current card index if we didn't splice it out (if we spliced it, the card at currentCardIndex is already a different card!)
-        if (!promoted && candidates.length > 1) {
-            candidates = candidates.filter(c => c.idx !== currentCardIndex);
-        }
-        
-        // Find if there are any remaining tenses for the same verb stem
-        const sameWordCandidates = candidates.filter(c => c.card.wordId === currentCard.wordId);
-        
-        let chosen;
-        if (sameWordCandidates.length > 0) {
-            // Pick max rating among the same word candidates
-            const maxRating = Math.max(...sameWordCandidates.map(c => c.card.rating));
-            const topSameWordCandidates = sameWordCandidates.filter(c => c.card.rating === maxRating);
-            chosen = topSameWordCandidates[Math.floor(Math.random() * topSameWordCandidates.length)];
-        } else {
-            // No more forms for the same verb stem, fallback to max rating in all candidates
-            const maxRating = Math.max(...candidates.map(c => c.card.rating));
-            const topCandidates = candidates.filter(c => c.card.rating === maxRating);
-            chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
-        }
-        
-        const nextIdx = chosen.idx;
-        const nxt = { ...newStack[nextIdx], shownCount: newStack[nextIdx].shownCount + 1 };
-        newStack[nextIdx] = nxt;
-        
-        const wNxt = words.find(x => x.id === nxt.wordId);
-        if (wNxt) {
-            const nxtShownField = `verb_shown_${nxt.tense}` as keyof Word;
-            updateWord({ ...wNxt, [nxtShownField]: nxt.shownCount });
-        }
-
-        setActiveStack(newStack);
-        setCurrentCardIndex(nextIdx);
-        setIsFlipped(false);
-    };
-
-    const handleUndo = React.useCallback(() => {
+    const handleUndo = useCallback(() => {
         if (!history || history.status !== 'done') return;
         updateWord(history.wordBeforeUpdate);
-        setActiveStack(history.activeStack);
-        setCurrentCardIndex(history.currentCardIndex);
+        setDeck(history.deck);
+        setRemovedStack(history.removedStack);
+        setAllActiveWordsPool(history.allActiveWordsPool);
+        setTotalActiveWords(history.totalActiveWords);
+        setCurrentIndex(history.currentIndex);
         setIsFlipped(false);
         setHistory(prev => prev ? { ...prev, status: 'undone' } : null);
     }, [history, updateWord]);
 
-    const handleRedo = React.useCallback(() => {
-        if (!history || history.status !== 'undone') return;
-        handleRate(history.rating);
-    }, [history, handleRate]);
+    const delayedAction = (action: () => void) => {
+        setIsActionDelayed(true);
+        setTimeout(() => {
+            action();
+        }, 150);
+    };
 
-    const currentCard = activeStack[currentCardIndex];
+    const recordActionStats = (card: VirtualCard) => {
+        const w = words.find(x => x.id === card.wordId);
+        if (w) {
+            const shownField = `verb_shown_${card.tense}` as keyof Word;
+            updateWord({ ...w, [shownField]: card.shownCount + 1 });
+        }
+        return { ...card, shownCount: card.shownCount + 1 };
+    };
 
-    // Reset inputs on card change
+    const moveCard = (positions: number) => {
+        const { deck: d, currentIndex: idx } = stateRef.current;
+        if (d.length < 2 || isTransitioning) return;
+        setIsTransitioning(true);
+
+        const currentCard = d[idx];
+        const word = words.find(w => w.id === currentCard.wordId);
+        setHistory({
+            deck: [...d], removedStack: [...removedStack], allActiveWordsPool: [...allActiveWordsPool], totalActiveWords, currentIndex: idx, wordBeforeUpdate: { ...word } as Word, actionType: 'move', actionPayload: { positions }, status: 'done'
+        });
+
+        const cardToMove = recordActionStats(currentCard);
+        
+        setIsFlipped(false);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            setDeck(prevDeck => {
+                const newDeck = prevDeck.filter((_, i) => i !== idx);
+                const newIndex = Math.min(idx + positions, newDeck.length);
+                newDeck.splice(newIndex, 0, cardToMove);
+                return newDeck;
+            });
+            if (idx >= d.length - 1) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
+    };
+
+    const sendToBack = (reverse: boolean = false, blur: boolean = false) => {
+        const { deck: d, currentIndex: idx } = stateRef.current;
+        if (d.length < 2 || isTransitioning) return;
+        setIsTransitioning(true);
+
+        const currentCard = d[idx];
+        const word = words.find(w => w.id === currentCard.wordId);
+        setHistory({
+            deck: [...d], removedStack: [...removedStack], allActiveWordsPool: [...allActiveWordsPool], totalActiveWords, currentIndex: idx, wordBeforeUpdate: { ...word } as Word, actionType: 'back', actionPayload: { reverse, blur }, status: 'done'
+        });
+
+        const cardToMove = {
+            ...recordActionStats(currentCard),
+            face: reverse ? (currentCard.face === 'swedish' ? 'source' : 'swedish') : currentCard.face,
+            isBlurredNext: blur,
+        } as VirtualCard;
+
+        const wasLastCard = idx === d.length - 1;
+        setIsFlipped(false);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            setDeck(prevDeck => {
+                const newDeck = prevDeck.filter((_, i) => i !== idx);
+                newDeck.push(cardToMove);
+                return newDeck;
+            });
+            if (wasLastCard) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
+    };
+
+    const hideCard = () => {
+        const { deck: d, currentIndex: idx } = stateRef.current;
+        if (d.length === 0 || isTransitioning) return;
+        setIsTransitioning(true);
+
+        const currentCard = d[idx];
+        const word = words.find(w => w.id === currentCard.wordId);
+        setHistory({
+            deck: [...d], removedStack: [...removedStack], allActiveWordsPool: [...allActiveWordsPool], totalActiveWords, currentIndex: idx, wordBeforeUpdate: { ...word } as Word, actionType: 'hide', status: 'done'
+        });
+
+        if (word) {
+            const ratingField = `verb_rating_${currentCard.tense}` as keyof Word;
+            updateWord({ ...word, [ratingField]: 1 }); // Mark as rating 1 so it's not pulled anymore
+        }
+        setTotalActiveWords(t => t - 1);
+        
+        setIsFlipped(false);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            let newCard = removedStack.pop() || allActiveWordsPool.shift();
+            setDeck(prevDeck => {
+                const newDeck = [...prevDeck];
+                if (newCard) {
+                    newDeck[idx] = recordActionStats(newCard);
+                    setRemovedStack(rs => rs.slice(0, -1));
+                    if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
+                } else {
+                    newDeck.splice(idx, 1);
+                }
+                return newDeck;
+            });
+            if (idx >= d.length - 1 && d.length > 1) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
+    };
+    
+    const moveToSrs = () => {
+        const { deck: d, currentIndex: idx } = stateRef.current;
+        if (d.length === 0 || isTransitioning) return;
+        setIsTransitioning(true);
+
+        const currentCard = d[idx];
+        const word = words.find(w => w.id === currentCard.wordId);
+        setHistory({
+            deck: [...d], removedStack: [...removedStack], allActiveWordsPool: [...allActiveWordsPool], totalActiveWords, currentIndex: idx, wordBeforeUpdate: { ...word } as Word, actionType: 'srs', status: 'done'
+        });
+
+        if (word) {
+            const ratingField = `verb_rating_${currentCard.tense}` as keyof Word;
+            const updatedWord = { ...word, [ratingField]: 1 } as Word;
+
+            if (currentCard.tense === 'infinitiv') {
+                updatedWord.srs_active = true;
+                if (!updatedWord.srs_added_at) updatedWord.srs_added_at = nowISO();
+                if (!updatedWord.srs_next_review) {
+                    const initialSrs = applySM2(updatedWord, 4);
+                    Object.assign(updatedWord, { ...initialSrs, srs_next_review: nowISO() });
+                }
+            } else {
+                const srsField = `srs_${currentCard.tense}` as keyof Word;
+                let srsData = updatedWord[srsField] as TenseSrsData;
+                if (!srsData) srsData = { active: true, added_at: nowISO() } as TenseSrsData;
+                else srsData.active = true;
+                
+                if (!srsData.next_review) {
+                    const mockWord = { ...srsData } as any;
+                    const initialSrs = applySM2(mockWord, 4);
+                    srsData = { ...srsData, ...initialSrs, next_review: nowISO() };
+                }
+                updatedWord[srsField] = srsData as any;
+            }
+            updateWord(updatedWord);
+        }
+
+        setTotalActiveWords(t => t - 1);
+        setIsFlipped(false);
+        const delay = disableAnimations ? 0 : 300;
+
+        setTimeout(() => {
+            let newCard = removedStack.pop() || allActiveWordsPool.shift();
+            setDeck(prevDeck => {
+                const newDeck = [...prevDeck];
+                if (newCard) {
+                    newDeck[idx] = recordActionStats(newCard);
+                    setRemovedStack(rs => rs.slice(0, -1));
+                    if(allActiveWordsPool.length > 0) setAllActiveWordsPool(p => p.slice(1));
+                } else {
+                    newDeck.splice(idx, 1);
+                }
+                return newDeck;
+            });
+            if (idx >= d.length - 1 && d.length > 1) setCurrentIndex(0);
+            setTimeout(() => setIsTransitioning(false), delay);
+        }, delay);
+    };
+
+    const handleSetStackSize = (newSize: number) => {
+        const clampedSize = Math.max(1, Math.min(newSize, totalActiveWords));
+        const currentSize = deck.length;
+        const delta = clampedSize - currentSize;
+        if (delta === 0) return;
+
+        setIsFlipped(false);
+
+        if (delta > 0) {
+            const cardsToAdd: VirtualCard[] = [];
+            const tempRemoved = [...removedStack];
+            const tempPool = [...allActiveWordsPool];
+            for (let i = 0; i < delta; i++) {
+                const card = tempRemoved.pop() || tempPool.shift();
+                if (card) cardsToAdd.push(card); else break;
+            }
+            setDeck(d => [...d, ...cardsToAdd]);
+            setRemovedStack(tempRemoved);
+            setAllActiveWordsPool(tempPool);
+            showToast(`Added ${cardsToAdd.length} cards to deck`);
+        } else {
+            const cardsToRemove = Math.abs(delta);
+            const numCardsAfterIndex = deck.length - 1 - currentIndex;
+            const removeAfterCount = Math.min(cardsToRemove, numCardsAfterIndex);
+            const removeBeforeCount = cardsToRemove - removeAfterCount;
+
+            const cardsToMoveToRemoved: VirtualCard[] = [];
+            const cardsToMoveToPool: VirtualCard[] = [];
+
+            const newDeck = [...deck];
+            
+            if (removeAfterCount > 0) {
+                const removedAfter = newDeck.splice(currentIndex + 1, removeAfterCount);
+                cardsToMoveToPool.push(...removedAfter);
+            }
+            if (removeBeforeCount > 0) {
+                const removedBefore = newDeck.splice(0, removeBeforeCount);
+                cardsToMoveToRemoved.push(...removedBefore);
+                setCurrentIndex(prev => prev - removeBeforeCount);
+            }
+
+            setDeck(newDeck);
+            setRemovedStack(prev => [...prev, ...cardsToMoveToRemoved]);
+            setAllActiveWordsPool(prev => [...cardsToMoveToPool, ...prev]);
+            showToast(`Removed ${cardsToRemove} cards from deck`);
+        }
+    };
+
+    const bulkSwitchFace = (face: 'swedish' | 'source') => {
+        const updateCards = (cards: VirtualCard[]) => cards.map(c => ({...c, face}));
+        setDeck(updateCards);
+        setRemovedStack(updateCards);
+        setAllActiveWordsPool(updateCards);
+        showToast(face === 'swedish' ? 'All cards set to Swedish front' : 'All cards set to English front');
+    };
+
+    const bulkSetBlur = (shouldBlur: boolean) => {
+        const updateCards = (cards: VirtualCard[]) => cards.map(c => ({...c, isBlurredNext: shouldBlur}));
+        setDeck(updateCards);
+        setRemovedStack(updateCards);
+        setAllActiveWordsPool(updateCards);
+        showToast(shouldBlur ? 'All cards blurred' : 'All cards unblurred');
+    };
+
+    const handleShuffleDeck = () => {
+        const d = [...deck];
+        const current = d.splice(currentIndex, 1)[0];
+        d.sort(() => 0.5 - Math.random());
+        d.splice(0, 0, current);
+        setDeck(d);
+        setCurrentIndex(0);
+        showToast("Deck shuffled (current card kept in place)");
+    };
+
+    // Keyboard controls
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['input', 'textarea'].includes((e.target as HTMLElement).tagName.toLowerCase())) return;
+            if (deck.length === 0 || isTransitioning) return;
+            
+            switch(e.key) {
+                case ' ':
+                case 'Enter':
+                    e.preventDefault();
+                    if (!isFlipped) setIsFlipped(true);
+                    break;
+                case '1': if (isFlipped) delayedAction(() => moveCard(1)); break;
+                case '2': if (isFlipped) delayedAction(() => moveCard(2)); break;
+                case '3': if (isFlipped) delayedAction(() => moveCard(3)); break;
+                case '4': if (isFlipped) delayedAction(() => moveCard(4)); break;
+                case '5': if (isFlipped) delayedAction(() => moveCard(5)); break;
+                case 's': if (isFlipped) delayedAction(moveToSrs); break;
+                case 'h': if (isFlipped) delayedAction(hideCard); break;
+                case 'b': if (isFlipped) delayedAction(() => sendToBack()); break;
+                case 'z': if (e.ctrlKey) handleUndo(); break;
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [deck.length, isFlipped, isTransitioning, history, handleUndo]);
+
+    // Swipe handlers
+    const executeSwipeAction = useCallback((action: SwipeAction) => {
+        if (!isFlipped || isTransitioning) return;
+        switch(action) {
+            case '+1': delayedAction(() => moveCard(1)); break;
+            case '+2': delayedAction(() => moveCard(2)); break;
+            case '+3': delayedAction(() => moveCard(3)); break;
+            case '+4': delayedAction(() => moveCard(4)); break;
+            case 'back': delayedAction(() => sendToBack()); break;
+            case 'srs': delayedAction(moveToSrs); break;
+            case 'hide': delayedAction(hideCard); break;
+            case 'none': break;
+        }
+    }, [isFlipped, isTransitioning, deck, currentIndex]);
+
+    // Touch handlers for swiping
+    const touchStartRef = useRef<{x: number, y: number} | null>(null);
+    useEffect(() => {
+        const handleTouchStart = (e: TouchEvent) => {
+            if (!isFlipped || isTransitioning) return;
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        };
+        
+        const handleTouchEnd = (e: TouchEvent) => {
+            if (!touchStartRef.current || !isFlipped || isTransitioning) return;
+            
+            const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+            const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+            
+            if (Math.max(absDx, absDy) > 50) {
+                let direction: SwipeDirection;
+                if (absDx > absDy) {
+                    direction = dx > 0 ? 'right' : 'left';
+                } else {
+                    direction = dy > 0 ? 'down' : 'up';
+                }
+                const action = swipeSettings[direction];
+                executeSwipeAction(action);
+            }
+            touchStartRef.current = null;
+        };
+
+        document.addEventListener('touchstart', handleTouchStart);
+        document.addEventListener('touchend', handleTouchEnd);
+        return () => {
+            document.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [isFlipped, isTransitioning, executeSwipeAction, swipeSettings]);
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                    else interimTranscript += event.results[i][0].transcript;
+                }
+                setTypedAnswer(finalTranscript.trim() || interimTranscript.trim());
+            };
+            recognition.onend = () => setIsListening(false);
+            recognition.onerror = () => setIsListening(false);
+            recognitionRef.current = recognition;
+        }
+    }, []);
+
+    const currentCard = deck[currentIndex];
+
     useEffect(() => {
         setTypedAnswer('');
         setGradingResult(null);
+        if (currentCard) {
+            setIsBlurred(currentCard.isBlurredNext || false);
+        }
     }, [currentCard?.wordId, currentCard?.tense]);
 
     if (currentSourceLanguage !== 'en') {
@@ -351,37 +533,17 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                 
                 <div className="space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-gray-400 mb-2">Initial Verbs in Stack ({initialVerbs})</label>
+                        <label className="block text-sm font-bold text-gray-400 mb-2">Initial Stack Size ({initialStackSize})</label>
                         <input 
                             type="range" 
-                            min="1" 
-                            max="10" 
-                            value={initialVerbs} 
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setInitialVerbs(val);
-                                // Auto-adjust intensity limit if it's too low for the initial verbs
-                                if (intensityLimit < val * 20) {
-                                    setIntensityLimit(val * 20);
-                                }
-                            }}
+                            min="5" 
+                            max="50" 
+                            step="5"
+                            value={initialStackSize} 
+                            onChange={(e) => setInitialStackSize(parseInt(e.target.value))}
                             className="range range-primary" 
                         />
-                        <p className="text-xs text-gray-500 mt-1">1 verb = 4 tenses (forms).</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-gray-400 mb-2">Intensity Limit (Sum: {intensityLimit})</label>
-                        <input 
-                            type="range" 
-                            min="10" 
-                            max="100" 
-                            step="5"
-                            value={intensityLimit} 
-                            onChange={(e) => setIntensityLimit(parseInt(e.target.value))}
-                            className="range range-secondary" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Maximum allowed sum of unfamiliarity ratings. New tenses are injected when the stack's total sum falls below this limit.</p>
+                        <p className="text-xs text-gray-500 mt-1">Number of active tense cards in your deck.</p>
                     </div>
 
                     <div>
@@ -460,24 +622,25 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         );
     }
 
-    if (activeStack.length === 0) {
+    if (deck.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
                 <h2 className="text-3xl font-bold text-green-500 mb-4">Stack Cleared!</h2>
-                <p className="text-center text-gray-400 mb-6">You've promoted all active tenses to the SRS system.</p>
+                <p className="text-center text-gray-400 mb-6">You've finished all active tense cards.</p>
                 <button onClick={() => setHasStarted(false)} className="px-6 py-2 bg-base-300 rounded-lg hover:bg-base-100 transition-colors">Play Again</button>
             </div>
         );
     }
 
-    const currentSum = activeStack.reduce((sum, c) => sum + c.rating, 0);
-    const uniqueVerbsCount = new Set(activeStack.map(c => c.wordId)).size;
+    const uniqueVerbsCount = new Set(deck.map(c => c.wordId)).size;
 
-    const frontText = startFace === 'swedish' ? currentCard?.swedish : currentCard?.english;
-    const backText  = startFace === 'swedish' ? currentCard?.english : currentCard?.swedish;
-    const backLang  = startFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
+    const currentFace = currentCard.face || 'swedish';
+    const frontText = currentFace === 'swedish' ? currentCard.swedish : currentCard.english;
+    const backText  = currentFace === 'swedish' ? currentCard.english : currentCard.swedish;
+    const backLang  = currentFace === 'swedish' ? currentLanguageInfo.ttsCode : 'sv-SE';
+    const frontLang = currentFace === 'swedish' ? 'sv-SE' : currentLanguageInfo.ttsCode;
 
-    const backExample = startFace === 'swedish' ? currentCard?.exampleEn : currentCard?.exampleSv;
+    const backExample = currentFace === 'swedish' ? currentCard.exampleEn : currentCard.exampleSv;
     const targetText = typingTarget === 'word' ? backText : backExample;
 
     const handleCheckAnswer = (e: React.FormEvent) => {
@@ -505,60 +668,42 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto flex flex-col items-center">
+        <div className="max-w-2xl mx-auto flex flex-col items-center pb-12">
             {/* Header Stats */}
-            <div className="w-full flex justify-between items-center mb-4 px-4 py-2 bg-base-200 rounded-lg shadow-sm border border-base-300">
+            <div className="w-full flex justify-between items-center mb-6 px-4 py-3 bg-base-200 rounded-xl shadow-sm border border-base-300">
                 <div className="flex flex-col">
                     <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Stack stats</span>
-                    <span className="text-base font-bold">{activeStack.length} cards from {uniqueVerbsCount} {uniqueVerbsCount === 1 ? 'verb' : 'verbs'}</span>
+                    <span className="text-base font-bold text-indigo-300">{deck.length} cards ({uniqueVerbsCount} {uniqueVerbsCount === 1 ? 'verb' : 'verbs'})</span>
                 </div>
                 <UndoButton 
                     canUndo={history?.status === 'done'} 
                     canRedo={history?.status === 'undone'} 
                     onUndo={handleUndo} 
-                    onRedo={handleRedo} 
+                    onRedo={() => {}} 
                     className="p-2.5 rounded-xl bg-base-300/80 border border-white/10 text-gray-400 hover:text-white transition-all shadow-sm flex items-center justify-center relative select-none"
                 />
                 <div className="flex flex-col items-end">
-                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Unfamiliarity Sum</span>
-                    <span className="text-base font-bold text-blue-400">{currentSum} / {intensityLimit}</span>
+                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Remaining</span>
+                    <span className="text-base font-bold text-blue-400">{allActiveWordsPool.length} in pool</span>
                 </div>
             </div>
 
-            {/* In-Game intensityLimit modifier slider */}
-            <div className="w-full mb-6 px-4 py-2 bg-base-200 rounded-lg shadow-sm border border-base-300 flex flex-col gap-1">
-                <div className="flex justify-between items-center text-xs font-bold text-gray-400">
-                    <span>Intensity Limit (Limit: {intensityLimit})</span>
-                    <span>Adjust limit while playing</span>
-                </div>
-                <input 
-                    type="range" 
-                    min="10" 
-                    max="100" 
-                    step="5"
-                    value={intensityLimit} 
-                    onChange={(e) => setIntensityLimit(parseInt(e.target.value))}
-                    className="range range-xs range-secondary" 
-                />
-            </div>
-
-            {/* Flashcard — uses the same CSS classes as FlashcardGameScreen */}
+            {/* Flashcard */}
             <div className="w-full aspect-video min-h-[300px] perspective-[1000px] cursor-pointer mb-8 relative"
-                onClick={() => setIsFlipped(!isFlipped)}
+                onClick={() => {
+                    if (isBlurred) setIsBlurred(false);
+                    else setIsFlipped(!isFlipped);
+                }}
             >
                 <div className={`card-inner w-full h-full relative shadow-xl rounded-2xl ${isFlipped ? 'is-flipped' : ''}`}>
                     
-                    {/* FRONT — Swedish only, updated premium styling */}
-                    <div className="card-face absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8">
+                    {/* FRONT */}
+                    <div className={`card-face absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8 transition-all ${isBlurred ? 'blur-md hover:blur-sm' : ''}`}>
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
                         <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2 items-center">
-                            <span>Rating: {currentCard.rating}</span>
-                            {currentCard.scoreHistory.length > 0 && (
-                                <span className="text-gray-500 hidden sm:inline">• Scores: {currentCard.scoreHistory.join(', ')}</span>
-                            )}
-                            <span className="text-gray-500 hidden sm:inline">• Views: {currentCard.shownCount}</span>
+                            <span className="text-gray-500 hidden sm:inline">Views: {currentCard.shownCount}</span>
                             <button 
                                 onClick={e => { e.stopPropagation(); toggleWordFlag(currentCard.wordId); }}
                                 className={`ml-2 p-1.5 rounded-full transition-colors ${words.find(w => w.id === currentCard.wordId)?.flagged ? 'text-red-500 bg-red-500/20' : 'text-gray-400 hover:bg-base-300'}`}
@@ -570,35 +715,24 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                             </button>
                         </span>
                         
-                        {startFace === 'swedish' ? (
-                            <>
-                                <h2 className="text-5xl md:text-6xl font-bold text-center drop-shadow-md mb-4 text-indigo-100">{currentCard.swedish}</h2>
-                                {currentCard.exampleSv && (
-                                    <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleSv}</p>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                <h2 className="text-4xl md:text-5xl font-bold text-center drop-shadow-md mb-4 text-indigo-100 leading-tight">{currentCard.english || '---'}</h2>
-                                {currentCard.exampleEn && (
-                                    <p className="text-base italic text-gray-400 text-center max-w-md">{currentCard.exampleEn}</p>
-                                )}
-                            </>
+                        <h2 className={`text-4xl md:text-5xl font-bold text-center drop-shadow-md mb-4 text-indigo-100 leading-tight ${currentFace === 'swedish' ? 'text-5xl md:text-6xl' : ''}`}>
+                            {frontText || '---'}
+                        </h2>
+                        {(currentFace === 'swedish' ? currentCard.exampleSv : currentCard.exampleEn) && (
+                            <p className="text-base italic text-gray-400 text-center max-w-md">
+                                {currentFace === 'swedish' ? currentCard.exampleSv : currentCard.exampleEn}
+                            </p>
                         )}
-                        <p className="absolute bottom-4 left-0 right-0 text-sm text-gray-500 animate-pulse text-center">Click to flip</p>
+                        {!isBlurred && <p className="absolute bottom-4 left-0 right-0 text-sm text-gray-500 animate-pulse text-center">Click to flip</p>}
                     </div>
 
-                    {/* BACK — Complete Information */}
+                    {/* BACK */}
                     <div className="card-face card-back absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-base-300 border border-indigo-500/20 rounded-2xl flex flex-col items-center justify-center p-8 text-center overflow-y-auto">
                         <span className="absolute top-4 left-4 px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest rounded-full">
                             {currentCard.tense}
                         </span>
                         <span className="absolute top-4 right-4 px-3 py-1 bg-base-100/50 text-gray-400 text-xs font-bold rounded-full flex gap-2 items-center">
-                            <span>Rating: {currentCard.rating}</span>
-                            {currentCard.scoreHistory.length > 0 && (
-                                <span className="text-gray-500 hidden sm:inline">• Scores: {currentCard.scoreHistory.join(', ')}</span>
-                            )}
-                            <span className="text-gray-500 hidden sm:inline">• Views: {currentCard.shownCount}</span>
+                            <span className="text-gray-500 hidden sm:inline">Views: {currentCard.shownCount}</span>
                             <button 
                                 onClick={e => { e.stopPropagation(); toggleWordFlag(currentCard.wordId); }}
                                 className={`ml-2 p-1.5 rounded-full transition-colors ${words.find(w => w.id === currentCard.wordId)?.flagged ? 'text-red-500 bg-red-500/20' : 'text-gray-400 hover:bg-base-300'}`}
@@ -618,7 +752,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                         </h2>
                         <div className="w-16 h-0.5 bg-indigo-500/30 mb-2"></div>
                         <h2 
-                            onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.english || '', 'en-GB'); }}
+                            onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.english || '', currentLanguageInfo.ttsCode); }}
                             className="text-3xl md:text-4xl font-bold mb-4 text-indigo-200 leading-tight cursor-pointer hover:text-indigo-300 transition-colors"
                         >
                             {currentCard.english || '---'}
@@ -636,7 +770,7 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
                                 )}
                                 {currentCard.exampleEn && (
                                     <p 
-                                        onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.exampleEn || '', 'en-GB'); }}
+                                        onClick={(e) => { e.stopPropagation(); ttsService.speak(currentCard.exampleEn || '', currentLanguageInfo.ttsCode); }}
                                         className="text-sm text-gray-500 cursor-pointer hover:text-indigo-300 transition-colors"
                                     >
                                         {currentCard.exampleEn}
@@ -649,103 +783,110 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
             </div>
 
             {/* Lower Controls Section */}
-            <div className="w-full max-w-xl mx-auto shrink-0 px-4 pb-8">
-                {!isFlipped ? (
-                    <div className="space-y-4">
-                        <form onSubmit={handleCheckAnswer} className="relative">
-                            <input 
-                                value={typedAnswer} 
-                                onChange={e => {
-                                    setTypedAnswer(e.target.value);
-                                    setGradingResult(null);
-                                }} 
-                                type="text" 
-                                placeholder={t('game.flashcards.typeAnswer')} 
-                                className={`w-full border border-white/10 rounded-2xl p-4 md:p-5 text-center focus:outline-none pr-14 transition-all duration-300 bg-base-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-lg text-lg font-medium text-white`} 
-                                disabled={isListening}
-                                autoFocus
-                            />
-                            {recognitionRef.current && (
-                                <button 
-                                    type="button" 
-                                    onClick={handleToggleListening} 
-                                    className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`} 
-                                    title="Use Voice Input"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                                </button>
-                            )}
-                        </form>
-
-                        <div className="flex gap-3">
-                            <button 
-                                type="button"
-                                onClick={() => ttsService.speak(targetText || '', backLang)}
-                                className="flex-1 py-4 bg-white/5 border border-white/10 text-gray-300 font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-2 shadow-lg"
-                                title="Pronounce correct answer"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
-                                <span className="hidden sm:inline">{t('game.flashcards.readAloud')}</span>
-                            </button>
-
-                            <button 
-                                onClick={handleCheckAnswer} 
-                                className="flex-[2] py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-2xl hover:from-blue-500 hover:to-indigo-500 transition-all text-lg shadow-xl flex items-center justify-center gap-2"
-                            >
-                                <span>{typedAnswer.trim() ? t('game.check') : t('game.smartCards.showAnswer')}</span>
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4 transition-all duration-300 opacity-100 translate-y-0">
-                        {/* Show assessment results if typed */}
-                        {typedAnswer.trim() && (
-                            <div className={`text-center py-3 px-4 rounded-2xl border backdrop-blur-sm transition-all shadow-md
-                                ${gradingResult === 'correct' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                                  gradingResult === 'almost' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-                                  'bg-red-500/10 border-red-500/30 text-red-400'}`}
-                            >
-                                <div className="text-xs text-gray-400 mb-0.5">Your answer:</div>
-                                <div className="text-lg font-bold mb-1 italic">"{typedAnswer}"</div>
-                                <div className="uppercase tracking-widest text-xs font-extrabold flex items-center justify-center gap-1">
-                                    {gradingResult === 'correct' ? `✓ ${t('game.typing.correct')}` : 
-                                     gradingResult === 'almost' ? '⚠ Almost Correct' : 
-                                     `✗ ${t('game.typing.incorrect')}`}
-                                </div>
-                            </div>
-                        )}
-
+            <div className="w-full max-w-xl mx-auto shrink-0 px-4">
+                <form onSubmit={handleCheckAnswer} className="relative mb-4">
+                    <input 
+                        value={typedAnswer} 
+                        onChange={e => {
+                            setTypedAnswer(e.target.value);
+                            setGradingResult(null);
+                        }} 
+                        type="text" 
+                        placeholder={t('game.flashcards.typeAnswer')} 
+                        className={`w-full border rounded-2xl p-4 text-center focus:outline-none pr-14 transition-all duration-300 text-lg font-medium
+                            ${gradingResult === 'correct' ? 'border-green-500 bg-green-500/10 text-green-400' :
+                              gradingResult === 'incorrect' ? 'border-red-500 bg-red-500/10 text-red-400' :
+                              gradingResult === 'almost' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' :
+                              'bg-base-200 border-white/10 text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-lg'}`} 
+                        disabled={isListening}
+                    />
+                    {recognitionRef.current && (
                         <button 
-                            type="button"
-                            onClick={() => ttsService.speak(targetText || '', backLang)}
-                            className="w-full py-3 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold rounded-xl hover:bg-indigo-500/20 transition-colors flex items-center justify-center gap-2 text-sm shadow-sm"
+                            type="button" 
+                            onClick={handleToggleListening} 
+                            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`} 
+                            title="Use Voice Input"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728" /></svg>
-                            <span>{t('game.flashcards.readAloud')}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                         </button>
+                    )}
+                </form>
 
-                        <h3 className="text-center text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">Rate your confidence</h3>
-                        <div className="flex gap-3 justify-center w-full">
-                            {[
-                                { val: 1, label: 'Fluent', color: 'bg-green-600 hover:bg-green-500 text-white', sub: 'Promote to SRS' },
-                                { val: 2, label: 'Good', color: 'bg-emerald-600/50 hover:bg-emerald-500/60 text-emerald-100', sub: '' },
-                                { val: 3, label: 'Okay', color: 'bg-yellow-600/50 hover:bg-yellow-500/60 text-yellow-100', sub: '' },
-                                { val: 4, label: 'Hard', color: 'bg-orange-600/50 hover:bg-orange-500/60 text-orange-100', sub: '' },
-                                { val: 5, label: 'Unknown', color: 'bg-red-600/50 hover:bg-red-500/60 text-red-100', sub: '' }
-                            ].map(btn => (
-                                <button
-                                    key={btn.val}
-                                    onClick={(e) => { e.stopPropagation(); handleRate(btn.val); }}
-                                    className={`flex-1 py-3 px-2 rounded-xl font-bold transition-all transform hover:scale-105 active:scale-95 shadow-md flex flex-col items-center justify-center ${btn.color}`}
-                                >
-                                    <span className="text-lg mb-0.5">{btn.val}</span>
-                                    <span className="text-[10px] uppercase opacity-80">{btn.label}</span>
-                                    {btn.sub && <span className="text-[8px] mt-0.5 opacity-60 text-center leading-tight">{btn.sub}</span>}
-                                </button>
-                            ))}
-                        </div>
+                <button onClick={() => ttsService.speak(isFlipped ? targetText || '' : frontText || '', isFlipped ? backLang : frontLang)} className="w-full p-3 bg-accent text-accent-content font-bold rounded-lg hover:bg-accent-focus transition-colors flex items-center justify-center gap-2 mb-4 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.858 12h.001M10 12h.001M14 12h.001" /></svg>
+                    <span>{t('game.flashcards.readAloud')}</span>
+                </button>
+
+                <div className={`grid grid-cols-7 gap-2 transition-opacity mb-4 ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {[1, 2, 3, 4, 5].map(n => (
+                        <button key={n} onClick={() => delayedAction(() => moveCard(n))} className="p-2 bg-base-200 border border-white/5 shadow-sm rounded-xl hover:bg-primary hover:text-primary-content font-medium transition-colors">+{n}</button>
+                    ))}
+                    <button onClick={moveToSrs} className="p-2 bg-base-200 border border-purple-500/30 rounded-xl hover:bg-purple-600 hover:text-white font-bold text-purple-400 flex flex-col items-center justify-center -gap-1 transition-colors" title={t('game.flashcards.moveToSrs')}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                        <span className="text-[10px]">SRS</span>
+                    </button>
+                    <button onClick={hideCard} className="p-2 bg-base-200 border border-red-500/30 rounded-xl hover:bg-red-600 hover:text-white text-sm font-bold text-red-500 transition-colors">{t('game.flashcards.hide')}</button>
+                </div>
+
+                <div className={`w-full grid grid-cols-5 gap-2 transition-opacity ${isActionDelayed ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className="relative">
+                        <button
+                            onClick={() => showModal('flashcardBack', {
+                                onSendToBack: () => delayedAction(() => sendToBack()),
+                                onReverseAndBack: () => delayedAction(() => sendToBack(true)),
+                                onBackAndBlur: () => delayedAction(() => sendToBack(false, true)),
+                                onReverseBackAndBlur: () => delayedAction(() => sendToBack(true, true)),
+                            })}
+                            className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                            title="Back Options"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                            <span className="text-xs mt-1 text-center leading-tight">{t('game.flashcards.back')}</span>
+                        </button>
                     </div>
-                )}
+                    <div className="relative">
+                        <button
+                            onClick={() => showModal('flashcardBulk', {
+                                languageName: currentLanguageInfo.englishName,
+                                onAllSwedish: () => bulkSwitchFace('swedish'),
+                                onAllSource: () => bulkSwitchFace('source'),
+                                onAllBlurred: () => bulkSetBlur(true),
+                                onAllUnblurred: () => bulkSetBlur(false),
+                            })}
+                            className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                            title="Bulk Actions"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                            <span className="text-xs mt-1 text-center leading-tight">{t('game.flashcards.changeAll')}</span>
+                        </button>
+                    </div>
+                    <button onClick={() => showModal('swipeSettings')} className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" title="Swipe Actions">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657l-5.657-5.657 5.657-5.657m-6.343 11.314l-5.657-5.657 5.657-5.657" />
+                        </svg>
+                        <span className="text-xs mt-1 text-center leading-tight">{t('game.flashcards.swipes')}</span>
+                    </button>
+                    <button
+                        onClick={handleShuffleDeck}
+                        className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content"
+                        title="Randomise deck order"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4h4l2 4-4 2 2 4h4m4-10h4v4m0 0l-4 4m4-4l-4-4M4 20h4l2-4-4-2 2-4h4" />
+                        </svg>
+                        <span className="text-xs mt-1 text-center leading-tight">Shuffle</span>
+                    </button>
+                    <button 
+                        onClick={() => showModal('setStackSize', { currentSize: deck.length, maxSize: totalActiveWords, onSet: handleSetStackSize })} 
+                        className="w-full h-full flex flex-col items-center justify-center p-2 bg-base-300 rounded-md hover:bg-primary hover:text-primary-content" 
+                        title="Set Deck Size"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span className="text-xs mt-1 text-center leading-tight">Stack Size</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
