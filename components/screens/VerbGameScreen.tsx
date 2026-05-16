@@ -327,6 +327,14 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         handleRate(history.rating);
     }, [history, handleRate]);
 
+    const currentCard = activeStack[currentCardIndex];
+
+    // Reset inputs on card change
+    useEffect(() => {
+        setTypedAnswer('');
+        setGradingResult(null);
+    }, [currentCard?.wordId, currentCard?.tense]);
+
     if (currentSourceLanguage !== 'en') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -462,15 +470,8 @@ const VerbGameScreen: React.FC<VerbGameScreenProps> = ({ setScreen }) => {
         );
     }
 
-    const currentCard = activeStack[currentCardIndex];
     const currentSum = activeStack.reduce((sum, c) => sum + c.rating, 0);
     const uniqueVerbsCount = new Set(activeStack.map(c => c.wordId)).size;
-
-    // Reset inputs on card change
-    useEffect(() => {
-        setTypedAnswer('');
-        setGradingResult(null);
-    }, [currentCard?.wordId, currentCard?.tense]);
 
     const frontText = startFace === 'swedish' ? currentCard?.swedish : currentCard?.english;
     const backText  = startFace === 'swedish' ? currentCard?.english : currentCard?.swedish;
