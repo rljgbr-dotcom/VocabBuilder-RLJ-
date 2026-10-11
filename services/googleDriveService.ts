@@ -120,17 +120,17 @@ async function driveRequest(url: string, options: RequestInit, token: string): P
 }
 
 /**
- * Finds the file ID of our backup file in appDataFolder, or null if not found.
+ * Finds the backup file item in appDataFolder with full metadata.
  */
-async function findBackupFileId(token: string): Promise<string | null> {
+async function findBackupFile(token: string): Promise<any | null> {
     const res = await driveRequest(
-        `${DRIVE_API}/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name='${BACKUP_FILENAME}'`,
+        `${DRIVE_API}/files?spaces=appDataFolder&fields=files(id,name,modifiedTime,description,appProperties,size)&q=name='${BACKUP_FILENAME}'`,
         { method: 'GET' },
         token
     );
     if (!res.ok) throw new Error(`Drive list error: ${res.status}`);
     const data = await res.json();
-    return data.files?.[0]?.id ?? null;
+    return data.files?.[0] ?? null;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -138,29 +138,70 @@ async function findBackupFileId(token: string): Promise<string | null> {
 export interface BackupMetadata {
     fileId: string;
     modifiedTime: string; // ISO string
+    deviceId?: string;
+    deviceName?: string;
+    exportedAt?: string;
+    wordCount?: number;
+    appVersion?: string;
+}
+
+export interface UploadBackupOptions {
+    deviceId?: string;
+    deviceName?: string;
+    wordCount?: number;
+    appVersion?: string;
 }
 
 /**
- * Uploads the backup JSON to Google Drive (create or update).
+ * Uploads the backup JSON to Google Drive (create or update), including device metadata.
  */
-export async function uploadBackup(payload: object): Promise<void> {
+export async function uploadBackup(payload: object, options?: UploadBackupOptions): Promise<void> {
     const token = await getAccessToken();
     const json = JSON.stringify(payload);
     const blob = new Blob([json], { type: 'application/json' });
 
-    const existingId = await findBackupFileId(token);
+    const existingFile = await findBackupFile(token);
 
-    if (existingId) {
-        // PATCH — update existing file content
+    const appProperties: Record<string, string> = {
+        deviceId: options?.deviceId || '',
+        deviceName: options?.deviceName || '',
+        exportedAt: new Date().toISOString(),
+        wordCount: String(options?.wordCount ?? ''),
+        appVersion: options?.appVersion || '',
+    };
+
+    const description = options?.deviceName
+        ? `Backup from ${options.deviceName} (${options.wordCount ?? 0} words)`
+        : 'Vocabulary backup';
+
+    const metadata = {
+        name: BACKUP_FILENAME,
+        description,
+        appProperties,
+        parents: existingFile ? undefined : ['appDataFolder'],
+    };
+
+    if (existingFile) {
+        // 1. Update file metadata (properties, description)
+        await driveRequest(
+            `${DRIVE_API}/files/${existingFile.id}`,
+            {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description, appProperties }),
+            },
+            token
+        );
+
+        // 2. Update media content
         const res = await driveRequest(
-            `${UPLOAD_API}/files/${existingId}?uploadType=media`,
+            `${UPLOAD_API}/files/${existingFile.id}?uploadType=media`,
             { method: 'PATCH', body: blob, headers: { 'Content-Type': 'application/json' } },
             token
         );
         if (!res.ok) throw new Error(`Drive update error: ${res.status}`);
     } else {
-        // POST — create new file in appDataFolder
-        const metadata = { name: BACKUP_FILENAME, parents: ['appDataFolder'] };
+        // POST — create new file in appDataFolder with multipart metadata + file
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', blob);
@@ -179,11 +220,11 @@ export async function uploadBackup(payload: object): Promise<void> {
  */
 export async function downloadBackup(): Promise<any | null> {
     const token = await getAccessToken();
-    const fileId = await findBackupFileId(token);
-    if (!fileId) return null;
+    const file = await findBackupFile(token);
+    if (!file) return null;
 
     const res = await driveRequest(
-        `${DRIVE_API}/files/${fileId}?alt=media`,
+        `${DRIVE_API}/files/${file.id}?alt=media`,
         { method: 'GET' },
         token
     );
@@ -192,19 +233,22 @@ export async function downloadBackup(): Promise<any | null> {
 }
 
 /**
- * Gets metadata about the backup file (last modified time).
+ * Gets metadata about the backup file (last modified time, source device info).
  * Returns null if no backup exists.
  */
 export async function getBackupMetadata(): Promise<BackupMetadata | null> {
     const token = await getAccessToken();
-    const res = await driveRequest(
-        `${DRIVE_API}/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=name='${BACKUP_FILENAME}'`,
-        { method: 'GET' },
-        token
-    );
-    if (!res.ok) throw new Error(`Drive list error: ${res.status}`);
-    const data = await res.json();
-    const file = data.files?.[0];
+    const file = await findBackupFile(token);
     if (!file) return null;
-    return { fileId: file.id, modifiedTime: file.modifiedTime };
+
+    const props = file.appProperties || {};
+    return {
+        fileId: file.id,
+        modifiedTime: file.modifiedTime,
+        deviceId: props.deviceId || undefined,
+        deviceName: props.deviceName || undefined,
+        exportedAt: props.exportedAt || undefined,
+        wordCount: props.wordCount ? Number(props.wordCount) : undefined,
+        appVersion: props.appVersion || undefined,
+    };
 }

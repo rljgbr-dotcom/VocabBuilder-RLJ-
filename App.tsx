@@ -295,30 +295,94 @@ const AppContent: React.FC = () => {
     );
 };
 
-/** Notification toast when a newer backup is detected on Drive */
+/** Notification toast / banner when a newer backup is detected on Drive */
 const SyncCloudModal: React.FC = () => {
-    const { newerBackupAvailable, restoreFromBackup } = useGoogleDrive();
-    const { words, setWords } = useWords();
-    const { t } = useTranslation();
+    const { newerBackupAvailable, backupInfo, restoreFromBackup, dismissNewerBackupNotification, currentDeviceName } = useGoogleDrive();
+    const { setWords } = useWords();
 
-    if (!newerBackupAvailable) return null;
+    if (!newerBackupAvailable || !backupInfo) return null;
+
+    const sourceDevice = backupInfo.deviceName || 'Another Device';
+    const isOther = backupInfo.isFromOtherDevice ?? true;
+
+    // Format human-readable date & time
+    const backupDate = new Date(backupInfo.modifiedTime);
+    const dateFormatted = backupDate.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: backupDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+    });
+    const timeFormatted = backupDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (
-        <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:w-80 bg-purple-900 text-white p-4 rounded-xl shadow-2xl z-[60] border border-purple-400 animate-bounce-subtle">
-            <h4 className="font-bold mb-1 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                Newer Cloud Backup
-            </h4>
-            <p className="text-xs text-purple-100 mb-4">
-                A newer backup with your latest SRS progress was found on Google Drive. Sync now to stay up to date?
-            </p>
-            <div className="flex gap-2">
-                <button 
-                    onClick={() => restoreFromBackup(setWords)}
-                    className="flex-1 py-2 bg-white text-purple-900 text-xs font-bold rounded-lg hover:bg-purple-50 transition-colors"
+        <div className="fixed bottom-12 left-4 right-4 md:left-auto md:right-6 md:w-96 bg-base-200/95 backdrop-blur-md text-base-content p-4 rounded-2xl shadow-2xl z-[70] border-2 border-primary/60 animate-bounce-subtle">
+            <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-primary/20 text-primary rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-sm flex items-center gap-1.5">
+                            Newer Cloud Backup Found
+                        </h4>
+                        <span className="text-[10px] text-gray-400">
+                            Google Drive Sync
+                        </span>
+                    </div>
+                </div>
+                <button
+                    onClick={dismissNewerBackupNotification}
+                    className="text-gray-400 hover:text-gray-200 text-lg leading-none p-1"
+                    title="Dismiss"
                 >
+                    ✕
+                </button>
+            </div>
+
+            <div className="bg-base-300/60 rounded-xl p-3 mb-3 text-xs space-y-1.5 border border-white/5">
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Source Device:</span>
+                    <span className="font-semibold text-primary flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {sourceDevice} {isOther ? '(Different device)' : '(This device)'}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Saved:</span>
+                    <span className="font-medium text-gray-200">{dateFormatted} at {timeFormatted}</span>
+                </div>
+                {backupInfo.wordCount !== undefined && (
+                    <div className="flex items-center justify-between">
+                        <span className="text-gray-400">Word Count:</span>
+                        <span className="font-medium text-gray-200">{backupInfo.wordCount} words</span>
+                    </div>
+                )}
+            </div>
+
+            <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+                {isOther
+                    ? `Changes were made on ${sourceDevice}. Would you like to update your local collection on ${currentDeviceName}?`
+                    : `A more recent cloud backup exists. Sync now to restore your latest vocabulary and SRS progress?`}
+            </p>
+
+            <div className="flex gap-2">
+                <button
+                    onClick={dismissNewerBackupNotification}
+                    className="px-3 py-2 bg-base-300 text-xs font-semibold rounded-xl hover:bg-base-100 transition-colors"
+                >
+                    Not Now
+                </button>
+                <button
+                    onClick={() => restoreFromBackup(setWords)}
+                    className="flex-1 py-2 bg-primary text-primary-content text-xs font-bold rounded-xl hover:bg-primary-focus transition-all flex items-center justify-center gap-1.5 shadow-md shadow-primary/20"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
                     Sync to this Device
                 </button>
             </div>

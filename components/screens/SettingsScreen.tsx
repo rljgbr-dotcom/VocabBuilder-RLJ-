@@ -48,12 +48,27 @@ const ThemeOption: React.FC<{
 // ── Cloud Sync Panel ─────────────────────────────────────────────────────────
 
 const CloudSyncPanel: React.FC = () => {
-    const { connected, syncStatus, lastSyncTime, syncError, backupInfo, connect, disconnect, syncNow, restoreFromBackup } = useGoogleDrive();
+    const {
+        connected,
+        syncStatus,
+        lastSyncTime,
+        syncError,
+        backupInfo,
+        currentDeviceName,
+        updateDeviceName,
+        connect,
+        disconnect,
+        syncNow,
+        restoreFromBackup,
+        checkForUpdates,
+    } = useGoogleDrive();
     const { words, setWords } = useWords();
     const { showModal } = useModal();
+    const [isEditingDevice, setIsEditingDevice] = useState(false);
+    const [deviceNameInput, setDeviceNameInput] = useState(currentDeviceName);
+    const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
-
-    const isBusy = syncStatus === 'syncing';
+    const isBusy = syncStatus === 'syncing' || isCheckingUpdate;
 
     const formatDate = (iso: string | null) => {
         if (!iso) return 'Never';
@@ -63,16 +78,43 @@ const CloudSyncPanel: React.FC = () => {
             + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    const handleSaveDeviceName = (e: React.FormEvent) => {
+        e.preventDefault();
+        updateDeviceName(deviceNameInput);
+        setIsEditingDevice(false);
+    };
+
+    const handleManualCheck = async () => {
+        setIsCheckingUpdate(true);
+        try {
+            const info = await checkForUpdates();
+            if (info) {
+                showModal('info', {
+                    title: 'Cloud Check Complete',
+                    content: `Cloud backup status:\n• Device: ${info.deviceName || 'Unknown'}\n• Saved: ${formatDate(info.modifiedTime)}\n• Words: ${info.wordCount ?? 'N/A'}\n${info.isFromOtherDevice ? '• Origin: Different device' : '• Origin: This device'}`,
+                });
+            } else {
+                showModal('info', {
+                    title: 'Cloud Check Complete',
+                    content: 'No backup found in Google Drive yet.',
+                });
+            }
+        } finally {
+            setIsCheckingUpdate(false);
+        }
+    };
+
     const handleRestore = () => {
+        const sourceDevice = backupInfo?.deviceName ? ` from "${backupInfo.deviceName}"` : '';
+        const savedTime = backupInfo?.modifiedTime ? ` (saved ${formatDate(backupInfo.modifiedTime)})` : '';
         showModal('confirmation', {
-            text: 'Restore from your Google Drive backup? This will replace all current words and saved states with the backed-up version.',
+            text: `Restore backup${sourceDevice}${savedTime}? This will replace your local words and SRS states with the cloud version.`,
             onConfirm: () => {
                 restoreFromBackup((restoredWords) => {
                     setWords(restoredWords);
                     showModal('info', {
                         title: 'Backup Restored',
-
-                        message: `✅ ${restoredWords.length} words restored from Google Drive.`,
+                        content: `✅ ${restoredWords.length} words restored from Google Drive${sourceDevice}.`,
                     });
                 });
             },
@@ -80,8 +122,8 @@ const CloudSyncPanel: React.FC = () => {
     };
 
     return (
-        <div className="bg-base-200 p-6 rounded-lg">
-            <div className="flex items-center gap-3 mb-4">
+        <div className="bg-base-200 p-6 rounded-lg space-y-4">
+            <div className="flex items-center gap-3">
                 {/* Google Drive logo colours */}
                 <svg viewBox="0 0 87.3 78" className="h-7 w-7" xmlns="http://www.w3.org/2000/svg">
                     <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 51H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
@@ -93,7 +135,7 @@ const CloudSyncPanel: React.FC = () => {
                 </svg>
                 <div>
                     <h3 className="text-xl font-bold">Google Drive Sync</h3>
-                    <p className="text-xs text-gray-400">Automatically backs up your words and SRS progress</p>
+                    <p className="text-xs text-gray-400">Multi-device sync for vocabulary and SRS progress</p>
                 </div>
                 {connected && (
                     <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-green-600/20 text-green-400 rounded-full border border-green-600/30">
@@ -102,10 +144,46 @@ const CloudSyncPanel: React.FC = () => {
                 )}
             </div>
 
+            {/* Device Identity row */}
+            <div className="bg-base-300 rounded-lg p-3 text-xs flex items-center justify-between">
+                <div>
+                    <span className="text-gray-400 block font-medium">This Device Name:</span>
+                    {isEditingDevice ? (
+                        <form onSubmit={handleSaveDeviceName} className="flex items-center gap-2 mt-1">
+                            <input
+                                type="text"
+                                value={deviceNameInput}
+                                onChange={(e) => setDeviceNameInput(e.target.value)}
+                                className="bg-base-100 px-2 py-1 rounded text-xs border border-primary focus:outline-none"
+                                placeholder="e.g. My Laptop"
+                                autoFocus
+                            />
+                            <button type="submit" className="text-primary font-bold hover:underline">Save</button>
+                            <button type="button" onClick={() => setIsEditingDevice(false)} className="text-gray-400 hover:underline">Cancel</button>
+                        </form>
+                    ) : (
+                        <span className="font-semibold text-sm text-base-content flex items-center gap-1.5 mt-0.5">
+                            💻 {currentDeviceName}
+                        </span>
+                    )}
+                </div>
+                {!isEditingDevice && (
+                    <button
+                        onClick={() => {
+                            setDeviceNameInput(currentDeviceName);
+                            setIsEditingDevice(true);
+                        }}
+                        className="text-xs text-primary hover:underline font-medium"
+                    >
+                        Edit Name
+                    </button>
+                )}
+            </div>
+
             {!connected ? (
                 <div className="space-y-3">
                     <p className="text-sm text-gray-400 leading-relaxed">
-                        Connect your Google account to automatically save your vocabulary and SRS progress to a private folder in your Google Drive. Your data is only visible to this app.
+                        Connect your Google account to automatically back up your vocabulary and SRS progress to a private folder in your Google Drive. Seamlessly switch between PC, tablet, and mobile!
                     </p>
                     <button
                         onClick={connect}
@@ -122,30 +200,32 @@ const CloudSyncPanel: React.FC = () => {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {/* Backup detected banner — shown right after connecting when Drive has a backup */}
+                    {/* Remote backup information panel */}
                     {backupInfo && (
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-start gap-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-amber-300">Backup found on Drive</p>
-                                <p className="text-xs text-amber-400/80 mt-0.5">Saved {formatDate(backupInfo.modifiedTime)}</p>
-                                <button
-                                    onClick={handleRestore}
-                                    disabled={isBusy}
-                                    className="mt-2 px-3 py-1.5 bg-amber-500 text-black font-bold text-xs rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50"
-                                >
-                                    Restore this backup →
-                                </button>
+                        <div className="bg-base-300 rounded-lg p-3 text-xs space-y-1.5 border border-white/5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400">Latest Cloud Backup:</span>
+                                <span className="font-semibold text-primary">
+                                    {backupInfo.deviceName || 'Unknown device'} {backupInfo.isFromOtherDevice ? '(Other)' : '(This device)'}
+                                </span>
                             </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400">Saved:</span>
+                                <span className="font-medium text-gray-200">{formatDate(backupInfo.modifiedTime)}</span>
+                            </div>
+                            {backupInfo.wordCount !== undefined && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-400">Cloud Word Count:</span>
+                                    <span className="font-medium text-gray-200">{backupInfo.wordCount} words</span>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {/* Status row */}
                     <div className="bg-base-300 rounded-lg p-3 flex items-center justify-between text-sm">
                         <div>
-                            <div className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-0.5">Last synced</div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-0.5">Last synced on this device</div>
                             <div className={`font-semibold ${syncStatus === 'error' ? 'text-red-400' : ''}`}>
                                 {syncStatus === 'syncing' ? (
                                     <span className="flex items-center gap-1.5">
@@ -159,7 +239,7 @@ const CloudSyncPanel: React.FC = () => {
                                 : formatDate(lastSyncTime)}
                             </div>
                         </div>
-                        <div className="text-xs text-gray-500">{words.length} words</div>
+                        <div className="text-xs text-gray-500">{words.length} local words</div>
                     </div>
 
                     {/* Action buttons */}
@@ -169,7 +249,7 @@ const CloudSyncPanel: React.FC = () => {
                             disabled={isBusy}
                             className="py-2.5 bg-primary text-primary-content font-bold rounded-lg hover:bg-primary-focus transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${isBusy ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Sync Now
@@ -186,13 +266,24 @@ const CloudSyncPanel: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Disconnect */}
-                    <button
-                        onClick={disconnect}
-                        className="w-full py-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
-                    >
-                        Disconnect Google Drive
-                    </button>
+                    <div className="flex items-center justify-between pt-1">
+                        <button
+                            onClick={handleManualCheck}
+                            disabled={isBusy}
+                            className="text-xs text-primary hover:underline transition-colors flex items-center gap-1"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isCheckingUpdate ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Check Cloud Version
+                        </button>
+                        <button
+                            onClick={disconnect}
+                            className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                        >
+                            Disconnect Drive
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
