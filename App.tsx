@@ -38,6 +38,7 @@ import ShareDeckModal from './components/modals/ShareDeckModal';
 import { flashcardHelpContent, flashcardHelpContent_es, csvHelpContent, csvHelpContent_es } from './constants';
 import { Screen } from './types';
 import { unpackDeck } from './utils/shareUtils';
+import { APP_VERSION } from './version';
 
 const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
     const { t } = useTranslation();
@@ -262,7 +263,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v5.8.2
+                    v{APP_VERSION}
                 </div>
             </footer>
 

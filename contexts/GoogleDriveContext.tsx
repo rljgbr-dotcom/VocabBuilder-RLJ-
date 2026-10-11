@@ -10,6 +10,7 @@ import {
 } from '../services/googleDriveService';
 import { Word } from '../types';
 import { getDeviceId, getDeviceName, setDeviceName as persistDeviceName } from '../utils/deviceUtils';
+import { APP_VERSION } from '../version';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -172,13 +173,13 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
                     savedStates,
                     deviceId: devId,
                     deviceName: devName,
-                    appVersion: '5.8.2',
+                    appVersion: APP_VERSION,
                 },
                 {
                     deviceId: devId,
                     deviceName: devName,
                     wordCount: wordsToSync.length,
-                    appVersion: '5.8.2',
+                    appVersion: APP_VERSION,
                 }
             );
 
@@ -192,7 +193,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
                 deviceId: devId,
                 deviceName: devName,
                 exportedAt: now,
-                appVersion: '5.8.2',
+                appVersion: APP_VERSION,
                 isFromOtherDevice: false,
             });
             setSyncStatus('success');

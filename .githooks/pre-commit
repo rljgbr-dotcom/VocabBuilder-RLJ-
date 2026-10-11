@@ -1,0 +1,5 @@
+#!/bin/sh
+# Automatically bump patch version before every commit
+echo "[pre-commit] Automatically bumping patch version..."
+node scripts/bump-version.js
+git add package.json package-lock.json public/sw.js
