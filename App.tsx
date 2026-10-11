@@ -19,6 +19,8 @@ import SettingsScreen from './components/screens/SettingsScreen';
 import SmartCardsGameScreen from './components/screens/SmartCardsGameScreen';
 import SrsStatsScreen from './components/screens/SrsStatsScreen';
 import VerbGameScreen from './components/screens/VerbGameScreen';
+import { ReadingLibraryScreen } from './components/screens/ReadingLibraryScreen';
+import { ReadingLabScreen } from './components/screens/ReadingLabScreen';
 
 
 import ConfirmationModal from './components/modals/ConfirmationModal';
@@ -54,6 +56,7 @@ const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
 
 const AppContent: React.FC = () => {
     const [screen, setScreen] = useState<Screen>('main-menu');
+    const [activePassageId, setActivePassageId] = useState<string | null>(null);
     const { t } = useTranslation();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
@@ -213,6 +216,16 @@ const AppContent: React.FC = () => {
                 return <SrsStatsScreen setScreen={setScreen} />;
             case 'verb-game':
                 return <VerbGameScreen setScreen={setScreen} />;
+            case 'reading-library':
+                return <ReadingLibraryScreen onNavigate={(s, params) => {
+                    if (params?.passageId) setActivePassageId(params.passageId);
+                    setScreen(s);
+                }} />;
+            case 'reading-lab':
+                return <ReadingLabScreen 
+                    passageId={activePassageId || ''} 
+                    onNavigate={(s) => setScreen(s)} 
+                />;
             case 'main-menu':
             default:
                 return <MainMenuScreen setScreen={setScreen} handleCheckForUpdate={handleCheckForUpdate} />;
@@ -249,7 +262,7 @@ const AppContent: React.FC = () => {
                     {disclaimerConfirmed && <DriveStatusPill />}
                 </div>
                 <div className="text-[10px] text-gray-500 font-mono tracking-tighter opacity-50">
-                    v5.8.1
+                    v5.8.2
                 </div>
             </footer>
 

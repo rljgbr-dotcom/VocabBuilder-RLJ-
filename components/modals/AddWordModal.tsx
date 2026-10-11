@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useModal } from '../../contexts/ModalContext';
 import { useWords } from '../../contexts/WordsContext';
@@ -8,10 +7,10 @@ import { suggestExample } from '../../services/geminiService';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const AddWordModal: React.FC = () => {
-    const { modalState, hideModal } = useModal();
+    const { modalState, hideModal, showModal } = useModal();
     const { t } = useTranslation();
     const { addWord, updateWord } = useWords();
-    const { currentLanguageInfo, currentSourceLanguage } = useSettings();
+    const { currentLanguageInfo, currentSourceLanguage, geminiApiKey } = useSettings();
     const wordToEdit = modalState.props.wordToEdit as Word | undefined;
 
     const [formData, setFormData] = useState({
@@ -55,8 +54,14 @@ const AddWordModal: React.FC = () => {
         const word = type === 'swedish' ? formData.swedish : formData.sourceWord;
         const lang = type === 'swedish' ? 'Swedish' : currentLanguageInfo.englishName;
         if (!word) return;
+
+        if (!geminiApiKey) {
+            showModal('info', { title: 'API Key Required', message: 'Google Gemini API Key is missing. Please add it in Settings.' });
+            return;
+        }
+
         setIsSuggesting(type);
-        const example = await suggestExample(word, lang);
+        const example = await suggestExample(word, lang, geminiApiKey);
         if (type === 'swedish') {
             setFormData(prev => ({ ...prev, swedishExample: example }));
         } else {

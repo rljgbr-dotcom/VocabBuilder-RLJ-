@@ -98,6 +98,13 @@ const GameSelectionScreen: React.FC<GameSelectionScreenProps> = ({ setScreen }) 
                 >
                     <span className="text-xl font-bold">{t('gameSelection.typingTest')}</span>
                 </button>
+                <button
+                    onClick={() => setScreen('reading-library')}
+                    className="p-6 bg-base-200 rounded-lg shadow-lg hover:bg-base-300 transition-colors relative border-2 border-cyan-500/30 md:col-span-2 lg:col-span-1"
+                >
+                    <span className="absolute top-2 right-2 text-xs bg-cyan-500 text-white px-2 py-0.5 rounded-full font-bold">AI</span>
+                    <span className="text-xl font-bold">Reading Lab</span>
+                </button>
             </div>
             <div className="game-options-container mt-6 max-w-md mx-auto space-y-4">
                 {activeOptions === 'flashcard' && (

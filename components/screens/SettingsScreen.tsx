@@ -207,7 +207,8 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
         disableAnimations, setDisableAnimations, 
         autoMatchGame, setAutoMatchGame,
         gradingSystem, setGradingSystem,
-        typingTarget, setTypingTarget
+        typingTarget, setTypingTarget,
+        geminiApiKey, setGeminiApiKey
     } = useSettings();
 
     return (
@@ -285,6 +286,27 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ setScreen }) => {
                             <option value="example">The Example Sentence</option>
                         </select>
                     </div>
+                </div>
+            </div>
+
+            {/* AI Settings */}
+            <div className="bg-base-200 p-6 rounded-lg">
+                <h3 className="text-xl font-bold mb-4">AI Features (Gemini)</h3>
+                <div className="p-4 bg-base-300 rounded-lg">
+                    <div className="mb-2">
+                        <span className="font-semibold text-lg block">Google Gemini API Key</span>
+                        <span className="text-xs text-gray-500 block mb-2">
+                            Required for Reading Lab and AI translations. 
+                            You can get a free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary hover:underline">Google AI Studio</a>.
+                        </span>
+                    </div>
+                    <input 
+                        type="password" 
+                        value={geminiApiKey}
+                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                        placeholder="AIzaSy..."
+                        className="w-full bg-base-100 border border-base-300 rounded-lg p-3 text-sm focus:ring-2 ring-primary focus:outline-none font-mono"
+                    />
                 </div>
             </div>
 

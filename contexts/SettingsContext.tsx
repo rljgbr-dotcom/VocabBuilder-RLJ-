@@ -19,6 +19,8 @@ interface SettingsContextType {
     setGradingSystem: (system: GradingSystem) => void;
     typingTarget: TypingTarget;
     setTypingTarget: (target: TypingTarget) => void;
+    geminiApiKey: string;
+    setGeminiApiKey: (key: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -30,6 +32,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [autoMatchGame, setAutoMatchGame] = useLocalStorage<boolean>('vocabuilder_auto_match_game', true);
     const [gradingSystem, setGradingSystem] = useLocalStorage<GradingSystem>('vocabuilder_grading_system', 'none');
     const [typingTarget, setTypingTarget] = useLocalStorage<TypingTarget>('vocabuilder_typing_target', 'word');
+    const [geminiApiKey, setGeminiApiKey] = useLocalStorage<string>('vocabuilder_gemini_api_key', '');
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -64,6 +67,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setGradingSystem,
         typingTarget,
         setTypingTarget,
+        geminiApiKey,
+        setGeminiApiKey,
     };
 
     return (

@@ -1,4 +1,4 @@
-export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game' | 'srs-stats' | 'verb-game';
+export type Screen = 'main-menu' | 'language-select' | 'game-selection' | 'manage-words' | 'flashcard-game' | 'multiple-choice-game' | 'matching-game' | 'typing-test-game' | 'settings' | 'smart-cards-game' | 'srs-stats' | 'verb-game' | 'reading-library' | 'reading-lab';
 
 export interface Language {
   nativeName: string;
@@ -141,3 +141,30 @@ export interface SwipeSettings {
   left: SwipeAction;
   right: SwipeAction;
 }
+
+export interface ProcessedWord {
+  swedish: string;
+  literal: string;
+  idiomatic: string;
+  dependencies: string[]; // List of other words in the sentence that change its meaning
+}
+
+export interface ProcessedSentence {
+  swedish: string;
+  literal: string;
+  idiomatic: string;
+  words: ProcessedWord[];
+}
+
+export interface ProcessedPassage {
+  sentences: ProcessedSentence[];
+}
+
+export interface ReadingPassage {
+  id: string;
+  title: string;
+  content: string; // The raw text
+  dateAdded: string; // ISO string
+  sourceFileId?: string; // ID in IndexedDB if from image/pdf
+  processedData?: ProcessedPassage; // JSON from Gemini
+}
