@@ -162,6 +162,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
         setSyncError(null);
         try {
             const savedStates = JSON.parse(localStorage.getItem('vocabuilder_word_states') || '{}');
+            const books = JSON.parse(localStorage.getItem('vocabBuilder_books') || '[]');
             const now = new Date().toISOString();
             const devId = getDeviceId();
             const devName = getDeviceName();
@@ -171,6 +172,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
                     exportedAt: now,
                     words: wordsToSync,
                     savedStates,
+                    books,
                     deviceId: devId,
                     deviceName: devName,
                     appVersion: APP_VERSION,
@@ -249,6 +251,9 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode; words: Word[] 
             // Restore saved states too if present
             if (backup.savedStates) {
                 localStorage.setItem('vocabuilder_word_states', JSON.stringify(backup.savedStates));
+            }
+            if (backup.books && Array.isArray(backup.books)) {
+                localStorage.setItem('vocabBuilder_books', JSON.stringify(backup.books));
             }
             onRestore(backup.words as Word[]);
             const now = new Date().toISOString();

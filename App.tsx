@@ -58,6 +58,8 @@ const UpdateToast: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
 const AppContent: React.FC = () => {
     const [screen, setScreen] = useState<Screen>('main-menu');
     const [activePassageId, setActivePassageId] = useState<string | null>(null);
+    const [activeBookId, setActiveBookId] = useState<string | null>(null);
+    const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
     const { t } = useTranslation();
     const { currentLanguageInfo, currentSourceLanguage } = useSettings();
     const { showModal, isModalOpen } = useModal();
@@ -220,13 +222,23 @@ const AppContent: React.FC = () => {
             case 'reading-library':
                 return <ReadingLibraryScreen onNavigate={(s, params) => {
                     if (params?.passageId) setActivePassageId(params.passageId);
+                    if (params?.bookId) setActiveBookId(params.bookId);
+                    if (params?.chapterId) setActiveChapterId(params.chapterId);
                     setScreen(s);
                 }} />;
             case 'reading-lab':
                 return <ReadingLabScreen 
                     passageId={activePassageId || ''} 
-                    onNavigate={(s) => setScreen(s)} 
+                    bookId={activeBookId || undefined}
+                    chapterId={activeChapterId || undefined}
+                    onNavigate={(s, params) => {
+                        if (params?.passageId) setActivePassageId(params.passageId);
+                        if (params?.bookId) setActiveBookId(params.bookId);
+                        if (params?.chapterId) setActiveChapterId(params.chapterId);
+                        setScreen(s);
+                    }} 
                 />;
+
             case 'main-menu':
             default:
                 return <MainMenuScreen setScreen={setScreen} handleCheckForUpdate={handleCheckForUpdate} />;

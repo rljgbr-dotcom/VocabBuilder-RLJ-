@@ -167,4 +167,38 @@ export interface ReadingPassage {
   dateAdded: string; // ISO string
   sourceFileId?: string; // ID in IndexedDB if from image/pdf
   processedData?: ProcessedPassage; // JSON from Gemini
-}
+}
+
+export interface BookChapter {
+  id: string;
+  bookId: string;
+  chapterNumber: number;
+  title: string;
+  content: string; // The raw text of the chapter
+  dateAdded: string; // ISO string
+  completed?: boolean;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  author?: string;
+  description?: string;
+  coverColor?: string; // e.g. 'indigo' | 'emerald' | 'amber' | 'purple' | 'rose' | 'sky'
+  dateAdded: string;
+  lastReadChapterId?: string;
+  chapters: BookChapter[];
+}
+
+export interface AnalyzedWordContext {
+  targetWord: string;
+  baseForm: string; // dictionary / lemma form (e.g. infinitiv or indefinite singular)
+  wordType?: string; // verb, noun, adjective, adverb, preposition, etc.
+  literalMeaning: string;
+  contextMeaning: string; // idiomatic meaning in this sentence
+  sentenceSwedish: string;
+  sentenceTranslation: string;
+  dependencies: string[]; // related words in the sentence that change meaning (e.g. particle in phrasal verb)
+  grammarNotes?: string; // helpful grammatical explanation
+}
+

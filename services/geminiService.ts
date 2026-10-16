@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { ProcessedPassage } from "../types";
+import { ProcessedPassage, AnalyzedWordContext } from "../types";
 
 export const suggestExample = async (word: string, language: string, apiKey: string): Promise<string> => {
     if (!apiKey) {
@@ -114,3 +114,84 @@ ${text}
         throw new Error("Could not process the reading passage.");
     }
 };
+
+export const analyzeWordInSentence = async (
+    word: string,
+    sentence: string,
+    targetLanguage: string = 'English',
+    apiKey: string
+): Promise<AnalyzedWordContext> => {
+    if (!apiKey) {
+        throw new Error("API key not configured. Please add it in Settings.");
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const prompt = `
+You are an expert Swedish language teacher, linguist, and translator.
+Analyze the target Swedish word within the context of the provided Swedish sentence.
+
+Target Word: "${word}"
+Context Sentence: "${sentence}"
+Target Translation Language: ${targetLanguage}
+
+Provide your analysis strictly matching this JSON interface:
+{
+  "targetWord": string,
+  "baseForm": string,
+  "wordType": string,
+  "literalMeaning": string,
+  "contextMeaning": string,
+  "sentenceSwedish": string,
+  "sentenceTranslation": string,
+  "dependencies": string[],
+  "grammarNotes": string
+}
+
+Requirements:
+- targetWord: The target word as provided in the sentence.
+- baseForm: The dictionary base form (lemma) in Swedish (e.g. infinitiv for verbs like 'springa' for 'sprang', singular indefinite for nouns like 'bok' for 'böckerna', basic adjective form for 'större' -> 'stor').
+- wordType: Part of speech (e.g. 'Verb', 'Substantiv (en-ord/ett-ord)', 'Adjektiv', 'Adverb', 'Partikelverb', etc.).
+- literalMeaning: Literal translation of the word in ${targetLanguage}.
+- contextMeaning: The exact idiomatic meaning of the word in this sentence in ${targetLanguage}.
+- sentenceSwedish: The full context sentence.
+- sentenceTranslation: Natural, idiomatic translation of the whole sentence into ${targetLanguage}.
+- dependencies: Array of other words in the sentence directly linked to or modifying the target word (especially phrasal verb particles or prepositions, e.g. for 'tycker' with 'tycker om', list ['om']). If no dependencies exist, return [].
+- grammarNotes: Concise grammatical explanation (e.g., 'Preteritum (dåtid) av starkt verb springa', 'Bestämd form plural av bok').
+
+Return strictly valid JSON only.
+`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json"
+            }
+        });
+
+        let jsonText = response.text.trim();
+        if (jsonText.startsWith('\`\`\`json')) {
+            jsonText = jsonText.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
+        } else if (jsonText.startsWith('\`\`\`')) {
+            jsonText = jsonText.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+        }
+
+        const parsed = JSON.parse(jsonText);
+        return {
+            targetWord: parsed.targetWord || word,
+            baseForm: parsed.baseForm || word,
+            wordType: parsed.wordType || '',
+            literalMeaning: parsed.literalMeaning || '',
+            contextMeaning: parsed.contextMeaning || parsed.literalMeaning || '',
+            sentenceSwedish: parsed.sentenceSwedish || sentence,
+            sentenceTranslation: parsed.sentenceTranslation || '',
+            dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
+            grammarNotes: parsed.grammarNotes || ''
+        };
+    } catch (error) {
+        console.error("Error analyzing word in sentence with Gemini:", error);
+        throw new Error("Could not analyze word context with AI.");
+    }
+};
+

@@ -117,6 +117,20 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({ setScreen, handleCheckF
                     gradientClass="from-emerald-500 to-teal-500"
                     glowClass="hover:shadow-[0_10px_40px_rgba(16,185,129,0.25)] hover:border-emerald-500/30"
                 />
+
+                {/* Books & Reading */}
+                <MenuCard
+                    onClick={() => setScreen('reading-library')}
+                    icon={
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    }
+                    title="Books & Reading"
+                    subtitle="Read your books chapter by chapter with one-tap AI vocabulary capture."
+                    gradientClass="from-cyan-500 to-blue-500"
+                    glowClass="hover:shadow-[0_10px_40px_rgba(6,182,212,0.25)] hover:border-cyan-500/30"
+                />
             </div>
 
             {/* Utility Links Grid */}
