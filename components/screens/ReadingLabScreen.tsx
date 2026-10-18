@@ -14,6 +14,7 @@ import {
     getChapterTranslationCache,
 } from '../../services/translationService';
 import { AiAnalysisConfirmModal } from '../modals/AiAnalysisConfirmModal';
+import { WordDetailModal } from '../modals/WordDetailModal';
 import { ResumeReadingModal } from '../modals/ResumeReadingModal';
 
 interface ReadingLabScreenProps {
@@ -424,14 +425,16 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
     };
 
     // Add word to flashcards / vocabulary
-    const handleSaveToDeck = () => {
+    const handleSaveToDeck = (chosenWord?: string, addToSrsParam: boolean = true) => {
         if (!analyzedData) return;
 
-        let wordToSave = analyzedData.targetWord;
-        if (saveWordChoice === 'modern' && analyzedData.modernEquivalent) {
-            wordToSave = analyzedData.modernEquivalent;
-        } else if (saveWordChoice === 'base' && analyzedData.baseForm) {
-            wordToSave = analyzedData.baseForm;
+        let wordToSave = chosenWord || analyzedData.targetWord;
+        if (!chosenWord) {
+            if (saveWordChoice === 'modern' && analyzedData.modernEquivalent) {
+                wordToSave = analyzedData.modernEquivalent;
+            } else if (saveWordChoice === 'base' && analyzedData.baseForm) {
+                wordToSave = analyzedData.baseForm;
+            }
         }
 
         const translationText = analyzedData.contextMeaning || analyzedData.literalMeaning;
@@ -470,7 +473,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             ].filter(Boolean).join(' • ') || undefined,
         };
 
-        if (addToSrs) {
+        if (addToSrsParam) {
             newWordPayload.srs_active = true;
             newWordPayload.srs_added_at = new Date().toISOString();
             newWordPayload.srs_interval = 1;
@@ -923,252 +926,20 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                 </div>
             )}
 
-            {/* ── TRANSLATION POPUP CARD / BOTTOM SHEET (Pixel 9 Pro XL & Mobile Optimized) ── */}
-            {analyzedData && (
-                <>
-                    {/* Backdrop */}
-                    <div 
-                        className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 animate-fade-in"
-                        onClick={() => setAnalyzedData(null)}
-                    />
-
-                    {/* Bottom Sheet Box */}
-                    <div 
-                        className="fixed bottom-0 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-full sm:w-[94%] sm:max-w-md bg-base-100 rounded-t-[28px] sm:rounded-3xl border-t sm:border border-white/15 shadow-[0_-10px_50px_rgba(0,0,0,0.6)] flex flex-col max-h-[86dvh] sm:max-h-[82vh] overflow-hidden animate-slide-in-up"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Drag bar for mobile visual feel */}
-                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 shrink-0 sm:hidden" />
-
-                        {/* Top: Word, badges & Close */}
-                        <div className="flex justify-between items-center px-4 sm:px-6 pt-1.5 pb-2.5 border-b border-white/10 shrink-0">
-                            <div className="min-w-0 pr-2 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="text-xl sm:text-2xl font-black text-primary truncate">
-                                        {analyzedData.targetWord}
-                                    </h3>
-
-                                    {/* Library Badge */}
-                                    {analyzedData.isLibrary ? (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shrink-0">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                            In Library
-                                        </span>
-                                    ) : analyzedData.isAi ? (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
-                                            ✨ AI Context
-                                        </span>
-                                    ) : (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 italic shrink-0">
-                                            ⚡ Dictionary
-                                        </span>
-                                    )}
-
-                                    {/* Old Swedish Badge */}
-                                    {analyzedData.isArchaic && (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">
-                                            📜 Old Swedish
-                                        </span>
-                                    )}
-                                </div>
-
-                                {analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase() && (
-                                    <div className="text-xs text-gray-400 mt-0.5">
-                                        Base form: <span className="text-white font-bold">{analyzedData.baseForm}</span>
-                                        {analyzedData.wordType && <span className="ml-2 opacity-60">• {analyzedData.wordType}</span>}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                    onClick={() => handleSpeak(analyzedData.targetWord)}
-                                    className="w-9 h-9 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center active:scale-95 transition-colors"
-                                    title="Listen to Swedish pronunciation"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => setAnalyzedData(null)}
-                                    className="w-9 h-9 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 flex items-center justify-center active:scale-95 transition-all"
-                                    aria-label="Close"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Scrollable Center Details */}
-                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2.5">
-                            {/* Meaning (Italicized if non-AI draft) */}
-                            <div className="bg-base-200/60 p-3 rounded-2xl border border-white/5 space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                                        {analyzedData.isLibrary ? 'Your Stored Translation' : 'Translation'}
-                                    </span>
-                                    {!analyzedData.isAi && !analyzedData.isLibrary && (
-                                        <span className="text-[10px] text-amber-400 font-semibold italic">
-                                            (Non-AI draft translation)
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className={`text-base font-bold text-white ${!analyzedData.isAi && !analyzedData.isLibrary ? 'italic text-amber-100' : ''}`}>
-                                    {analyzedData.contextMeaning || analyzedData.literalMeaning || 'No translation available'}
-                                </div>
-
-                                {analyzedData.literalMeaning && analyzedData.literalMeaning !== analyzedData.contextMeaning && (
-                                    <div className="pt-1 mt-1 border-t border-white/5 text-xs text-gray-300">
-                                        <span className="text-[10px] uppercase font-bold text-gray-400 mr-1.5">Literal:</span>
-                                        {analyzedData.literalMeaning}
-                                    </div>
-                                )}
-
-                                {analyzedData.dependencies && analyzedData.dependencies.length > 0 && (
-                                    <div className="pt-1 mt-1 border-t border-white/5 text-xs text-amber-300 flex items-center gap-1.5">
-                                        <span>🔗 Phrasal particle:</span>
-                                        <span className="font-bold underline">{analyzedData.dependencies.join(', ')}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Old / Archaic Swedish Warning Card */}
-                            {analyzedData.isArchaic && (
-                                <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-xs text-purple-200 space-y-1">
-                                    <div className="flex items-center gap-1.5 font-bold text-purple-300">
-                                        <span>📜 Historical Swedish Context:</span>
-                                    </div>
-                                    {analyzedData.archaicNote && (
-                                        <p className="leading-relaxed text-[11px] text-purple-200/90">
-                                            {analyzedData.archaicNote}
-                                        </p>
-                                    )}
-                                    {analyzedData.modernEquivalent && (
-                                        <p className="text-[11px] font-semibold text-purple-100 pt-0.5">
-                                            Modern Swedish: <span className="underline font-bold text-white">{analyzedData.modernEquivalent}</span>
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Grammar / Usage Notes */}
-                            {analyzedData.grammarNotes && !analyzedData.isArchaic && (
-                                <div className="text-xs text-gray-400 bg-white/5 p-2 rounded-xl border border-white/5 italic">
-                                    📝 {analyzedData.grammarNotes}
-                                </div>
-                            )}
-
-                            {/* Sentence Context Preview */}
-                            {analyzedData.sentenceSwedish && (
-                                <div className="text-xs text-gray-400 bg-white/5 p-2.5 rounded-2xl border border-white/5 flex justify-between items-center gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <span className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Example Context</span>
-                                        <p className="italic text-gray-200 truncate">"{analyzedData.sentenceSwedish}"</p>
-                                        {analyzedData.sentenceTranslation && (
-                                            <p className="text-gray-400 truncate mt-0.5">{analyzedData.sentenceTranslation}</p>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => handleSpeak(analyzedData.sentenceSwedish)}
-                                        className="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-300 flex items-center justify-center shrink-0 active:scale-95"
-                                        title="Listen to sentence"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 5v14l-5-5H4V10h3l5-5z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Bottom Actions (Save / SRS / Upgrade with AI) */}
-                        <div className="px-4 sm:px-6 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom,1.25rem))] border-t border-white/10 shrink-0 flex flex-col gap-2.5 bg-base-100">
-                            {/* Choose form to save (only shown if there are alternatives) */}
-                            {((analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase()) || (analyzedData.isArchaic && analyzedData.modernEquivalent)) && (
-                                <div className="flex items-center justify-between text-xs gap-2">
-                                    <span className="text-gray-400 text-[11px] shrink-0">Save as:</span>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        {analyzedData.isArchaic && analyzedData.modernEquivalent && (
-                                            <button
-                                                onClick={() => setSaveWordChoice('modern')}
-                                                className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'modern' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-300'}`}
-                                            >
-                                                {analyzedData.modernEquivalent} (Modern)
-                                            </button>
-                                        )}
-                                        {analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase() && (
-                                            <button
-                                                onClick={() => setSaveWordChoice('base')}
-                                                className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'base' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
-                                            >
-                                                {analyzedData.baseForm} (Base)
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setSaveWordChoice('exact')}
-                                            className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'exact' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
-                                        >
-                                            {analyzedData.targetWord}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* SRS Checkbox and AI Context button */}
-                            <div className="flex items-center justify-between text-xs">
-                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={addToSrs}
-                                        onChange={(e) => setAddToSrs(e.target.checked)}
-                                        className="rounded border-white/20 text-primary focus:ring-0 w-4 h-4"
-                                    />
-                                    <span>Add to SRS flashcards</span>
-                                </label>
-
-                                {(!analyzedData.isAi || analyzedData.isLibrary) && (
-                                    <button
-                                        onClick={() => {
-                                            setPendingWord(analyzedData.targetWord);
-                                            setPendingSentence(analyzedData.sentenceSwedish || pendingSentence);
-                                            setAnalyzedData(null);
-                                            setIsConfirmModalOpen(true);
-                                        }}
-                                        className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 shrink-0 underline underline-offset-2"
-                                        title="Analyze full context with Gemini AI"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                        <span>AI Context</span>
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Primary Action Button */}
-                            <button
-                                onClick={handleSaveToDeck}
-                                className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                                    analyzedData.isLibrary
-                                        ? 'bg-emerald-600/90 hover:bg-emerald-600 text-white shadow-emerald-600/20'
-                                        : 'bg-gradient-to-r from-primary to-indigo-600 hover:opacity-90 text-white shadow-primary/30'
-                                }`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                    {analyzedData.isLibrary ? (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    ) : (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                    )}
-                                </svg>
-                                <span>{analyzedData.isLibrary ? '✓ In Library (Tap to Update)' : 'Save to Flashcards'}</span>
-                            </button>
-                        </div>
-                    </div>
-                </>
-            )}
+            {/* ── WORD DETAIL / TRANSLATION MODAL (Matching mobile-first modal design) ── */}
+            <WordDetailModal
+                isOpen={!!analyzedData}
+                onClose={() => setAnalyzedData(null)}
+                data={analyzedData}
+                onSaveToDeck={(chosenWord, srsActive) => handleSaveToDeck(chosenWord, srsActive)}
+                onUpgradeWithAi={(word, sentence) => {
+                    setPendingWord(word);
+                    setPendingSentence(sentence || pendingSentence);
+                    setAnalyzedData(null);
+                    setIsConfirmModalOpen(true);
+                }}
+                onSpeak={handleSpeak}
+            />
 
             {/* AI / Non-AI Confirmation Modal */}
             <AiAnalysisConfirmModal
