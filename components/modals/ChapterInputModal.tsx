@@ -66,7 +66,7 @@ export const ChapterInputModal: React.FC<ChapterInputModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-base-100 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-white/10 flex flex-col max-h-[92vh]">
+            <div className="bg-base-100 rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl border border-white/10 flex flex-col max-h-[90dvh]">
                 <div className="flex justify-between items-center mb-4 pb-3 border-b border-base-200">
                     <div>
                         <span className="text-xs uppercase font-bold tracking-wider text-primary">{book.title}</span>

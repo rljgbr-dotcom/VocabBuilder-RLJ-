@@ -213,6 +213,34 @@ export const useReadingLibrary = () => {
         setBooks([...currentBooks]);
     }, []);
 
+    const saveChapterProgress = useCallback((bookId: string, chapterId: string, progress: number, scrollTop: number) => {
+        const stored = localStorage.getItem(BOOKS_STORAGE_KEY);
+        let currentBooks: Book[] = [];
+        if (stored) {
+            try {
+                currentBooks = JSON.parse(stored);
+            } catch (e) {}
+        }
+        const bookIndex = currentBooks.findIndex(b => b.id === bookId);
+        if (bookIndex < 0) return;
+
+        const targetBook = { ...currentBooks[bookIndex] };
+        const chapIndex = (targetBook.chapters || []).findIndex(c => c.id === chapterId);
+        if (chapIndex < 0) return;
+
+        const updatedChapters = [...targetBook.chapters];
+        updatedChapters[chapIndex] = {
+            ...updatedChapters[chapIndex],
+            scrollProgress: progress,
+            savedScrollTop: scrollTop,
+        };
+        targetBook.chapters = updatedChapters;
+        currentBooks[bookIndex] = targetBook;
+
+        localStorage.setItem(BOOKS_STORAGE_KEY, JSON.stringify(currentBooks));
+        setBooks([...currentBooks]);
+    }, []);
+
     const getBook = useCallback((bookId: string): Book | undefined => {
         return books.find(b => b.id === bookId);
     }, [books]);
@@ -233,6 +261,7 @@ export const useReadingLibrary = () => {
         addChapter,
         updateChapter,
         deleteChapter,
+        saveChapterProgress,
         setLastReadChapter,
         getBook,
         getChapter,
@@ -240,3 +269,4 @@ export const useReadingLibrary = () => {
         deletePassage,
     };
 };
+

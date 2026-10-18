@@ -70,7 +70,7 @@ export const BookInputModal: React.FC<BookInputModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-base-100 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-white/10 flex flex-col">
+            <div className="bg-base-100 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-white/10 flex flex-col max-h-[90dvh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-5 pb-3 border-b border-base-200">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

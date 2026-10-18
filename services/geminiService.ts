@@ -145,7 +145,10 @@ Provide your analysis strictly matching this JSON interface:
   "sentenceSwedish": string,
   "sentenceTranslation": string,
   "dependencies": string[],
-  "grammarNotes": string
+  "grammarNotes": string,
+  "isArchaic": boolean,
+  "modernEquivalent": string,
+  "archaicNote": string
 }
 
 Requirements:
@@ -158,6 +161,9 @@ Requirements:
 - sentenceTranslation: Natural, idiomatic translation of the whole sentence into ${targetLanguage}.
 - dependencies: Array of other words in the sentence directly linked to or modifying the target word (especially phrasal verb particles or prepositions, e.g. for 'tycker' with 'tycker om', list ['om']). If no dependencies exist, return [].
 - grammarNotes: Concise grammatical explanation (e.g., 'Preteritum (dåtid) av starkt verb springa', 'Bestämd form plural av bok').
+- isArchaic: Set to true if the word, spelling, or inflection is Old Swedish / Archaic / 19th-century / early 20th-century Swedish (Gammalsvenska / äldre nysvenska). For example: archaic plural verb forms like 'gingo', 'voro', 'fingo', 'stodo', 'buro', 'blefvo'; older spellings like 'hvarför', 'hvad', 'hvem', 'öfver', 'af', 'godt', 'ondt', 'qväll'; or archaic vocabulary like 'ty', 'därest', 'ehuru'. Otherwise false.
+- modernEquivalent: If isArchaic is true, provide the exact modern Swedish spelling/form that a contemporary speaker would use (e.g. 'gingo' -> 'gick', 'voro' -> 'var', 'öfver' -> 'över', 'hvarför' -> 'varför', 'ty' -> 'eftersom'). If not archaic, empty string.
+- archaicNote: If isArchaic is true, provide clear usage guidance and historical context (e.g., 'Historical plural verb form of gå. In modern Swedish, only gick is used. Do not use in modern spoken Swedish.'). If not archaic, empty string.
 
 Return strictly valid JSON only.
 `;
@@ -187,7 +193,11 @@ Return strictly valid JSON only.
             sentenceSwedish: parsed.sentenceSwedish || sentence,
             sentenceTranslation: parsed.sentenceTranslation || '',
             dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
-            grammarNotes: parsed.grammarNotes || ''
+            grammarNotes: parsed.grammarNotes || '',
+            isAi: true,
+            isArchaic: !!parsed.isArchaic,
+            modernEquivalent: parsed.modernEquivalent || '',
+            archaicNote: parsed.archaicNote || ''
         };
     } catch (error) {
         console.error("Error analyzing word in sentence with Gemini:", error);

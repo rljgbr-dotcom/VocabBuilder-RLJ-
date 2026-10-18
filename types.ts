@@ -177,6 +177,8 @@ export interface BookChapter {
   content: string; // The raw text of the chapter
   dateAdded: string; // ISO string
   completed?: boolean;
+  scrollProgress?: number; // 0 - 100 percentage
+  savedScrollTop?: number; // pixel scroll offset
 }
 
 export interface Book {
@@ -200,5 +202,12 @@ export interface AnalyzedWordContext {
   sentenceTranslation: string;
   dependencies: string[]; // related words in the sentence that change meaning (e.g. particle in phrasal verb)
   grammarNotes?: string; // helpful grammatical explanation
+  isAi?: boolean; // true if from Gemini AI, false if non-AI/dictionary
+  isLibrary?: boolean; // true if already in user's library deck
+  libraryWordId?: string; // ID of the word in user library
+  isArchaic?: boolean; // true if Old / Archaic Swedish (Gammalsvenska)
+  modernEquivalent?: string; // Modern Swedish equivalent
+  archaicNote?: string; // Historical usage notes & guidance
 }
+
 
