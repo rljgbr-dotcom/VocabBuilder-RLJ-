@@ -179,7 +179,9 @@ export interface BookChapter {
   completed?: boolean;
   scrollProgress?: number; // 0 - 100 percentage
   savedScrollTop?: number; // pixel scroll offset
+  translationParagraphs?: string[]; // Cached parallel translation paragraphs
 }
+
 
 export interface Book {
   id: string;

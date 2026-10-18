@@ -248,3 +248,99 @@ export const fetchNonAiTranslation = async (
         return fallback;
     }
 };
+
+/**
+ * Cache for parallel non-AI translated chapter paragraphs.
+ */
+export const getChapterTranslationCache = (chapterId: string, langCode: string): string[] | null => {
+    try {
+        const stored = localStorage.getItem(`vb_chap_trans_${chapterId}_${langCode}`);
+        return stored ? JSON.parse(stored) : null;
+    } catch {
+        return null;
+    }
+};
+
+export const saveChapterTranslationCache = (chapterId: string, langCode: string, paragraphs: string[]) => {
+    try {
+        localStorage.setItem(`vb_chap_trans_${chapterId}_${langCode}`, JSON.stringify(paragraphs));
+    } catch (e) {
+        console.warn('Failed to save chapter translation to localStorage:', e);
+    }
+};
+
+/**
+ * Translates a single paragraph using MyMemory free translation API without AI tokens.
+ * Handles sentence splitting to stay within payload limits.
+ */
+export const translateParagraphNonAi = async (paragraph: string, targetLangCode: string = 'en'): Promise<string> => {
+    if (!paragraph.trim()) return '';
+    const langCode = targetLangCode.toLowerCase().substring(0, 2);
+
+    // Split paragraph into sentences or <= 400 char chunks to respect MyMemory limits
+    const sentences = paragraph.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [paragraph];
+    const translatedSentences: string[] = [];
+
+    for (const sentence of sentences) {
+        const trimmed = sentence.trim();
+        if (!trimmed) continue;
+        try {
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=sv|${langCode}`;
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 6000);
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.responseData?.translatedText) {
+                    translatedSentences.push(data.responseData.translatedText);
+                    continue;
+                }
+            }
+            translatedSentences.push(trimmed);
+        } catch {
+            translatedSentences.push(trimmed);
+        }
+    }
+
+    return translatedSentences.join(' ');
+};
+
+/**
+ * Translates all paragraphs of a chapter in non-AI mode.
+ * Automatically checks and updates cache.
+ */
+export const translateChapterNonAi = async (
+    paragraphs: string[],
+    chapterId: string,
+    targetLangCode: string = 'en',
+    onParagraphReady?: (index: number, translation: string, completed: number, total: number) => void
+): Promise<string[]> => {
+    const langCode = targetLangCode.toLowerCase().substring(0, 2);
+    const cached = getChapterTranslationCache(chapterId, langCode);
+    if (cached && cached.length === paragraphs.length) {
+        if (onParagraphReady) {
+            cached.forEach((text, i) => onParagraphReady(i, text, cached.length, cached.length));
+        }
+        return cached;
+    }
+
+    const results: string[] = cached && cached.length > 0 ? [...cached] : new Array(paragraphs.length).fill('');
+    
+    for (let i = 0; i < paragraphs.length; i++) {
+        if (results[i]) {
+            onParagraphReady?.(i, results[i], i + 1, paragraphs.length);
+            continue;
+        }
+
+        const trans = await translateParagraphNonAi(paragraphs[i], langCode);
+        results[i] = trans;
+        onParagraphReady?.(i, trans, i + 1, paragraphs.length);
+        // Progressively save to cache so partial translations are preserved if interrupted
+        saveChapterTranslationCache(chapterId, langCode, results);
+    }
+
+    saveChapterTranslationCache(chapterId, langCode, results);
+    return results;
+};
+

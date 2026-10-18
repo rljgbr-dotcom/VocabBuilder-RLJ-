@@ -10,6 +10,8 @@ import {
     getCachedTranslation,
     saveToTranslationCache,
     detectOldSwedish,
+    translateChapterNonAi,
+    getChapterTranslationCache,
 } from '../../services/translationService';
 import { AiAnalysisConfirmModal } from '../modals/AiAnalysisConfirmModal';
 import { ResumeReadingModal } from '../modals/ResumeReadingModal';
@@ -90,12 +92,21 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
     const [showReadingRuler, setShowReadingRuler] = useState(false);
     const [rulerTop, setRulerTop] = useState<number>(120);
 
+    // Half & Half / Split Parallel Translation Mode
+    const [isSplitView, setIsSplitView] = useState(false);
+    const [translatedParagraphs, setTranslatedParagraphs] = useState<string[]>([]);
+    const [isTranslatingChapter, setIsTranslatingChapter] = useState(false);
+    const [translationProgress, setTranslationProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
+    const [hoveredParaIdx, setHoveredParaIdx] = useState<number | null>(null);
+
     // Resume reading modal
     const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
     const hasCheckedResumeRef = useRef(false);
 
-    // Scroll container reference
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    // Synchronized scroll container references
+    const originalContainerRef = useRef<HTMLDivElement>(null);
+    const translationContainerRef = useRef<HTMLDivElement>(null);
+    const syncingSourceRef = useRef<'original' | 'translation' | null>(null);
 
     // Selected Word & Sentence for AI Analysis
     const [pendingWord, setPendingWord] = useState('');
@@ -141,8 +152,8 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
 
     const handleResume = () => {
         setIsResumeModalOpen(false);
-        if (chapter?.savedScrollTop && scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTo({
+        if (chapter?.savedScrollTop && originalContainerRef.current) {
+            originalContainerRef.current.scrollTo({
                 top: chapter.savedScrollTop,
                 behavior: 'smooth',
             });
@@ -151,8 +162,8 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
 
     const handleStartOver = () => {
         setIsResumeModalOpen(false);
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        if (originalContainerRef.current) {
+            originalContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         }
         if (book && chapter) {
             saveChapterProgress(book.id, chapter.id, 0, 0);
@@ -160,9 +171,9 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
     };
 
     // Track scroll position throttled
-    const handleScroll = useCallback(() => {
-        if (!scrollContainerRef.current || !book || !chapter) return;
-        const el = scrollContainerRef.current;
+    const handleSaveScrollPosition = useCallback(() => {
+        if (!originalContainerRef.current || !book || !chapter) return;
+        const el = originalContainerRef.current;
         const total = el.scrollHeight - el.clientHeight;
         if (total <= 0) return;
 
@@ -178,6 +189,89 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             .map(p => p.trim())
             .filter(Boolean);
     }, [rawContent]);
+
+    // Load or generate Non-AI translation for the chapter when split view is active
+    useEffect(() => {
+        if (!isSplitView || paragraphs.length === 0) return;
+
+        const effectiveId = chapter ? chapter.id : (passage ? passage.id : 'passage_temp');
+        const langCode = currentSourceLanguage || 'en';
+
+        // Check cache first
+        const cached = getChapterTranslationCache(effectiveId, langCode);
+        if (cached && cached.length === paragraphs.length) {
+            setTranslatedParagraphs(cached);
+            return;
+        }
+
+        // Translate progressively using non-AI translation
+        setIsTranslatingChapter(true);
+        setTranslationProgress({ done: 0, total: paragraphs.length });
+
+        translateChapterNonAi(
+            paragraphs,
+            effectiveId,
+            langCode,
+            (index, translation, completed, total) => {
+                setTranslatedParagraphs(prev => {
+                    const next = [...prev];
+                    while (next.length < total) next.push('');
+                    next[index] = translation;
+                    return next;
+                });
+                setTranslationProgress({ done: completed, total });
+            }
+        ).then(results => {
+            setTranslatedParagraphs(results);
+            setIsTranslatingChapter(false);
+        }).catch(err => {
+            console.error('Failed to translate chapter paragraphs in non-AI mode:', err);
+            setIsTranslatingChapter(false);
+        });
+    }, [isSplitView, paragraphs, chapter, passage, currentSourceLanguage]);
+
+    // Synchronized scroll handlers between original Swedish and matching translation
+    const handleOriginalScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        handleSaveScrollPosition();
+
+        if (!isSplitView || !translationContainerRef.current) return;
+        if (syncingSourceRef.current === 'translation') return;
+
+        syncingSourceRef.current = 'original';
+        const source = e.currentTarget;
+        const target = translationContainerRef.current;
+
+        const sourceMax = source.scrollHeight - source.clientHeight;
+        if (sourceMax > 0) {
+            const ratio = source.scrollTop / sourceMax;
+            const targetMax = target.scrollHeight - target.clientHeight;
+            target.scrollTop = ratio * targetMax;
+        }
+
+        requestAnimationFrame(() => {
+            syncingSourceRef.current = null;
+        });
+    };
+
+    const handleTranslationScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (!isSplitView || !originalContainerRef.current) return;
+        if (syncingSourceRef.current === 'original') return;
+
+        syncingSourceRef.current = 'translation';
+        const source = e.currentTarget;
+        const target = originalContainerRef.current;
+
+        const sourceMax = source.scrollHeight - source.clientHeight;
+        if (sourceMax > 0) {
+            const ratio = source.scrollTop / sourceMax;
+            const targetMax = target.scrollHeight - target.clientHeight;
+            target.scrollTop = ratio * targetMax;
+        }
+
+        requestAnimationFrame(() => {
+            syncingSourceRef.current = null;
+        });
+    };
 
     // Find previous and next chapters for navigation
     const { prevChapter, nextChapter } = useMemo(() => {
@@ -200,17 +294,15 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
         setAnalysisError(null);
 
         // 1. FIRST CHECK: Is word already in user's library?
-        // User requested: "popup should show the translation and example sentence that is already stored, so that if i don't know it, i can see it without having to use the ai translation"
         const libraryWord = checkLibraryWord(cleanWord, words, currentSourceLanguage);
         if (libraryWord) {
-            // Include context sentence from book in the view
             libraryWord.sentenceSwedish = fullSentence.trim();
             setAnalyzedData(libraryWord);
             setSaveWordChoice('base');
             return;
         }
 
-        // 2. SECOND CHECK: Is it in the translation cache (memory/localStorage)?
+        // 2. SECOND CHECK: Is it in the translation cache?
         const cached = getCachedTranslation(cleanWord, fullSentence);
         if (cached) {
             setAnalyzedData(cached);
@@ -370,7 +462,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
     return (
         <div className={`flex flex-col h-full min-h-[90dvh] max-h-[100dvh] ${themeStyles.container} rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden transition-colors duration-300`}>
             {/* Top Reader Bar */}
-            <div className={`flex items-center justify-between p-2.5 sm:p-4 border-b ${themeStyles.header} backdrop-blur-md sticky top-0 z-30 transition-colors`}>
+            <div className={`flex items-center justify-between p-2.5 sm:p-4 border-b ${themeStyles.header} backdrop-blur-md sticky top-0 z-30 transition-colors shrink-0`}>
                 <div className="flex items-center gap-2 min-w-0">
                     <button
                         onClick={() => onNavigate('reading-library')}
@@ -396,6 +488,22 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
 
                 {/* Reader Controls */}
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    {/* Half & Half / Split Screen Toggle */}
+                    <button
+                        onClick={() => setIsSplitView(!isSplitView)}
+                        className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                            isSplitView
+                                ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md shadow-cyan-600/30'
+                                : 'hover:bg-black/10 opacity-70 hover:opacity-100'
+                        }`}
+                        title={isSplitView ? "Switch to Single View" : "Toggle Half-and-Half Parallel Translation"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v16m6-16v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                        </svg>
+                        <span className="hidden sm:inline">{isSplitView ? 'Dual ON' : 'Half & Half'}</span>
+                    </button>
+
                     {/* Reading Guide Ruler Toggle */}
                     <button
                         onClick={() => setShowReadingRuler(!showReadingRuler)}
@@ -487,133 +595,230 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                 </div>
             )}
 
-            {/* Main Reading Flow */}
-            <div 
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-                onPointerMove={(e) => {
-                    if (showReadingRuler && scrollContainerRef.current) {
-                        const rect = scrollContainerRef.current.getBoundingClientRect();
-                        const y = e.clientY - rect.top;
-                        setRulerTop(Math.max(10, y - rulerHeight / 2));
-                    }
-                }}
-                className="flex-1 overflow-y-auto p-4 sm:p-8 md:p-12 pb-44 relative"
-            >
-                {/* Reading Guide Ruler overlay */}
-                {showReadingRuler && (
-                    <div
-                        className={`pointer-events-none absolute left-0 right-0 z-20 ${themeStyles.ruler} transition-all duration-75`}
-                        style={{
-                            top: `${rulerTop}px`,
-                            height: `${rulerHeight}px`,
-                        }}
-                    />
-                )}
-
-                <div className="max-w-3xl mx-auto">
-                    {/* Chapter Header */}
-                    <div className="text-center mb-8 pb-5 border-b border-white/5">
-                        {book && (
-                            <span className="text-[11px] uppercase font-extrabold tracking-widest text-primary block mb-1.5">
-                                {book.title}
+            {/* ── MAIN READING WORKSPACE: Single View OR Half-and-Half Parallel Split View ── */}
+            <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden relative">
+                {/* ── WINDOW 1: Original Swedish Text (Top on mobile, Left on PC) ── */}
+                <div className={`flex flex-col min-h-0 overflow-hidden relative ${
+                    isSplitView 
+                        ? 'h-1/2 md:h-full md:w-1/2 border-b md:border-b-0 md:border-r border-white/10' 
+                        : 'w-full h-full'
+                }`}>
+                    {isSplitView && (
+                        <div className="px-4 py-1.5 bg-black/25 text-[10px] uppercase font-bold tracking-wider text-cyan-400 flex justify-between items-center border-b border-white/5 shrink-0">
+                            <span className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                Svenska (Original)
                             </span>
-                        )}
-                        <h2 className="text-xl sm:text-3xl font-black mb-2">
-                            {currentTitle}
-                        </h2>
-                        <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">
-                            💡 Underlined words are in your library • Tap any word to translate
-                        </span>
-                    </div>
-
-                    {/* Paragraphs and Words */}
-                    <div className={`space-y-6 ${FONT_CLASSES[fontSize]} ${themeStyles.text} font-serif tracking-wide select-text`}>
-                        {paragraphs.map((paraText, pIdx) => {
-                            const sentenceMatches = paraText.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [paraText];
-
-                            return (
-                                <p key={pIdx} className="leading-relaxed">
-                                    {sentenceMatches.map((sentence, sIdx) => {
-                                        const tokens = sentence.split(/(\s+)/);
-
-                                        return (
-                                            <span key={sIdx} className="inline">
-                                                {tokens.map((token, tIdx) => {
-                                                    const isWord = /[A-ZÅÄÖa-zåäö0-9]/.test(token);
-                                                    if (!isWord) {
-                                                        return <span key={tIdx}>{token}</span>;
-                                                    }
-
-                                                    const clean = token.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').toLowerCase();
-                                                    
-                                                    // Check if word is already recognized in user library (root or conjugated)
-                                                    const isKnownInDeck = words.some(w => 
-                                                        w.swedish.toLowerCase() === clean ||
-                                                        (w.present && w.present.toLowerCase() === clean) ||
-                                                        (w.preteritum && w.preteritum.toLowerCase() === clean) ||
-                                                        (w.supinium && w.supinium.toLowerCase() === clean)
-                                                    );
-
-                                                    return (
-                                                        <span
-                                                            key={tIdx}
-                                                            onClick={() => handleWordClick(token, sentence)}
-                                                            className={`cursor-pointer rounded px-0.5 transition-all select-text hover:bg-primary/20 hover:text-primary ${
-                                                                isKnownInDeck
-                                                                    ? 'underline decoration-emerald-500/70 decoration-2 underline-offset-4 text-emerald-300 font-medium'
-                                                                    : ''
-                                                            }`}
-                                                            title={isKnownInDeck ? "In your vocabulary deck! Tap to view definition" : "Tap to translate"}
-                                                        >
-                                                            {token}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </span>
-                                        );
-                                    })}
-                                </p>
-                            );
-                        })}
-                    </div>
-
-                    {/* Chapter Bottom Navigation */}
-                    {book && (
-                        <div className="flex items-center justify-between pt-10 mt-10 border-t border-white/10 gap-3">
-                            {prevChapter ? (
-                                <button
-                                    onClick={() => onNavigate('reading-lab', { bookId: book.id, chapterId: prevChapter.id })}
-                                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-black/10 hover:bg-black/20 font-bold text-xs sm:text-sm transition-all"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                    <span>Ch {prevChapter.chapterNumber}</span>
-                                </button>
-                            ) : <div />}
-
-                            {nextChapter ? (
-                                <button
-                                    onClick={() => onNavigate('reading-lab', { bookId: book.id, chapterId: nextChapter.id })}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-focus text-white font-bold text-xs sm:text-sm shadow-xl shadow-primary/30 transition-all"
-                                >
-                                    <span>Next: Ch {nextChapter.chapterNumber}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => onNavigate('reading-library')}
-                                    className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-600/30 transition-all"
-                                >
-                                    ✓ Finish Book
-                                </button>
-                            )}
+                            <span className="text-gray-400 text-[10px] lowercase">tap words to inspect</span>
                         </div>
                     )}
+
+                    <div 
+                        ref={originalContainerRef}
+                        onScroll={handleOriginalScroll}
+                        onPointerMove={(e) => {
+                            if (showReadingRuler && originalContainerRef.current) {
+                                const rect = originalContainerRef.current.getBoundingClientRect();
+                                const y = e.clientY - rect.top;
+                                setRulerTop(Math.max(10, y - rulerHeight / 2));
+                            }
+                        }}
+                        className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-40 relative"
+                    >
+                        {/* Reading Guide Ruler overlay */}
+                        {showReadingRuler && (
+                            <div
+                                className={`pointer-events-none absolute left-0 right-0 z-20 ${themeStyles.ruler} transition-all duration-75`}
+                                style={{
+                                    top: `${rulerTop}px`,
+                                    height: `${rulerHeight}px`,
+                                }}
+                            />
+                        )}
+
+                        <div className="max-w-3xl mx-auto">
+                            {/* Chapter Header */}
+                            <div className="text-center mb-6 pb-4 border-b border-white/5">
+                                {book && (
+                                    <span className="text-[10px] uppercase font-extrabold tracking-widest text-primary block mb-1">
+                                        {book.title}
+                                    </span>
+                                )}
+                                <h2 className="text-lg sm:text-2xl font-black mb-1">
+                                    {currentTitle}
+                                </h2>
+                                {!isSplitView && (
+                                    <span className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">
+                                        💡 Underlined words are in your library • Tap any word to translate
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Paragraphs and Words */}
+                            <div className={`space-y-6 ${FONT_CLASSES[fontSize]} ${themeStyles.text} font-serif tracking-wide select-text`}>
+                                {paragraphs.map((paraText, pIdx) => {
+                                    const sentenceMatches = paraText.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [paraText];
+                                    const isHovered = hoveredParaIdx === pIdx;
+
+                                    return (
+                                        <p 
+                                            key={pIdx} 
+                                            onMouseEnter={() => setHoveredParaIdx(pIdx)}
+                                            onMouseLeave={() => setHoveredParaIdx(null)}
+                                            className={`leading-relaxed transition-colors rounded-xl p-1.5 -mx-1.5 ${
+                                                isHovered && isSplitView ? 'bg-primary/10' : ''
+                                            }`}
+                                        >
+                                            {sentenceMatches.map((sentence, sIdx) => {
+                                                const tokens = sentence.split(/(\s+)/);
+
+                                                return (
+                                                    <span key={sIdx} className="inline">
+                                                        {tokens.map((token, tIdx) => {
+                                                            const isWord = /[A-ZÅÄÖa-zåäö0-9]/.test(token);
+                                                            if (!isWord) {
+                                                                return <span key={tIdx}>{token}</span>;
+                                                            }
+
+                                                            const clean = token.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').toLowerCase();
+                                                            
+                                                            const isKnownInDeck = words.some(w => 
+                                                                w.swedish.toLowerCase() === clean ||
+                                                                (w.present && w.present.toLowerCase() === clean) ||
+                                                                (w.preteritum && w.preteritum.toLowerCase() === clean) ||
+                                                                (w.supinium && w.supinium.toLowerCase() === clean)
+                                                            );
+
+                                                            return (
+                                                                <span
+                                                                    key={tIdx}
+                                                                    onClick={() => handleWordClick(token, sentence)}
+                                                                    className={`cursor-pointer rounded px-0.5 transition-all select-text hover:bg-primary/20 hover:text-primary ${
+                                                                        isKnownInDeck
+                                                                            ? 'underline decoration-emerald-500/70 decoration-2 underline-offset-4 text-emerald-300 font-medium'
+                                                                            : ''
+                                                                    }`}
+                                                                    title={isKnownInDeck ? "In your vocabulary deck! Tap to view definition" : "Tap to translate"}
+                                                                >
+                                                                    {token}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </span>
+                                                );
+                                            })}
+                                        </p>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Chapter Bottom Navigation */}
+                            {book && (
+                                <div className="flex items-center justify-between pt-8 mt-8 border-t border-white/10 gap-3">
+                                    {prevChapter ? (
+                                        <button
+                                            onClick={() => onNavigate('reading-lab', { bookId: book.id, chapterId: prevChapter.id })}
+                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-black/10 hover:bg-black/20 font-bold text-xs transition-all"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                            <span>Ch {prevChapter.chapterNumber}</span>
+                                        </button>
+                                    ) : <div />}
+
+                                    {nextChapter ? (
+                                        <button
+                                            onClick={() => onNavigate('reading-lab', { bookId: book.id, chapterId: nextChapter.id })}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary hover:bg-primary-focus text-white font-bold text-xs shadow-xl shadow-primary/30 transition-all"
+                                        >
+                                            <span>Next: Ch {nextChapter.chapterNumber}</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => onNavigate('reading-library')}
+                                            className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xl shadow-emerald-600/30 transition-all"
+                                        >
+                                            ✓ Finish Book
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
+
+                {/* ── WINDOW 2: Matching Non-AI Translation (Bottom on mobile, Right on PC) ── */}
+                {isSplitView && (
+                    <div className="h-1/2 md:h-full md:w-1/2 flex flex-col min-h-0 overflow-hidden relative bg-black/10">
+                        <div className="px-4 py-1.5 bg-black/30 text-[10px] uppercase font-bold tracking-wider text-amber-400/90 flex justify-between items-center border-b border-white/5 shrink-0">
+                            <span className="flex items-center gap-1.5 italic">
+                                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                                Translation (Non-AI Mode)
+                            </span>
+                            {isTranslatingChapter ? (
+                                <span className="text-primary font-bold text-[10px] flex items-center gap-1.5">
+                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-primary/30 border-t-primary" />
+                                    Translating {translationProgress.done}/{translationProgress.total}...
+                                </span>
+                            ) : (
+                                <span className="text-gray-400 text-[10px] lowercase italic">unlimited free mode</span>
+                            )}
+                        </div>
+
+                        <div
+                            ref={translationContainerRef}
+                            onScroll={handleTranslationScroll}
+                            className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 pb-40 relative"
+                        >
+                            <div className="max-w-3xl mx-auto">
+                                {/* Chapter Header in Translation */}
+                                <div className="text-center mb-6 pb-4 border-b border-white/5 opacity-80">
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400/80 block mb-1">
+                                        Matching Translation
+                                    </span>
+                                    <h2 className="text-lg sm:text-2xl font-black mb-1 italic">
+                                        {currentTitle}
+                                    </h2>
+                                    <span className="text-[10px] text-gray-500 font-medium italic">
+                                        Non-AI translation generated for parallel reading
+                                    </span>
+                                </div>
+
+                                {/* Translated Paragraphs (Rendered in italics per requirement) */}
+                                <div className={`space-y-6 ${FONT_CLASSES[fontSize]} ${themeStyles.text} font-serif tracking-wide italic select-text`}>
+                                    {paragraphs.map((_, pIdx) => {
+                                        const translatedText = translatedParagraphs[pIdx];
+                                        const isHovered = hoveredParaIdx === pIdx;
+
+                                        return (
+                                            <p 
+                                                key={pIdx}
+                                                onMouseEnter={() => setHoveredParaIdx(pIdx)}
+                                                onMouseLeave={() => setHoveredParaIdx(null)}
+                                                className={`leading-relaxed transition-colors rounded-xl p-1.5 -mx-1.5 ${
+                                                    isHovered ? 'bg-amber-500/10' : ''
+                                                }`}
+                                            >
+                                                {translatedText ? (
+                                                    <span>{translatedText}</span>
+                                                ) : (
+                                                    <span className="opacity-40 text-xs sm:text-sm flex items-center gap-2">
+                                                        <div className="animate-pulse w-2.5 h-2.5 rounded-full bg-amber-400/50" />
+                                                        Translating paragraph {pIdx + 1}...
+                                                    </span>
+                                                )}
+                                            </p>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Chapter Table of Contents Drawer */}
@@ -808,7 +1013,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                         title="Listen to sentence"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072M12 5v14l-5-5H4V10h3l5-5z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 5v14l-5-5H4V10h3l5-5z" />
                                         </svg>
                                     </button>
                                 </div>
