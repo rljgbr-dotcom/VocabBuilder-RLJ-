@@ -144,6 +144,7 @@ Provide your analysis strictly matching this JSON interface:
   "contextMeaning": string,
   "sentenceSwedish": string,
   "sentenceTranslation": string,
+  "synonyms": string[],
   "dependencies": string[],
   "grammarNotes": string,
   "isArchaic": boolean,
@@ -159,6 +160,7 @@ Requirements:
 - contextMeaning: The exact idiomatic meaning of the word in this sentence in ${targetLanguage}.
 - sentenceSwedish: The full context sentence.
 - sentenceTranslation: Natural, idiomatic translation of the whole sentence into ${targetLanguage}.
+- synonyms: Array of 2 to 4 Swedish synonyms or closely related words for this target word suitable for this context (e.g. for 'vacker': ['fin', 'tjusig', 'underbar']; for 'springa': ['löpa', 'kuta', 'rusa']). Return [] if none.
 - dependencies: Array of other words in the sentence directly linked to or modifying the target word (especially phrasal verb particles or prepositions, e.g. for 'tycker' with 'tycker om', list ['om']). If no dependencies exist, return [].
 - grammarNotes: Concise grammatical explanation (e.g., 'Preteritum (dåtid) av starkt verb springa', 'Bestämd form plural av bok').
 - isArchaic: Set to true if the word, spelling, or inflection is Old Swedish / Archaic / 19th-century / early 20th-century Swedish (Gammalsvenska / äldre nysvenska). For example: archaic plural verb forms like 'gingo', 'voro', 'fingo', 'stodo', 'buro', 'blefvo'; older spellings like 'hvarför', 'hvad', 'hvem', 'öfver', 'af', 'godt', 'ondt', 'qväll'; or archaic vocabulary like 'ty', 'därest', 'ehuru'. Otherwise false.
@@ -192,6 +194,7 @@ Return strictly valid JSON only.
             contextMeaning: parsed.contextMeaning || parsed.literalMeaning || '',
             sentenceSwedish: parsed.sentenceSwedish || sentence,
             sentenceTranslation: parsed.sentenceTranslation || '',
+            synonyms: Array.isArray(parsed.synonyms) ? parsed.synonyms.filter(Boolean) : [],
             dependencies: Array.isArray(parsed.dependencies) ? parsed.dependencies : [],
             grammarNotes: parsed.grammarNotes || '',
             isAi: true,

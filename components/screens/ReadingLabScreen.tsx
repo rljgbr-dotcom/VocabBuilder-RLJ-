@@ -12,6 +12,7 @@ import {
     detectOldSwedish,
     translateChapterNonAi,
     getChapterTranslationCache,
+    translateSentenceNonAi,
 } from '../../services/translationService';
 import { AiAnalysisConfirmModal } from '../modals/AiAnalysisConfirmModal';
 import { WordDetailModal } from '../modals/WordDetailModal';
@@ -342,6 +343,18 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             libraryWord.sentenceSwedish = fullSentence.trim();
             setAnalyzedData(libraryWord);
             setSaveWordChoice('base');
+
+            // Asynchronously fetch sentence translation for the current context sentence if needed
+            if (fullSentence.trim()) {
+                translateSentenceNonAi(fullSentence.trim(), currentSourceLanguage || 'en').then((sentenceTrans) => {
+                    if (sentenceTrans) {
+                        setAnalyzedData(prev => {
+                            if (!prev || prev.targetWord !== cleanWord) return prev;
+                            return { ...prev, sentenceTranslation: sentenceTrans };
+                        });
+                    }
+                }).catch(() => {});
+            }
             return;
         }
 
@@ -350,6 +363,21 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
         if (cached) {
             setAnalyzedData(cached);
             setSaveWordChoice(cached.isArchaic && cached.modernEquivalent ? 'modern' : 'base');
+
+            // If cached result didn't have sentenceTranslation, translate it now
+            if (!cached.sentenceTranslation && fullSentence.trim()) {
+                translateSentenceNonAi(fullSentence.trim(), currentSourceLanguage || 'en').then((sentenceTrans) => {
+                    if (sentenceTrans) {
+                        setAnalyzedData(prev => {
+                            if (!prev || prev.targetWord !== cleanWord) return prev;
+                            const updated = { ...prev, sentenceTranslation: sentenceTrans };
+                            saveToTranslationCache(cleanWord, updated);
+                            saveToTranslationCache(`${cleanWord}|${fullSentence.trim()}`, updated);
+                            return updated;
+                        });
+                    }
+                }).catch(() => {});
+            }
             return;
         }
 
@@ -467,6 +495,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             subtopic2: 'Reading Lab',
             wordType: analyzedData.wordType || '',
             forms: formsToAdd,
+            synonyms: analyzedData.synonyms && analyzedData.synonyms.length > 0 ? analyzedData.synonyms : undefined,
             swedishNote: [
                 analyzedData.isArchaic ? `Old Swedish: ${analyzedData.targetWord} (Modern: ${analyzedData.modernEquivalent || wordToSave})` : null,
                 analyzedData.grammarNotes || null,

@@ -179,6 +179,34 @@ export const WordDetailModal: React.FC<WordDetailModalProps> = ({
                         )}
                     </div>
 
+                    {/* Synonyms Section */}
+                    {data.synonyms && data.synonyms.length > 0 && (
+                        <div className="p-3 rounded-2xl bg-base-200/80 border border-white/5 space-y-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                Synonyms (Synonymer)
+                            </span>
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                {data.synonyms.map((syn, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => handleSpeakInternal(syn)}
+                                        className="px-2.5 py-1 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 active:scale-95 text-cyan-300 border border-cyan-500/25 text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm"
+                                        title={`Listen to "${syn}"`}
+                                    >
+                                        <span>{syn}</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 5v14l-5-5H4V10h3l5-5z" />
+                                        </svg>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Archaic Notice if detected */}
                     {data.isArchaic && (
                         <div className="p-3 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-xs text-purple-200 leading-relaxed space-y-1">
@@ -201,11 +229,11 @@ export const WordDetailModal: React.FC<WordDetailModalProps> = ({
                         </div>
                     )}
 
-                    {/* Context Sentence Preview */}
+                    {/* Context Sentence Preview & Sentence Translation */}
                     {data.sentenceSwedish && (
-                        <div className="p-3 rounded-2xl bg-base-200/70 border border-white/5 space-y-1.5">
+                        <div className="p-3 rounded-2xl bg-base-200/70 border border-white/5 space-y-2">
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                     </svg>
@@ -221,13 +249,29 @@ export const WordDetailModal: React.FC<WordDetailModalProps> = ({
                                     </svg>
                                 </button>
                             </div>
+
+                            {/* Swedish Sentence */}
                             <div className="text-xs text-gray-200 leading-relaxed italic bg-base-300/60 p-2.5 rounded-xl border-l-2 border-cyan-400 max-h-24 sm:max-h-28 overflow-y-auto">
                                 "{renderHighlightedSentence()}"
                             </div>
-                            {data.sentenceTranslation && (
-                                <p className="text-[11px] text-gray-400 px-1 pt-0.5 truncate">
-                                    {data.sentenceTranslation}
-                                </p>
+
+                            {/* Sentence Translation Underneath */}
+                            {data.sentenceTranslation ? (
+                                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                                        </svg>
+                                        Sentence Meaning
+                                    </span>
+                                    <p className="text-xs text-gray-300 leading-relaxed">
+                                        {data.sentenceTranslation}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="text-[11px] text-gray-500 italic px-1">
+                                    Translating sentence meaning...
+                                </div>
                             )}
                         </div>
                     )}

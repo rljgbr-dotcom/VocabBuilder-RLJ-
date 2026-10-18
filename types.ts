@@ -35,6 +35,7 @@ export interface Word {
   difficulty: 'easy' | 'medium' | 'hard' | 'unmarked';
   wordType?: string;
   forms?: string[];
+  synonyms?: string[];
   // FIX: Add optional 'isBlurredNext' property to allow persisting the blur state for a word.
   isBlurredNext?: boolean;
   // SRS (SM-2) fields
@@ -203,6 +204,7 @@ export interface AnalyzedWordContext {
   contextMeaning: string; // idiomatic meaning in this sentence
   sentenceSwedish: string;
   sentenceTranslation: string;
+  synonyms?: string[]; // Swedish synonyms or related expressions
   dependencies: string[]; // related words in the sentence that change meaning (e.g. particle in phrasal verb)
   grammarNotes?: string; // helpful grammatical explanation
   isAi?: boolean; // true if from Gemini AI, false if non-AI/dictionary

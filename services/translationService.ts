@@ -97,6 +97,10 @@ export const checkLibraryWord = (
     else if (matched.preteritum && matched.preteritum.toLowerCase() === clean) formNote = 'Preteritum form';
     else if (matched.supinium && matched.supinium.toLowerCase() === clean) formNote = 'Supinum form';
 
+    const wordSynonyms = (matched.synonyms && matched.synonyms.length > 0)
+        ? matched.synonyms
+        : getSwedishSynonyms(matched.swedish);
+
     return {
         targetWord: word,
         baseForm: matched.swedish,
@@ -105,6 +109,7 @@ export const checkLibraryWord = (
         contextMeaning: translation.word,
         sentenceSwedish: matched.swedishExample || '',
         sentenceTranslation: translation.example || '',
+        synonyms: wordSynonyms,
         dependencies: [],
         grammarNotes: [formNote, matched.swedishNote].filter(Boolean).join(' • '),
         isAi: false,
@@ -189,8 +194,186 @@ export const detectOldSwedish = (word: string): { isArchaic: boolean; modernEqui
 };
 
 /**
+ * Built-in Swedish Synonyms Dictionary for instant offline and non-AI synonym suggestions.
+ */
+export const SWEDISH_SYNONYMS_MAP: Record<string, string[]> = {
+    // Adjectives
+    'stor': ['väldig', 'enorm', 'ansenlig', 'betydande', 'gigantisk'],
+    'liten': ['små', 'obetydlig', 'ringa', 'kort', 'pytteliten'],
+    'bra': ['god', 'fin', 'utmärkt', 'förträfflig', 'prima'],
+    'dålig': ['usel', 'kass', 'undermålig', 'eländig', 'svag'],
+    'vacker': ['skön', 'fin', 'tjusig', 'ståtlig', 'underskön'],
+    'ful': ['anskrämlig', 'otäck', 'oattraktiv', 'vanskapt'],
+    'glad': ['lycklig', 'munter', 'förnöjd', 'belåten', 'pigg'],
+    'ledsen': ['sorgsen', 'bedrövad', 'olycklig', 'modfälld'],
+    'arg': ['ond', 'förbannad', 'rasande', 'ilsken', 'upprörd'],
+    'snabb': ['kvick', 'rask', 'flink', 'hastig', 'ilande'],
+    'långsam': ['maklig', 'saktmodig', 'trög', 'sen'],
+    'viktig': ['väsentlig', 'betydelsefull', 'central', 'avgörande'],
+    'enkel': ['lätt', 'okomplicerad', 'smidig', 'elementär'],
+    'svår': ['besvärlig', 'knepig', 'invecklad', 'tuff'],
+    'ung': ['ungdomlig', 'färsk', 'späd'],
+    'gammal': ['ålderstigen', 'uråldrig', 'antik', 'förlegad'],
+    'kall': ['kylig', 'sval', 'isig', 'bitande'],
+    'varm': ['het', 'ljum', 'glödande', 'brännande'],
+    'rik': ['förmögen', 'välbärgad', 'stadd', 'fruktsam'],
+    'fattig': ['pank', 'barskrapad', 'utblottad', 'behövande'],
+    'stark': ['kraftig', 'muskulös', 'robust', 'härdig'],
+    'svag': ['kraftlös', 'klen', 'bräcklig', 'matt'],
+    'hel': ['komplett', 'odelad', 'fullständig', 'oskadd'],
+    'tom': ['öde', 'innehållslös', 'blank', 'vakant'],
+    'lugn': ['stilla', 'fridfull', 'rolig', 'harmonisk'],
+    'orolig': ['nervös', 'ängslig', 'bekymrad', 'rastlös'],
+    'konstig': ['underlig', 'märklig', 'udda', 'bisarr'],
+    'vanlig': ['normal', 'ordinär', 'sedvanlig', 'alldaglig'],
+    'säker': ['trygg', 'viss', 'otvivelaktig', 'tillförlitlig'],
+    'osäker': ['tveksam', 'villrådig', 'oviss', 'riskabel'],
+    'mörk': ['dunkel', 'skum', 'svart', 'dyster'],
+    'ljus': ['klar', 'lysande', 'strålande', 'blek'],
+
+    // Verbs
+    'gå': ['vandra', 'promenera', 'stega', 'knalla', 'skrida'],
+    'springa': ['löpa', 'kuta', 'rusa', 'ila', 'fara'],
+    'se': ['titta', 'skåda', 'betrakta', 'blicka', 'iaktta'],
+    'höra': ['lyssna', 'förnimma', 'uppfatta', 'avlyssna'],
+    'tala': ['prata', 'snacka', 'samtala', 'yttra', 'orda'],
+    'prata': ['tala', 'snacka', 'konversera', 'samtala', 'babbla'],
+    'säga': ['yttra', 'uttala', 'berätta', 'meddela'],
+    'tänka': ['fundera', 'begrunda', 'reflektera', 'tro', 'mena'],
+    'förstå': ['begripa', 'fatta', 'inse', 'uppfatta'],
+    'veta': ['känna till', 'ha vetskap om', 'inse'],
+    'tro': ['anta', 'förmoda', 'mena', 'hoppas'],
+    'tycka': ['anse', 'mena', 'bedöma', 'förmoda'],
+    'göra': ['utföra', 'bedriva', 'skapa', 'tillverka'],
+    'få': ['erhålla', 'mottaga', 'uppnå', 'tilldelas'],
+    'ge': ['skänka', 'överlämna', 'tilldela', 'bistå'],
+    'ta': ['fatta', 'gripa', 'hämta', 'lägga beslag på'],
+    'hålla': ['gripa', 'behålla', 'stödja', 'omsluta'],
+    'börja': ['inleda', 'starta', 'påbörja', 'gry'],
+    'sluta': ['avsluta', 'upphöra', 'stanna', 'avbryta'],
+    'hjälpa': ['bistå', 'stötta', 'undsätta', 'assistera'],
+    'visa': ['påvisa', 'demonstrera', 'åskådliggöra', 'blotta'],
+    'dölja': ['gömma', 'skyla', 'maskera', 'hemlighålla'],
+    'älska': ['hålla av', 'tycka om', 'dyrka', 'avguda'],
+    'hata': ['avsky', 'förkasta', 'förakta'],
+    'leva': ['vistas', 'bo', 'andas', 'existera'],
+    'dö': ['avlida', 'omkomma', 'gå bort', 'somna in'],
+    'äta': ['spisa', 'inta', 'förtära', 'kalasa'],
+    'dricka': ['inmundiga', 'sörpla', 'läska', 'supa'],
+    'sova': ['slumra', 'vila', 'knoppa', 'tryna'],
+    'vakna': ['slå upp ögonen', 'pigkna till', 'kvickna'],
+    'skriva': ['författa', 'nedteckna', 'formulera'],
+    'läsa': ['studera', 'ögna', 'granska'],
+    'köpa': ['inhandla', 'förvärva', 'shoppa'],
+    'sälja': ['avyttra', 'överlåta', 'saluföra'],
+    'hitta': ['finna', 'upptäcka', 'lokalisera'],
+    'tappa': ['förlora', 'mista', 'släppa'],
+    'resa': ['färdas', 'dra', 'åka', 'trippa'],
+    'stanna': ['förbli', 'hejda sig', 'dröja', 'vistas'],
+    'bygga': ['uppföra', 'konstruera', 'skapa', 'anlägga'],
+    'förstöra': ['rasera', 'ödelägga', 'krossa', 'skada'],
+    'önska': ['vilja', 'åtrå', 'längta', 'begära'],
+    'behöva': ['kräva', 'sakna', 'vara i behov av'],
+
+    // Nouns
+    'hus': ['byggnad', 'bostad', 'hem', 'kåk', 'villa'],
+    'bok': ['skrift', 'volym', 'verk', 'litteratur'],
+    'väg': ['stig', 'led', 'rutt', 'gata', 'bana'],
+    'människa': ['person', 'individ', 'varelse', 'själ'],
+    'man': ['herre', 'karl', 'gubbe', 'kille'],
+    'kvinna': ['dam', 'fru', 'madam', 'tjej'],
+    'barn': ['unge', 'knatte', 'avkomma', 'liten'],
+    'vän': ['kamrat', 'polare', 'bekant', 'förtrogen'],
+    'fiende': ['motståndare', 'antagonist', 'rival'],
+    'arbete': ['jobb', 'syssla', 'gärning', 'uppgift'],
+    'pengar': ['slantar', 'medel', 'kapital', 'kosing'],
+    'tid': ['stund', 'epok', 'period', 'ögonblick'],
+    'stad': ['tätort', 'metropol', 'samhälle', 'köping'],
+    'land': ['rike', 'stat', 'nation', 'bygd'],
+    'vatten': ['vätska', 'sjö', 'hav', 'flod'],
+    'eld': ['flamma', 'brand', 'låga', 'bål'],
+    'mat': ['föda', 'kost', 'spis', 'näring'],
+    'rum': ['kammare', 'sal', 'gemak', 'lokal'],
+    'dörr': ['port', 'ingång', 'lucka', 'öppning'],
+    'fönster': ['ruta', 'glugg', 'ljusinsläpp'],
+    'ord': ['glosa', 'term', 'uttryck', 'fras'],
+    'tanke': ['idé', 'fundering', 'reflektion', 'åsikt'],
+    'känsla': ['förnimmelse', 'sinnesrörelse', 'stämning'],
+    'glädje': ['lycka', 'fröjd', 'trivsel', 'jubel'],
+    'sorg': ['bedrövelse', 'smärta', 'vemod', 'kval'],
+    'rädsla': ['fruktan', 'skräck', 'oro', 'ångest'],
+    'hopp': ['förhoppning', 'tillförsikt', 'tillit'],
+};
+
+/**
+ * Returns Swedish synonyms for a given word using dictionary and stemming heuristics.
+ */
+export const getSwedishSynonyms = (word: string): string[] => {
+    if (!word) return [];
+    const clean = word.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').trim().toLowerCase();
+    if (!clean) return [];
+
+    // 1. Direct dictionary match
+    if (SWEDISH_SYNONYMS_MAP[clean]) {
+        return SWEDISH_SYNONYMS_MAP[clean];
+    }
+
+    // 2. Stemming heuristics for Swedish inflections
+    const candidateStems: string[] = [];
+    if (clean.endsWith('er') || clean.endsWith('ar')) {
+        candidateStems.push(clean.slice(0, -2) + 'a', clean.slice(0, -2));
+    }
+    if (clean.endsWith('ade') || clean.endsWith('ats')) {
+        candidateStems.push(clean.slice(0, -3) + 'a', clean.slice(0, -3));
+    }
+    if (clean.endsWith('arna') || clean.endsWith('erna') || clean.endsWith('orna')) {
+        candidateStems.push(clean.slice(0, -4) + 'a', clean.slice(0, -4));
+    }
+    if (clean.endsWith('en') || clean.endsWith('et') || clean.endsWith('na')) {
+        candidateStems.push(clean.slice(0, -2));
+    }
+    if (clean.endsWith('t') && clean.length > 3) {
+        candidateStems.push(clean.slice(0, -1));
+    }
+
+    for (const stem of candidateStems) {
+        if (SWEDISH_SYNONYMS_MAP[stem]) {
+            return SWEDISH_SYNONYMS_MAP[stem];
+        }
+    }
+
+    return [];
+};
+
+/**
+ * Translates a single sentence via MyMemory API.
+ */
+export const translateSentenceNonAi = async (sentence: string, targetLangCode: string = 'en'): Promise<string> => {
+    const trimmed = sentence.trim();
+    if (!trimmed) return '';
+    const langCode = targetLangCode.toLowerCase().substring(0, 2);
+
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=sv|${langCode}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.responseData?.translatedText) {
+                return data.responseData.translatedText;
+            }
+        }
+    } catch (e) {
+        console.warn('Sentence translation failed:', e);
+    }
+    return '';
+};
+
+/**
  * Free / Non-AI translation fallback for unlimited lookups without burning API quota.
- * Uses MyMemory Public Translation API with local archaic detection.
+ * Uses MyMemory Public Translation API with local archaic detection and built-in Swedish synonyms.
  */
 export const fetchNonAiTranslation = async (
     word: string,
@@ -207,32 +390,42 @@ export const fetchNonAiTranslation = async (
 
     // Map language code to standard 2-letter
     const langCode = targetLangCode.toLowerCase().substring(0, 2);
+    const baseLookup = archaicCheck.isArchaic && archaicCheck.modernEquivalent ? archaicCheck.modernEquivalent : cleanWord;
+    const synonyms = getSwedishSynonyms(baseLookup);
 
     try {
-        // Query MyMemory free translation API for the target word
-        const wordUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=sv|${langCode}`;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
-
-        const wordRes = await fetch(wordUrl, { signal: controller.signal });
-        clearTimeout(timeout);
-
-        let translationText = cleanWord;
-        if (wordRes.ok) {
-            const data = await wordRes.json();
-            if (data.responseData?.translatedText) {
-                translationText = data.responseData.translatedText;
-            }
-        }
+        // Query MyMemory free translation API for the target word and sentence in parallel
+        const [wordTranslation, sentenceTranslation] = await Promise.all([
+            (async () => {
+                const wordUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=sv|${langCode}`;
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 6000);
+                try {
+                    const wordRes = await fetch(wordUrl, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (wordRes.ok) {
+                        const data = await wordRes.json();
+                        if (data.responseData?.translatedText) {
+                            return data.responseData.translatedText;
+                        }
+                    }
+                } catch {
+                    clearTimeout(timeout);
+                }
+                return cleanWord;
+            })(),
+            sentence && sentence.trim() ? translateSentenceNonAi(sentence, langCode) : Promise.resolve('')
+        ]);
 
         const result: AnalyzedWordContext = {
             targetWord: word,
             baseForm: archaicCheck.isArchaic && archaicCheck.modernEquivalent ? archaicCheck.modernEquivalent : cleanWord,
             wordType: '',
-            literalMeaning: translationText,
-            contextMeaning: translationText,
+            literalMeaning: wordTranslation,
+            contextMeaning: wordTranslation,
             sentenceSwedish: sentence || '',
-            sentenceTranslation: '',
+            sentenceTranslation: sentenceTranslation || '',
+            synonyms: synonyms,
             dependencies: [],
             grammarNotes: archaicCheck.isArchaic ? archaicCheck.note : '',
             isAi: false,
@@ -244,6 +437,9 @@ export const fetchNonAiTranslation = async (
 
         // Cache the result
         saveToTranslationCache(cleanWord, result);
+        if (sentence) {
+            saveToTranslationCache(`${cleanWord}|${sentence}`, result);
+        }
         return result;
     } catch (err) {
         console.warn('Non-AI translation fetch failed or timed out:', err);
@@ -257,6 +453,7 @@ export const fetchNonAiTranslation = async (
             contextMeaning: cleanWord,
             sentenceSwedish: sentence || '',
             sentenceTranslation: '',
+            synonyms: synonyms,
             dependencies: [],
             grammarNotes: archaicCheck.isArchaic ? archaicCheck.note : 'Dictionary service unavailable offline.',
             isAi: false,
