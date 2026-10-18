@@ -34,6 +34,7 @@ export interface Word {
   backCount: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'unmarked';
   wordType?: string;
+  forms?: string[];
   // FIX: Add optional 'isBlurredNext' property to allow persisting the blur state for a word.
   isBlurredNext?: boolean;
   // SRS (SM-2) fields

@@ -122,6 +122,48 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
     const [addToSrs, setAddToSrs] = useState(true);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+    // Track newly added words in current session for instant UI highlight updates
+    const [sessionAddedWords, setSessionAddedWords] = useState<Set<string>>(() => {
+        try {
+            const stored = localStorage.getItem('vb_reading_added_words');
+            return stored ? new Set(JSON.parse(stored)) : new Set();
+        } catch {
+            return new Set();
+        }
+    });
+
+    // Smart matcher for known words in the user's library and session
+    const isWordKnown = useCallback((token: string): boolean => {
+        const clean = token.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').trim().toLowerCase();
+        if (!clean) return false;
+        if (sessionAddedWords.has(clean)) return true;
+
+        return words.some(w => {
+            const sw = w.swedish.toLowerCase();
+            if (sw === clean) return true;
+            if (w.present && w.present.toLowerCase() === clean) return true;
+            if (w.preteritum && w.preteritum.toLowerCase() === clean) return true;
+            if (w.supinium && w.supinium.toLowerCase() === clean) return true;
+            if (w.forms && w.forms.some(f => f.toLowerCase() === clean)) return true;
+
+            // Common Swedish inflection stem checks (e.g. hunden -> hund, kallades -> kalla)
+            if (clean.length > 3) {
+                if (clean.endsWith('arna') && sw === clean.slice(0, -4)) return true;
+                if (clean.endsWith('erna') && sw === clean.slice(0, -4)) return true;
+                if (clean.endsWith('orna') && sw === clean.slice(0, -4)) return true;
+                if (clean.endsWith('en') && sw === clean.slice(0, -2)) return true;
+                if (clean.endsWith('et') && sw === clean.slice(0, -2)) return true;
+                if (clean.endsWith('na') && sw === clean.slice(0, -2)) return true;
+                if (clean.endsWith('ades') && (sw === clean.slice(0, -4) + 'a' || sw === clean.slice(0, -4))) return true;
+                if (clean.endsWith('ade') && (sw === clean.slice(0, -3) + 'a' || sw === clean.slice(0, -3))) return true;
+                if (clean.endsWith('des') && sw === clean.slice(0, -3)) return true;
+                if (clean.endsWith('tes') && sw === clean.slice(0, -3)) return true;
+                if (clean.endsWith('s') && clean.length > 4 && sw === clean.slice(0, -1)) return true;
+            }
+            return false;
+        });
+    }, [words, sessionAddedWords]);
+
     // Audio TTS Helper
     const handleSpeak = (text: string) => {
         if (!text) return;
@@ -395,6 +437,15 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
         const translationText = analyzedData.contextMeaning || analyzedData.literalMeaning;
         const sentenceTranslation = analyzedData.sentenceTranslation || '';
 
+        // Collect all related forms so the reader instantly highlights any form of this word
+        const formsToAdd = Array.from(new Set([
+            analyzedData.targetWord.toLowerCase(),
+            wordToSave.toLowerCase(),
+            analyzedData.baseForm?.toLowerCase(),
+            analyzedData.modernEquivalent?.toLowerCase(),
+            pendingWord.toLowerCase(),
+        ].filter(Boolean) as string[]));
+
         const newWordPayload: any = {
             swedish: wordToSave,
             swedishExample: analyzedData.sentenceSwedish || pendingSentence,
@@ -412,6 +463,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             subtopic1: currentTitle,
             subtopic2: 'Reading Lab',
             wordType: analyzedData.wordType || '',
+            forms: formsToAdd,
             swedishNote: [
                 analyzedData.isArchaic ? `Old Swedish: ${analyzedData.targetWord} (Modern: ${analyzedData.modernEquivalent || wordToSave})` : null,
                 analyzedData.grammarNotes || null,
@@ -428,12 +480,28 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
 
         addWord(newWordPayload);
 
-        // Show toast
-        setToastMessage(`Saved "${wordToSave}" to your Vocabulary deck!`);
-        setTimeout(() => setToastMessage(null), 3500);
+        // Instantly update session added words set so paragraph text highlights update immediately
+        setSessionAddedWords(prev => {
+            const next = new Set(prev);
+            formsToAdd.forEach(f => next.add(f));
+            try {
+                localStorage.setItem('vb_reading_added_words', JSON.stringify(Array.from(next)));
+            } catch (e) {
+                console.warn('Failed to save added words to localStorage:', e);
+            }
+            return next;
+        });
 
-        // Close bottom drawer
-        setAnalyzedData(null);
+        // Mark the active analyzedData card as in-library so the popup reflects its saved state
+        setAnalyzedData(prev => prev ? {
+            ...prev,
+            isLibrary: true,
+            libraryWordId: 'added_now',
+        } : null);
+
+        // Show toast feedback
+        setToastMessage(`✓ Saved "${wordToSave}" to your Vocabulary deck!`);
+        setTimeout(() => setToastMessage(null), 3000);
     };
 
     if (!chapter && !passage) {
@@ -681,13 +749,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                                             }
 
                                                             const clean = token.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').toLowerCase();
-                                                            
-                                                            const isKnownInDeck = words.some(w => 
-                                                                w.swedish.toLowerCase() === clean ||
-                                                                (w.present && w.present.toLowerCase() === clean) ||
-                                                                (w.preteritum && w.preteritum.toLowerCase() === clean) ||
-                                                                (w.supinium && w.supinium.toLowerCase() === clean)
-                                                            );
+                                                            const isKnownInDeck = isWordKnown(token);
 
                                                             return (
                                                                 <span
@@ -864,47 +926,47 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
             {/* ── TRANSLATION POPUP CARD / BOTTOM SHEET (Pixel 9 Pro XL & Mobile Optimized) ── */}
             {analyzedData && (
                 <>
-                    {/* Backdrop for mobile */}
+                    {/* Backdrop */}
                     <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fade-in"
+                        className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 animate-fade-in"
                         onClick={() => setAnalyzedData(null)}
                     />
 
+                    {/* Bottom Sheet Box */}
                     <div 
-                        className="fixed bottom-0 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-full sm:w-[96%] max-w-lg bg-base-100 rounded-t-3xl sm:rounded-3xl border border-white/15 shadow-[0_20px_70px_rgba(0,0,0,0.6)] p-4 sm:p-5 pb-6 animate-slide-in-up flex flex-col max-h-[82dvh] overflow-hidden"
+                        className="fixed bottom-0 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-full sm:w-[94%] sm:max-w-md bg-base-100 rounded-t-[28px] sm:rounded-3xl border-t sm:border border-white/15 shadow-[0_-10px_50px_rgba(0,0,0,0.6)] flex flex-col max-h-[86dvh] sm:max-h-[82vh] overflow-hidden animate-slide-in-up"
+                        onClick={e => e.stopPropagation()}
                     >
                         {/* Drag bar for mobile visual feel */}
-                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-3 shrink-0 sm:hidden" />
+                        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-2.5 mb-1 shrink-0 sm:hidden" />
 
                         {/* Top: Word, badges & Close */}
-                        <div className="flex justify-between items-start pb-2 border-b border-white/10 shrink-0">
-                            <div className="min-w-0 pr-2">
-                                <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex justify-between items-center px-4 sm:px-6 pt-1.5 pb-2.5 border-b border-white/10 shrink-0">
+                            <div className="min-w-0 pr-2 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
                                     <h3 className="text-xl sm:text-2xl font-black text-primary truncate">
                                         {analyzedData.targetWord}
                                     </h3>
 
                                     {/* Library Badge */}
-                                    {analyzedData.isLibrary && (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                            ✓ In Library
+                                    {analyzedData.isLibrary ? (
+                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shrink-0">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                            In Library
+                                        </span>
+                                    ) : analyzedData.isAi ? (
+                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+                                            ✨ AI Context
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 italic shrink-0">
+                                            ⚡ Dictionary
                                         </span>
                                     )}
 
-                                    {/* AI vs Non-AI badge */}
-                                    {analyzedData.isAi ? (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                                            ✨ AI Context
-                                        </span>
-                                    ) : !analyzedData.isLibrary ? (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 italic">
-                                            ⚡ Dictionary
-                                        </span>
-                                    ) : null}
-
                                     {/* Old Swedish Badge */}
                                     {analyzedData.isArchaic && (
-                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0">
                                             📜 Old Swedish
                                         </span>
                                     )}
@@ -921,7 +983,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                             <div className="flex items-center gap-1 shrink-0">
                                 <button
                                     onClick={() => handleSpeak(analyzedData.targetWord)}
-                                    className="p-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                                    className="w-9 h-9 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center active:scale-95 transition-colors"
                                     title="Listen to Swedish pronunciation"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -930,7 +992,8 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                 </button>
                                 <button
                                     onClick={() => setAnalyzedData(null)}
-                                    className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10"
+                                    className="w-9 h-9 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 flex items-center justify-center active:scale-95 transition-all"
+                                    aria-label="Close"
                                 >
                                     ✕
                                 </button>
@@ -938,16 +1001,16 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                         </div>
 
                         {/* Scrollable Center Details */}
-                        <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1">
-                            {/* Meaning (Italicized if not from verified storage or AI!) */}
-                            <div className="bg-base-200/50 p-3 rounded-2xl border border-white/5">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[10px] uppercase font-bold text-gray-400">
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 space-y-2.5">
+                            {/* Meaning (Italicized if non-AI draft) */}
+                            <div className="bg-base-200/60 p-3 rounded-2xl border border-white/5 space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">
                                         {analyzedData.isLibrary ? 'Your Stored Translation' : 'Translation'}
                                     </span>
                                     {!analyzedData.isAi && !analyzedData.isLibrary && (
                                         <span className="text-[10px] text-amber-400 font-semibold italic">
-                                            (Non-AI translation - may have errors)
+                                            (Non-AI draft translation)
                                         </span>
                                     )}
                                 </div>
@@ -957,14 +1020,14 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                 </div>
 
                                 {analyzedData.literalMeaning && analyzedData.literalMeaning !== analyzedData.contextMeaning && (
-                                    <div className="pt-1.5 mt-1.5 border-t border-white/5 text-xs text-gray-300">
+                                    <div className="pt-1 mt-1 border-t border-white/5 text-xs text-gray-300">
                                         <span className="text-[10px] uppercase font-bold text-gray-400 mr-1.5">Literal:</span>
                                         {analyzedData.literalMeaning}
                                     </div>
                                 )}
 
                                 {analyzedData.dependencies && analyzedData.dependencies.length > 0 && (
-                                    <div className="pt-1.5 mt-1.5 border-t border-white/5 text-xs text-amber-300 flex items-center gap-1.5">
+                                    <div className="pt-1 mt-1 border-t border-white/5 text-xs text-amber-300 flex items-center gap-1.5">
                                         <span>🔗 Phrasal particle:</span>
                                         <span className="font-bold underline">{analyzedData.dependencies.join(', ')}</span>
                                     </div>
@@ -973,7 +1036,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
 
                             {/* Old / Archaic Swedish Warning Card */}
                             {analyzedData.isArchaic && (
-                                <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-xs text-purple-200 space-y-1">
+                                <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-xs text-purple-200 space-y-1">
                                     <div className="flex items-center gap-1.5 font-bold text-purple-300">
                                         <span>📜 Historical Swedish Context:</span>
                                     </div>
@@ -983,8 +1046,8 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                         </p>
                                     )}
                                     {analyzedData.modernEquivalent && (
-                                        <p className="text-[11px] font-semibold text-purple-100">
-                                            Contemporary equivalent: <span className="underline font-bold text-white">{analyzedData.modernEquivalent}</span>
+                                        <p className="text-[11px] font-semibold text-purple-100 pt-0.5">
+                                            Modern Swedish: <span className="underline font-bold text-white">{analyzedData.modernEquivalent}</span>
                                         </p>
                                     )}
                                 </div>
@@ -1000,7 +1063,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                             {/* Sentence Context Preview */}
                             {analyzedData.sentenceSwedish && (
                                 <div className="text-xs text-gray-400 bg-white/5 p-2.5 rounded-2xl border border-white/5 flex justify-between items-center gap-2">
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <span className="text-[9px] uppercase font-bold text-gray-400 block mb-0.5">Example Context</span>
                                         <p className="italic text-gray-200 truncate">"{analyzedData.sentenceSwedish}"</p>
                                         {analyzedData.sentenceTranslation && (
@@ -1009,7 +1072,7 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                     </div>
                                     <button
                                         onClick={() => handleSpeak(analyzedData.sentenceSwedish)}
-                                        className="p-1.5 rounded-lg hover:bg-white/10 text-gray-300 shrink-0"
+                                        className="w-8 h-8 rounded-lg hover:bg-white/10 text-gray-300 flex items-center justify-center shrink-0 active:scale-95"
                                         title="Listen to sentence"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1021,48 +1084,50 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                         </div>
 
                         {/* Bottom Actions (Save / SRS / Upgrade with AI) */}
-                        <div className="pt-2.5 border-t border-white/10 shrink-0 flex flex-col gap-2">
-                            {/* Choose form to save */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-gray-400 text-[11px]">Save as:</span>
-                                    {analyzedData.isArchaic && analyzedData.modernEquivalent && (
+                        <div className="px-4 sm:px-6 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom,1.25rem))] border-t border-white/10 shrink-0 flex flex-col gap-2.5 bg-base-100">
+                            {/* Choose form to save (only shown if there are alternatives) */}
+                            {((analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase()) || (analyzedData.isArchaic && analyzedData.modernEquivalent)) && (
+                                <div className="flex items-center justify-between text-xs gap-2">
+                                    <span className="text-gray-400 text-[11px] shrink-0">Save as:</span>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        {analyzedData.isArchaic && analyzedData.modernEquivalent && (
+                                            <button
+                                                onClick={() => setSaveWordChoice('modern')}
+                                                className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'modern' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-300'}`}
+                                            >
+                                                {analyzedData.modernEquivalent} (Modern)
+                                            </button>
+                                        )}
+                                        {analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase() && (
+                                            <button
+                                                onClick={() => setSaveWordChoice('base')}
+                                                className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'base' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
+                                            >
+                                                {analyzedData.baseForm} (Base)
+                                            </button>
+                                        )}
                                         <button
-                                            onClick={() => setSaveWordChoice('modern')}
-                                            className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'modern' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-300'}`}
+                                            onClick={() => setSaveWordChoice('exact')}
+                                            className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'exact' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
                                         >
-                                            {analyzedData.modernEquivalent} (Modern)
+                                            {analyzedData.targetWord}
                                         </button>
-                                    )}
-                                    {analyzedData.baseForm && analyzedData.baseForm.toLowerCase() !== analyzedData.targetWord.toLowerCase() && (
-                                        <button
-                                            onClick={() => setSaveWordChoice('base')}
-                                            className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'base' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
-                                        >
-                                            {analyzedData.baseForm} (Base)
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setSaveWordChoice('exact')}
-                                        className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${saveWordChoice === 'exact' ? 'bg-primary text-white' : 'bg-white/5 text-gray-300'}`}
-                                    >
-                                        {analyzedData.targetWord}
-                                    </button>
+                                    </div>
                                 </div>
+                            )}
 
-                                <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer select-none">
+                            {/* SRS Checkbox and AI Context button */}
+                            <div className="flex items-center justify-between text-xs">
+                                <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
                                     <input
                                         type="checkbox"
                                         checked={addToSrs}
                                         onChange={(e) => setAddToSrs(e.target.checked)}
-                                        className="rounded border-white/20 text-primary focus:ring-0 w-3.5 h-3.5"
+                                        className="rounded border-white/20 text-primary focus:ring-0 w-4 h-4"
                                     />
-                                    <span>Add to SRS</span>
+                                    <span>Add to SRS flashcards</span>
                                 </label>
-                            </div>
 
-                            <div className="flex gap-2">
-                                {/* Upgrade / Re-analyze with AI button */}
                                 {(!analyzedData.isAi || analyzedData.isLibrary) && (
                                     <button
                                         onClick={() => {
@@ -1071,26 +1136,35 @@ export const ReadingLabScreen: React.FC<ReadingLabScreenProps> = ({
                                             setAnalyzedData(null);
                                             setIsConfirmModalOpen(true);
                                         }}
-                                        className="py-2.5 px-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 border border-white/10 shrink-0"
+                                        className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 shrink-0 underline underline-offset-2"
                                         title="Analyze full context with Gemini AI"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                         </svg>
                                         <span>AI Context</span>
                                     </button>
                                 )}
-
-                                <button
-                                    onClick={handleSaveToDeck}
-                                    className="flex-1 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-primary to-indigo-600 hover:opacity-90 text-white font-bold text-xs sm:text-sm shadow-lg shadow-primary/30 flex items-center justify-center gap-1.5 transition-all"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    <span>{analyzedData.isLibrary ? 'Update in Flashcards' : 'Save to Flashcards'}</span>
-                                </button>
                             </div>
+
+                            {/* Primary Action Button */}
+                            <button
+                                onClick={handleSaveToDeck}
+                                className={`w-full py-3 px-4 rounded-2xl font-bold text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                                    analyzedData.isLibrary
+                                        ? 'bg-emerald-600/90 hover:bg-emerald-600 text-white shadow-emerald-600/20'
+                                        : 'bg-gradient-to-r from-primary to-indigo-600 hover:opacity-90 text-white shadow-primary/30'
+                                }`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    {analyzedData.isLibrary ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                    )}
+                                </svg>
+                                <span>{analyzedData.isLibrary ? '✓ In Library (Tap to Update)' : 'Save to Flashcards'}</span>
+                            </button>
                         </div>
                     </div>
                 </>

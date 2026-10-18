@@ -58,12 +58,32 @@ export const checkLibraryWord = (
     const clean = word.replace(/^[.,!?;:()"“”'’—-]+|[.,!?;:()"“”'’—-]+$/g, '').trim().toLowerCase();
     if (!clean) return null;
 
-    // Search exact word or verb tenses
+    // Search exact word, verb tenses, or recorded inflected forms
     const matched = words.find(w => {
-        if (w.swedish.toLowerCase() === clean) return true;
+        const sw = w.swedish.toLowerCase();
+        if (sw === clean) return true;
         if (w.present && w.present.toLowerCase() === clean) return true;
         if (w.preteritum && w.preteritum.toLowerCase() === clean) return true;
         if (w.supinium && w.supinium.toLowerCase() === clean) return true;
+        if (w.forms && w.forms.some(f => f.toLowerCase() === clean)) return true;
+
+        // Common Swedish inflection stem checks (e.g. hunden -> hund, kallades -> kalla)
+        if (clean.length > 3) {
+            // Definite noun endings (-en, -et, -na, -arna, -erna, -orna)
+            if (clean.endsWith('arna') && sw === clean.slice(0, -4)) return true;
+            if (clean.endsWith('erna') && sw === clean.slice(0, -4)) return true;
+            if (clean.endsWith('orna') && sw === clean.slice(0, -4)) return true;
+            if (clean.endsWith('en') && sw === clean.slice(0, -2)) return true;
+            if (clean.endsWith('et') && sw === clean.slice(0, -2)) return true;
+            if (clean.endsWith('na') && sw === clean.slice(0, -2)) return true;
+            // Verb passive / past endings (-ades, -des, -tes, -ade)
+            if (clean.endsWith('ades') && (sw === clean.slice(0, -4) + 'a' || sw === clean.slice(0, -4))) return true;
+            if (clean.endsWith('ade') && (sw === clean.slice(0, -3) + 'a' || sw === clean.slice(0, -3))) return true;
+            if (clean.endsWith('des') && sw === clean.slice(0, -3)) return true;
+            if (clean.endsWith('tes') && sw === clean.slice(0, -3)) return true;
+            if (clean.endsWith('s') && clean.length > 4 && sw === clean.slice(0, -1)) return true;
+        }
+
         return false;
     });
 
